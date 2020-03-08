@@ -555,11 +555,6 @@ export interface IEditorOptions {
 	 * Defaults to false.
 	 */
 	peekWidgetDefaultFocus?: 'tree' | 'editor';
-	/**
-	 * Controls whether the definition link opens element in the peek widget.
-	 * Defaults to false.
-	 */
-	definitionLinkOpensInPeek?: boolean;
 }
 
 export interface IEditorConstructionOptions extends IEditorOptions {
@@ -3197,7 +3192,6 @@ export const enum EditorOption {
 	overviewRulerLanes,
 	parameterHints,
 	peekWidgetDefaultFocus,
-	definitionLinkOpensInPeek,
 	quickSuggestions,
 	quickSuggestionsDelay,
 	readOnly,
@@ -3594,10 +3588,6 @@ export const EditorOptions = {
 			],
 			description: nls.localize('peekWidgetDefaultFocus', "Controls whether to focus the inline editor or the tree in the peek widget.")
 		}
-	)),
-	definitionLinkOpensInPeek: register(new EditorBooleanOption(
-		EditorOption.definitionLinkOpensInPeek, 'definitionLinkOpensInPeek', false,
-		{ description: nls.localize('definitionLinkOpensInPeek', "Controls whether the definition link opens element in the peek widget.") }
 	)),
 	quickSuggestions: register(new EditorQuickSuggestions()),
 	quickSuggestionsDelay: register(new EditorIntOption(
