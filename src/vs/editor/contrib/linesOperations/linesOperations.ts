@@ -38,20 +38,8 @@ abstract class AbstractCopyLinesAction extends EditorAction {
 
 	public run(_accessor: ServicesAccessor, editor: ICodeEditor): void {
 
-		let commands: ICommand[] = [];
-		let selections = editor.getSelections() || [];
-		selections = selections.reduce((accumulator, selection) => {
-			const isCurrentSelectionDuplicated = accumulator.some(value => (
-				value.startLineNumber === selection.startLineNumber &&
-				value.endLineNumber === selection.endLineNumber
-			));
-
-			if (isCurrentSelectionDuplicated) {
-				return accumulator;
-			}
-
-			return [...accumulator, selection];
-		}, []);
+		const commands: ICommand[] = [];
+		const selections = editor.getSelections() || [];
 
 		for (const selection of selections) {
 			commands.push(new CopyLinesCommand(selection, this.down));
