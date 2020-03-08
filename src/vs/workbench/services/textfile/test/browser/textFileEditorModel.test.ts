@@ -8,7 +8,7 @@ import { IInstantiationService } from 'vs/platform/instantiation/common/instanti
 import { EncodingMode } from 'vs/workbench/common/editor';
 import { TextFileEditorModel } from 'vs/workbench/services/textfile/common/textFileEditorModel';
 import { ITextFileService, ModelState, snapshotToString } from 'vs/workbench/services/textfile/common/textfiles';
-import { workbenchInstantiationService, TestTextFileService, createFileInput, TestFileService } from 'vs/workbench/test/workbenchTestServices';
+import { createFileInput, TestFileService, TestTextFileService, workbenchInstantiationService } from 'vs/workbench/test/browser/workbenchTestServices';
 import { toResource } from 'vs/base/test/common/utils';
 import { TextFileEditorModelManager } from 'vs/workbench/services/textfile/common/textFileEditorModelManager';
 import { FileOperationResult, FileOperationError, IFileService } from 'vs/platform/files/common/files';

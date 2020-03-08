@@ -7,7 +7,7 @@ import * as assert from 'assert';
 import { EditorGroup, ISerializedEditorGroup, EditorCloseEvent } from 'vs/workbench/common/editor/editorGroup';
 import { Extensions as EditorExtensions, IEditorInputFactoryRegistry, EditorInput, IFileEditorInput, IEditorInputFactory, CloseDirection, EditorsOrder } from 'vs/workbench/common/editor';
 import { URI } from 'vs/base/common/uri';
-import { TestLifecycleService, TestContextService, TestStorageService } from 'vs/workbench/test/workbenchTestServices';
+import { TestLifecycleService, TestContextService, TestStorageService } from 'vs/workbench/test/browser/workbenchTestServices';
 import { TestConfigurationService } from 'vs/platform/configuration/test/common/testConfigurationService';
 import { TestInstantiationService } from 'vs/platform/instantiation/test/common/instantiationServiceMock';
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';

@@ -10,7 +10,7 @@ import { IEditorModel } from 'vs/platform/editor/common/editor';
 import { URI } from 'vs/base/common/uri';
 import { IUntitledTextEditorService, UntitledTextEditorService } from 'vs/workbench/services/untitled/common/untitledTextEditorService';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
-import { workbenchInstantiationService } from 'vs/workbench/test/workbenchTestServices';
+import { workbenchInstantiationService } from 'vs/workbench/test/browser/workbenchTestServices';
 import { Schemas } from 'vs/base/common/network';
 
 class ServiceAccessor {

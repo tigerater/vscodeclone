@@ -7,7 +7,7 @@ import { KeyChord, KeyCode, KeyMod, SimpleKeybinding, createKeybinding } from 'v
 import { OperatingSystem } from 'vs/base/common/platform';
 import { ScanCode, ScanCodeBinding } from 'vs/base/common/scanCode';
 import { MacLinuxFallbackKeyboardMapper } from 'vs/workbench/services/keybinding/common/macLinuxFallbackKeyboardMapper';
-import { IResolvedKeybinding, assertResolveKeybinding, assertResolveKeyboardEvent, assertResolveUserBinding } from 'vs/workbench/services/keybinding/test/keyboardMapperTestUtils';
+import { IResolvedKeybinding, assertResolveKeybinding, assertResolveKeyboardEvent, assertResolveUserBinding } from 'vs/workbench/services/keybinding/test/electron-browser/keyboardMapperTestUtils';
 
 suite('keyboardMapper - MAC fallback', () => {
 

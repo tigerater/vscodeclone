@@ -8,6 +8,7 @@ import { URI } from 'vs/base/common/uri';
 import { isEqual, isEqualOrParent } from 'vs/base/common/extpath';
 import { FileChangeType, FileChangesEvent, isParent } from 'vs/platform/files/common/files';
 import { isLinux, isMacintosh, isWindows } from 'vs/base/common/platform';
+// eslint-disable-next-line code-import-patterns
 import { toResource } from 'vs/base/test/common/utils';
 
 suite('Files', () => {

@@ -6,7 +6,6 @@
 import 'vs/workbench/contrib/files/browser/files.contribution'; // load our contribution into the test
 import { FileEditorInput } from 'vs/workbench/contrib/files/common/editors/fileEditorInput';
 import { TestInstantiationService } from 'vs/platform/instantiation/test/common/instantiationServiceMock';
-import { join } from 'vs/base/common/path';
 import * as resources from 'vs/base/common/resources';
 import { URI } from 'vs/base/common/uri';
 import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
@@ -22,26 +21,23 @@ import { TextModelResolverService } from 'vs/workbench/services/textmodelResolve
 import { ITextModelService } from 'vs/editor/common/services/resolverService';
 import { IEditorOptions, IResourceInput } from 'vs/platform/editor/common/editor';
 import { IUntitledTextEditorService, UntitledTextEditorService } from 'vs/workbench/services/untitled/common/untitledTextEditorService';
-import { IWorkspaceContextService, IWorkspace as IWorkbenchWorkspace, WorkbenchState, IWorkspaceFolder, IWorkspaceFoldersChangeEvent, Workspace } from 'vs/platform/workspace/common/workspace';
+import { IWorkspaceContextService } from 'vs/platform/workspace/common/workspace';
 import { ILifecycleService, BeforeShutdownEvent, ShutdownReason, StartupKind, LifecyclePhase, WillShutdownEvent } from 'vs/platform/lifecycle/common/lifecycle';
 import { ServiceCollection } from 'vs/platform/instantiation/common/serviceCollection';
-import { FileOperationEvent, IFileService, FileOperationError, IFileStat, IResolveFileResult, FileChangesEvent, IResolveFileOptions, ICreateFileOptions, IFileSystemProvider, FileSystemProviderCapabilities, IFileChange, IWatchOptions, IStat, FileType, FileDeleteOptions, FileOverwriteOptions, FileWriteOptions, FileOpenOptions, IFileStatWithMetadata, IResolveMetadataFileOptions, IWriteFileOptions, IReadFileOptions, IFileContent, IFileStreamContent } from 'vs/platform/files/common/files';
+import { FileOperationEvent, IFileService, IFileStat, IResolveFileResult, FileChangesEvent, IResolveFileOptions, ICreateFileOptions, IFileSystemProvider, FileSystemProviderCapabilities, IFileChange, IWatchOptions, IStat, FileType, FileDeleteOptions, FileOverwriteOptions, FileWriteOptions, FileOpenOptions, IFileStatWithMetadata, IResolveMetadataFileOptions, IWriteFileOptions, IReadFileOptions, IFileContent, IFileStreamContent, FileOperationError } from 'vs/platform/files/common/files';
 import { IModelService } from 'vs/editor/common/services/modelService';
 import { ModeServiceImpl } from 'vs/editor/common/services/modeServiceImpl';
 import { ModelServiceImpl } from 'vs/editor/common/services/modelServiceImpl';
-import { ITextFileStreamContent, ITextFileService, IResourceEncoding, IReadTextFileOptions } from 'vs/workbench/services/textfile/common/textfiles';
-import { parseArgs, OPTIONS } from 'vs/platform/environment/node/argv';
+import { IResourceEncoding, ITextFileService, IReadTextFileOptions, ITextFileStreamContent } from 'vs/workbench/services/textfile/common/textfiles';
 import { IModeService } from 'vs/editor/common/services/modeService';
 import { IHistoryService } from 'vs/workbench/services/history/common/history';
 import { IInstantiationService, ServicesAccessor, ServiceIdentifier } from 'vs/platform/instantiation/common/instantiation';
 import { TestConfigurationService } from 'vs/platform/configuration/test/common/testConfigurationService';
-import { MenuBarVisibility, IWindowConfiguration, IWindowOpenable, IOpenWindowOptions, IOpenEmptyWindowOptions, IOpenedWindow } from 'vs/platform/windows/common/windows';
+import { MenuBarVisibility, IWindowOpenable, IOpenWindowOptions, IOpenEmptyWindowOptions } from 'vs/platform/windows/common/windows';
 import { TestWorkspace } from 'vs/platform/workspace/test/common/testWorkspace';
-import { createTextBufferFactoryFromStream } from 'vs/editor/common/model/textModel';
 import { IEnvironmentService } from 'vs/platform/environment/common/environment';
 import { IThemeService } from 'vs/platform/theme/common/themeService';
 import { TestThemeService } from 'vs/platform/theme/test/common/testThemeService';
-import { IWorkspaceIdentifier, ISingleFolderWorkspaceIdentifier, isSingleFolderWorkspaceIdentifier } from 'vs/platform/workspaces/common/workspaces';
 import { ITextResourceConfigurationService, ITextResourcePropertiesService } from 'vs/editor/common/services/textResourceConfigurationService';
 import { IPosition, Position as EditorPosition } from 'vs/editor/common/core/position';
 import { IMenuService, MenuId, IMenu } from 'vs/platform/actions/common/actions';
@@ -63,145 +59,49 @@ import { ICodeEditor, IDiffEditor } from 'vs/editor/browser/editorBrowser';
 import { IDecorationRenderOptions } from 'vs/editor/common/editorCommon';
 import { EditorGroup } from 'vs/workbench/common/editor/editorGroup';
 import { Dimension } from 'vs/base/browser/dom';
-import { ILogService, NullLogService, LogLevel } from 'vs/platform/log/common/log';
+import { ILogService, NullLogService } from 'vs/platform/log/common/log';
 import { ILabelService } from 'vs/platform/label/common/label';
 import { timeout } from 'vs/base/common/async';
 import { IViewletService } from 'vs/workbench/services/viewlet/browser/viewlet';
 import { ViewletDescriptor, Viewlet } from 'vs/workbench/browser/viewlet';
 import { IViewlet } from 'vs/workbench/common/viewlet';
-import { IStorageService, InMemoryStorageService, IWillSaveStateEvent } from 'vs/platform/storage/common/storage';
-import { isLinux, isMacintosh } from 'vs/base/common/platform';
+import { IStorageService } from 'vs/platform/storage/common/storage';
+import { isLinux } from 'vs/base/common/platform';
 import { LabelService } from 'vs/workbench/services/label/common/labelService';
 import { IDimension } from 'vs/platform/layout/browser/layoutService';
 import { Part } from 'vs/workbench/browser/part';
 import { IPanelService } from 'vs/workbench/services/panel/common/panelService';
 import { IPanel } from 'vs/workbench/common/panel';
 import { IBadge } from 'vs/workbench/services/activity/common/activity';
-import { ISharedProcessService } from 'vs/platform/ipc/electron-browser/sharedProcessService';
-import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
-import { NativeWorkbenchEnvironmentService } from 'vs/workbench/services/environment/electron-browser/environmentService';
 import { VSBuffer, VSBufferReadable } from 'vs/base/common/buffer';
-import { NativeTextFileService } from 'vs/workbench/services/textfile/electron-browser/nativeTextFileService';
 import { Schemas } from 'vs/base/common/network';
 import { IProductService } from 'vs/platform/product/common/productService';
 import product from 'vs/platform/product/common/product';
 import { IHostService } from 'vs/workbench/services/host/browser/host';
-import { IElectronService } from 'vs/platform/electron/node/electron';
-import { INativeOpenDialogOptions } from 'vs/platform/dialogs/node/dialogs';
-import { IBackupMainService, IWorkspaceBackupInfo } from 'vs/platform/backup/electron-main/backup';
-import { IEmptyWindowBackupInfo } from 'vs/platform/backup/node/backup';
-import { IDialogMainService } from 'vs/platform/dialogs/electron-main/dialogs';
 import { find } from 'vs/base/common/arrays';
-import { WorkingCopyService, IWorkingCopyService } from 'vs/workbench/services/workingCopy/common/workingCopyService';
+import { IWorkingCopyService } from 'vs/workbench/services/workingCopy/common/workingCopyService';
 import { IFilesConfigurationService, FilesConfigurationService } from 'vs/workbench/services/filesConfiguration/common/filesConfigurationService';
 import { IAccessibilityService, AccessibilitySupport } from 'vs/platform/accessibility/common/accessibility';
+import { BrowserWorkbenchEnvironmentService } from 'vs/workbench/services/environment/browser/environmentService';
+import { BrowserTextFileService } from 'vs/workbench/services/textfile/browser/browserTextFileService';
+import * as CommonWorkbenchTestServices from 'vs/workbench/test/common/workbenchTestServices';
+import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
+import { createTextBufferFactoryFromStream } from 'vs/editor/common/model/textModel';
+
+export import TestTextResourcePropertiesService = CommonWorkbenchTestServices.TestTextResourcePropertiesService;
+export import TestContextService = CommonWorkbenchTestServices.TestContextService;
+export import TestStorageService = CommonWorkbenchTestServices.TestStorageService;
+export import TestWorkingCopyService = CommonWorkbenchTestServices.TestWorkingCopyService;
 
 export function createFileInput(instantiationService: IInstantiationService, resource: URI): FileEditorInput {
 	return instantiationService.createInstance(FileEditorInput, resource, undefined, undefined);
 }
 
-export const TestWindowConfiguration: IWindowConfiguration = {
-	windowId: 0,
-	sessionId: 'testSessionId',
-	logLevel: LogLevel.Error,
-	mainPid: 0,
-	appRoot: '',
-	userEnv: {},
-	execPath: process.execPath,
-	perfEntries: [],
-	...parseArgs(process.argv, OPTIONS)
-};
-
-export const TestEnvironmentService = new NativeWorkbenchEnvironmentService(TestWindowConfiguration, process.execPath, 0);
-
-export class TestContextService implements IWorkspaceContextService {
-	_serviceBrand: undefined;
-
-	private workspace: Workspace;
-	private options: any;
-
-	private readonly _onDidChangeWorkspaceName: Emitter<void>;
-	private readonly _onDidChangeWorkspaceFolders: Emitter<IWorkspaceFoldersChangeEvent>;
-	private readonly _onDidChangeWorkbenchState: Emitter<WorkbenchState>;
-
-	constructor(workspace: any = TestWorkspace, options: any = null) {
-		this.workspace = workspace;
-		this.options = options || Object.create(null);
-		this._onDidChangeWorkspaceName = new Emitter<void>();
-		this._onDidChangeWorkspaceFolders = new Emitter<IWorkspaceFoldersChangeEvent>();
-		this._onDidChangeWorkbenchState = new Emitter<WorkbenchState>();
-	}
-
-	get onDidChangeWorkspaceName(): Event<void> {
-		return this._onDidChangeWorkspaceName.event;
-	}
-
-	get onDidChangeWorkspaceFolders(): Event<IWorkspaceFoldersChangeEvent> {
-		return this._onDidChangeWorkspaceFolders.event;
-	}
-
-	get onDidChangeWorkbenchState(): Event<WorkbenchState> {
-		return this._onDidChangeWorkbenchState.event;
-	}
-
-	getFolders(): IWorkspaceFolder[] {
-		return this.workspace ? this.workspace.folders : [];
-	}
-
-	getWorkbenchState(): WorkbenchState {
-		if (this.workspace.configuration) {
-			return WorkbenchState.WORKSPACE;
-		}
-
-		if (this.workspace.folders.length) {
-			return WorkbenchState.FOLDER;
-		}
-
-		return WorkbenchState.EMPTY;
-	}
-
-	getCompleteWorkspace(): Promise<IWorkbenchWorkspace> {
-		return Promise.resolve(this.getWorkspace());
-	}
-
-	getWorkspace(): IWorkbenchWorkspace {
-		return this.workspace;
-	}
-
-	getWorkspaceFolder(resource: URI): IWorkspaceFolder | null {
-		return this.workspace.getFolder(resource);
-	}
-
-	setWorkspace(workspace: any): void {
-		this.workspace = workspace;
-	}
-
-	getOptions() {
-		return this.options;
-	}
-
-	updateOptions() {
-
-	}
-
-	isInsideWorkspace(resource: URI): boolean {
-		if (resource && this.workspace) {
-			return resources.isEqualOrParent(resource, this.workspace.folders[0].uri);
-		}
-
-		return false;
-	}
-
-	toResource(workspaceRelativePath: string): URI {
-		return URI.file(join('C:\\', workspaceRelativePath));
-	}
-
-	isCurrentWorkspace(workspaceIdentifier: ISingleFolderWorkspaceIdentifier | IWorkspaceIdentifier): boolean {
-		return isSingleFolderWorkspaceIdentifier(workspaceIdentifier) && resources.isEqual(this.workspace.folders[0].uri, workspaceIdentifier);
-	}
+export interface ITestInstantiationService extends IInstantiationService {
+	stub<T>(service: ServiceIdentifier<T>, ctor: any): T;
 }
 
-export class TestTextFileService extends NativeTextFileService {
+export class TestTextFileService extends BrowserTextFileService {
 	private resolveTextContentError!: FileOperationError | null;
 
 	constructor(
@@ -230,7 +130,6 @@ export class TestTextFileService extends NativeTextFileService {
 			dialogService,
 			fileDialogService,
 			textResourceConfigurationService,
-			productService,
 			filesConfigurationService,
 			textModelService,
 			codeEditorService,
@@ -264,12 +163,11 @@ export class TestTextFileService extends NativeTextFileService {
 	}
 }
 
-export interface ITestInstantiationService extends IInstantiationService {
-	stub<T>(service: ServiceIdentifier<T>, ctor: any): T;
-}
+export const TestEnvironmentService = new BrowserWorkbenchEnvironmentService(Object.create(null));
 
-export function workbenchInstantiationService(): ITestInstantiationService {
-	let instantiationService = new TestInstantiationService(new ServiceCollection([ILifecycleService, new TestLifecycleService()]));
+export function workbenchInstantiationService(overrides?: { textFileService?: (instantiationService: IInstantiationService) => ITextFileService }): ITestInstantiationService {
+	const instantiationService = new TestInstantiationService(new ServiceCollection([ILifecycleService, new TestLifecycleService()]));
+
 	instantiationService.stub(IEnvironmentService, TestEnvironmentService);
 	const contextKeyService = <IContextKeyService>instantiationService.createInstance(MockContextKeyService);
 	instantiationService.stub(IContextKeyService, contextKeyService);
@@ -285,7 +183,6 @@ export function workbenchInstantiationService(): ITestInstantiationService {
 	instantiationService.stub(IDialogService, new TestDialogService());
 	instantiationService.stub(IAccessibilityService, new TestAccessibilityService());
 	instantiationService.stub(IFileDialogService, new TestFileDialogService());
-	instantiationService.stub(IElectronService, new TestElectronService());
 	instantiationService.stub(IModeService, instantiationService.createInstance(ModeServiceImpl));
 	instantiationService.stub(IHistoryService, new TestHistoryService());
 	instantiationService.stub(ITextResourcePropertiesService, new TestTextResourcePropertiesService(configService));
@@ -299,8 +196,8 @@ export function workbenchInstantiationService(): ITestInstantiationService {
 	instantiationService.stub(IKeybindingService, new MockKeybindingService());
 	instantiationService.stub(IDecorationsService, new TestDecorationsService());
 	instantiationService.stub(IExtensionService, new TestExtensionService());
+	instantiationService.stub(ITextFileService, overrides?.textFileService ? overrides.textFileService(instantiationService) : <ITextFileService>instantiationService.createInstance(TestTextFileService));
 	instantiationService.stub(IHostService, <IHostService>instantiationService.createInstance(TestHostService));
-	instantiationService.stub(ITextFileService, <ITextFileService>instantiationService.createInstance(TestTextFileService));
 	instantiationService.stub(ITextModelService, <ITextModelService>instantiationService.createInstance(TextModelResolverService));
 	instantiationService.stub(IThemeService, new TestThemeService());
 	instantiationService.stub(ILogService, new NullLogService());
@@ -665,11 +562,6 @@ export class TestPanelService implements IPanelService {
 	getLastActivePanelId(): string {
 		return undefined!;
 	}
-}
-
-export class TestStorageService extends InMemoryStorageService {
-	readonly _onWillSaveState = this._register(new Emitter<IWillSaveStateEvent>());
-	readonly onWillSaveState = this._onWillSaveState.event;
 }
 
 export class TestEditorGroupsService implements IEditorGroupsService {
@@ -1301,39 +1193,6 @@ export class TestTextResourceConfigurationService implements ITextResourceConfig
 	}
 }
 
-export class TestTextResourcePropertiesService implements ITextResourcePropertiesService {
-
-	_serviceBrand: undefined;
-
-	constructor(
-		@IConfigurationService private readonly configurationService: IConfigurationService,
-	) {
-	}
-
-	getEOL(resource: URI, language?: string): string {
-		const eol = this.configurationService.getValue<string>('files.eol', { overrideIdentifier: language, resource });
-		if (eol && eol !== 'auto') {
-			return eol;
-		}
-		return (isLinux || isMacintosh) ? '\n' : '\r\n';
-	}
-}
-
-
-export class TestSharedProcessService implements ISharedProcessService {
-
-	_serviceBrand: undefined;
-
-	getChannel(channelName: string): any {
-		return undefined;
-	}
-
-	registerChannel(channelName: string, channel: any): void { }
-
-	async toggleSharedProcessWindow(): Promise<void> { }
-	async whenSharedProcessReady(): Promise<void> { }
-}
-
 export class RemoteFileSystemProvider implements IFileSystemProvider {
 
 	constructor(private readonly diskFileSystemProvider: IFileSystemProvider, private readonly remoteAuthority: string) { }
@@ -1386,140 +1245,6 @@ export class TestHostService implements IHostService {
 
 	async toggleFullScreen(): Promise<void> { }
 }
-
-export class TestElectronService implements IElectronService {
-	_serviceBrand: undefined;
-
-	onWindowOpen: Event<number> = Event.None;
-	onWindowMaximize: Event<number> = Event.None;
-	onWindowUnmaximize: Event<number> = Event.None;
-	onWindowFocus: Event<number> = Event.None;
-	onWindowBlur: Event<number> = Event.None;
-
-	windowCount = Promise.resolve(1);
-	getWindowCount(): Promise<number> { return this.windowCount; }
-
-	async getWindows(): Promise<IOpenedWindow[]> { return []; }
-	async getActiveWindowId(): Promise<number | undefined> { return undefined; }
-
-	openWindow(options?: IOpenEmptyWindowOptions): Promise<void>;
-	openWindow(toOpen: IWindowOpenable[], options?: IOpenWindowOptions): Promise<void>;
-	openWindow(arg1?: IOpenEmptyWindowOptions | IWindowOpenable[], arg2?: IOpenWindowOptions): Promise<void> {
-		throw new Error('Method not implemented.');
-	}
-
-	async toggleFullScreen(): Promise<void> { }
-	async handleTitleDoubleClick(): Promise<void> { }
-	async isMaximized(): Promise<boolean> { return true; }
-	async maximizeWindow(): Promise<void> { }
-	async unmaximizeWindow(): Promise<void> { }
-	async minimizeWindow(): Promise<void> { }
-	async focusWindow(options?: { windowId?: number | undefined; } | undefined): Promise<void> { }
-	async showMessageBox(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> { throw new Error('Method not implemented.'); }
-	async showSaveDialog(options: Electron.SaveDialogOptions): Promise<Electron.SaveDialogReturnValue> { throw new Error('Method not implemented.'); }
-	async showOpenDialog(options: Electron.OpenDialogOptions): Promise<Electron.OpenDialogReturnValue> { throw new Error('Method not implemented.'); }
-	async pickFileFolderAndOpen(options: INativeOpenDialogOptions): Promise<void> { }
-	async pickFileAndOpen(options: INativeOpenDialogOptions): Promise<void> { }
-	async pickFolderAndOpen(options: INativeOpenDialogOptions): Promise<void> { }
-	async pickWorkspaceAndOpen(options: INativeOpenDialogOptions): Promise<void> { }
-	async showItemInFolder(path: string): Promise<void> { }
-	async setRepresentedFilename(path: string): Promise<void> { }
-	async setDocumentEdited(edited: boolean): Promise<void> { }
-	async openExternal(url: string): Promise<boolean> { return false; }
-	async updateTouchBar(): Promise<void> { }
-	async newWindowTab(): Promise<void> { }
-	async showPreviousWindowTab(): Promise<void> { }
-	async showNextWindowTab(): Promise<void> { }
-	async moveWindowTabToNewWindow(): Promise<void> { }
-	async mergeAllWindowTabs(): Promise<void> { }
-	async toggleWindowTabsBar(): Promise<void> { }
-	async relaunch(options?: { addArgs?: string[] | undefined; removeArgs?: string[] | undefined; } | undefined): Promise<void> { }
-	async reload(): Promise<void> { }
-	async closeWindow(): Promise<void> { }
-	async quit(): Promise<void> { }
-	async openDevTools(options?: Electron.OpenDevToolsOptions | undefined): Promise<void> { }
-	async toggleDevTools(): Promise<void> { }
-	async startCrashReporter(options: Electron.CrashReporterStartOptions): Promise<void> { }
-	async resolveProxy(url: string): Promise<string | undefined> { return undefined; }
-}
-
-export class TestBackupMainService implements IBackupMainService {
-	_serviceBrand: undefined;
-
-	isHotExitEnabled(): boolean {
-		throw new Error('Method not implemented.');
-	}
-
-	getWorkspaceBackups(): IWorkspaceBackupInfo[] {
-		throw new Error('Method not implemented.');
-	}
-
-	getFolderBackupPaths(): URI[] {
-		throw new Error('Method not implemented.');
-	}
-
-	getEmptyWindowBackupPaths(): IEmptyWindowBackupInfo[] {
-		throw new Error('Method not implemented.');
-	}
-
-	registerWorkspaceBackupSync(workspace: IWorkspaceBackupInfo, migrateFrom?: string | undefined): string {
-		throw new Error('Method not implemented.');
-	}
-
-	registerFolderBackupSync(folderUri: URI): string {
-		throw new Error('Method not implemented.');
-	}
-
-	registerEmptyWindowBackupSync(backupFolder?: string | undefined, remoteAuthority?: string | undefined): string {
-		throw new Error('Method not implemented.');
-	}
-
-	unregisterWorkspaceBackupSync(workspace: IWorkspaceIdentifier): void {
-		throw new Error('Method not implemented.');
-	}
-
-	unregisterFolderBackupSync(folderUri: URI): void {
-		throw new Error('Method not implemented.');
-	}
-
-	unregisterEmptyWindowBackupSync(backupFolder: string): void {
-		throw new Error('Method not implemented.');
-	}
-}
-
-export class TestDialogMainService implements IDialogMainService {
-	_serviceBrand: undefined;
-
-	pickFileFolder(options: INativeOpenDialogOptions, window?: Electron.BrowserWindow | undefined): Promise<string[] | undefined> {
-		throw new Error('Method not implemented.');
-	}
-
-	pickFolder(options: INativeOpenDialogOptions, window?: Electron.BrowserWindow | undefined): Promise<string[] | undefined> {
-		throw new Error('Method not implemented.');
-	}
-
-	pickFile(options: INativeOpenDialogOptions, window?: Electron.BrowserWindow | undefined): Promise<string[] | undefined> {
-		throw new Error('Method not implemented.');
-	}
-
-	pickWorkspace(options: INativeOpenDialogOptions, window?: Electron.BrowserWindow | undefined): Promise<string[] | undefined> {
-		throw new Error('Method not implemented.');
-	}
-
-	showMessageBox(options: Electron.MessageBoxOptions, window?: Electron.BrowserWindow | undefined): Promise<Electron.MessageBoxReturnValue> {
-		throw new Error('Method not implemented.');
-	}
-
-	showSaveDialog(options: Electron.SaveDialogOptions, window?: Electron.BrowserWindow | undefined): Promise<Electron.SaveDialogReturnValue> {
-		throw new Error('Method not implemented.');
-	}
-
-	showOpenDialog(options: Electron.OpenDialogOptions, window?: Electron.BrowserWindow | undefined): Promise<Electron.OpenDialogReturnValue> {
-		throw new Error('Method not implemented.');
-	}
-}
-
-export class TestWorkingCopyService extends WorkingCopyService { }
 
 export class TestFilesConfigurationService extends FilesConfigurationService {
 

@@ -5,7 +5,7 @@
 import * as assert from 'assert';
 import { URI } from 'vs/base/common/uri';
 import { ILifecycleService } from 'vs/platform/lifecycle/common/lifecycle';
-import { workbenchInstantiationService, TestLifecycleService, TestContextService, TestFileService, TestElectronService, TestFilesConfigurationService, TestFileDialogService, TestTextFileService } from 'vs/workbench/test/workbenchTestServices';
+import { TestLifecycleService, TestContextService, TestFileService, TestFilesConfigurationService, TestFileDialogService, TestTextFileService, workbenchInstantiationService } from 'vs/workbench/test/browser/workbenchTestServices';
 import { toResource } from 'vs/base/test/common/utils';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { TextFileEditorModel } from 'vs/workbench/services/textfile/common/textFileEditorModel';
@@ -15,7 +15,6 @@ import { TextFileEditorModelManager } from 'vs/workbench/services/textfile/commo
 import { IWorkspaceContextService } from 'vs/platform/workspace/common/workspace';
 import { IModelService } from 'vs/editor/common/services/modelService';
 import { ModelServiceImpl } from 'vs/editor/common/services/modelServiceImpl';
-import { IElectronService } from 'vs/platform/electron/node/electron';
 import { IFilesConfigurationService } from 'vs/workbench/services/filesConfiguration/common/filesConfigurationService';
 import { IFileDialogService } from 'vs/platform/dialogs/common/dialogs';
 
@@ -27,7 +26,6 @@ class ServiceAccessor {
 		@IWorkspaceContextService public contextService: TestContextService,
 		@IModelService public modelService: ModelServiceImpl,
 		@IFileService public fileService: TestFileService,
-		@IElectronService public electronService: TestElectronService,
 		@IFileDialogService public fileDialogService: TestFileDialogService
 	) {
 	}

@@ -17,7 +17,7 @@ import { ITextBufferFactory } from 'vs/editor/common/model';
 import { URI } from 'vs/base/common/uri';
 import { createTextBufferFactory } from 'vs/editor/common/model/textModel';
 import { ITextResourcePropertiesService } from 'vs/editor/common/services/textResourceConfigurationService';
-import { TestTextResourcePropertiesService } from 'vs/workbench/test/workbenchTestServices';
+import { TestTextResourcePropertiesService } from 'vs/workbench/test/browser/workbenchTestServices';
 
 class MyEditorModel extends EditorModel { }
 class MyTextEditorModel extends BaseTextEditorModel {

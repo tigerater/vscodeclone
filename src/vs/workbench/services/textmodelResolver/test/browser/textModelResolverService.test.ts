@@ -9,7 +9,7 @@ import { URI } from 'vs/base/common/uri';
 import { ResourceEditorInput } from 'vs/workbench/common/editor/resourceEditorInput';
 import { ResourceEditorModel } from 'vs/workbench/common/editor/resourceEditorModel';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
-import { workbenchInstantiationService, TestTextFileService } from 'vs/workbench/test/workbenchTestServices';
+import { workbenchInstantiationService } from 'vs/workbench/test/browser/workbenchTestServices';
 import { toResource } from 'vs/base/test/common/utils';
 import { ITextModelService } from 'vs/editor/common/services/resolverService';
 import { IModelService } from 'vs/editor/common/services/modelService';
@@ -26,7 +26,7 @@ class ServiceAccessor {
 		@ITextModelService public textModelResolverService: ITextModelService,
 		@IModelService public modelService: IModelService,
 		@IModeService public modeService: IModeService,
-		@ITextFileService public textFileService: TestTextFileService,
+		@ITextFileService public textFileService: ITextFileService,
 		@IUntitledTextEditorService public untitledTextEditorService: IUntitledTextEditorService
 	) {
 	}

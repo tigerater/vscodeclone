@@ -11,8 +11,7 @@ import { IModeService } from 'vs/editor/common/services/modeService';
 import { ResourceEditorInput } from 'vs/workbench/common/editor/resourceEditorInput';
 import { URI } from 'vs/base/common/uri';
 import { ITextModelService } from 'vs/editor/common/services/resolverService';
-import { ITextFileService } from 'vs/workbench/services/textfile/common/textfiles';
-import { TestTextFileService, workbenchInstantiationService } from 'vs/workbench/test/workbenchTestServices';
+import { workbenchInstantiationService } from 'vs/workbench/test/browser/workbenchTestServices';
 import { ITextModel } from 'vs/editor/common/model';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 
@@ -21,7 +20,6 @@ class ServiceAccessor {
 		@ITextModelService public textModelResolverService: ITextModelService,
 		@IModelService public modelService: IModelService,
 		@IModeService public modeService: IModeService,
-		@ITextFileService public textFileService: TestTextFileService
 	) {
 	}
 }

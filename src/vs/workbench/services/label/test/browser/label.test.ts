@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as assert from 'assert';
-import { TestEnvironmentService, TestContextService } from 'vs/workbench/test/workbenchTestServices';
+import { TestEnvironmentService, TestContextService } from 'vs/workbench/test/browser/workbenchTestServices';
 import { TestWorkspace } from 'vs/platform/workspace/test/common/testWorkspace';
 import { URI } from 'vs/base/common/uri';
 import { sep } from 'vs/base/common/path';

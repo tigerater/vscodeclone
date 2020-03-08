@@ -13,7 +13,7 @@ import { TestInstantiationService } from 'vs/platform/instantiation/test/common/
 import { IFolderQuery, IPatternInfo, QueryType, ITextQuery, IFileQuery } from 'vs/workbench/services/search/common/search';
 import { IWorkspaceContextService, toWorkspaceFolder, Workspace, toWorkspaceFolders } from 'vs/platform/workspace/common/workspace';
 import { ISearchPathsInfo, QueryBuilder } from 'vs/workbench/contrib/search/common/queryBuilder';
-import { TestContextService, TestEnvironmentService } from 'vs/workbench/test/workbenchTestServices';
+import { TestContextService, TestEnvironmentService } from 'vs/workbench/test/browser/workbenchTestServices';
 import { isWindows } from 'vs/base/common/platform';
 
 const DEFAULT_EDITOR_CONFIG = {};
@@ -584,32 +584,6 @@ suite('QueryBuilder', () => {
 			cases.forEach(testIncludesDataItem);
 		});
 
-		test('includes with tilde', () => {
-			const userHome = TestEnvironmentService.userHome;
-			const cases: [string, ISearchPathsInfo][] = [
-				[
-					'~/foo/bar',
-					{
-						searchPaths: [{ searchPath: getUri(userHome, '/foo/bar') }]
-					}
-				],
-				[
-					'~/foo/bar, a',
-					{
-						searchPaths: [{ searchPath: getUri(userHome, '/foo/bar') }],
-						pattern: patternsToIExpression(...globalGlob('a'))
-					}
-				],
-				[
-					fixPath('/foo/~/bar'),
-					{
-						searchPaths: [{ searchPath: getUri('/foo/~/bar') }]
-					}
-				],
-			];
-			cases.forEach(testIncludesDataItem);
-		});
-
 		test('relative includes w/single root folder', () => {
 			const cases: [string, ISearchPathsInfo][] = [
 				[
@@ -949,7 +923,7 @@ function assertEqualTextQueries(actual: ITextQuery, expected: ITextQuery): void 
 	return assertEqualQueries(actual, expected);
 }
 
-function assertEqualQueries(actual: ITextQuery | IFileQuery, expected: ITextQuery | IFileQuery): void {
+export function assertEqualQueries(actual: ITextQuery | IFileQuery, expected: ITextQuery | IFileQuery): void {
 	expected = {
 		...DEFAULT_QUERY_PROPS,
 		...expected
@@ -985,7 +959,7 @@ function assertEqualQueries(actual: ITextQuery | IFileQuery, expected: ITextQuer
 	assert.deepEqual(actual, expected);
 }
 
-function assertEqualSearchPathResults(actual: ISearchPathsInfo, expected: ISearchPathsInfo, message?: string): void {
+export function assertEqualSearchPathResults(actual: ISearchPathsInfo, expected: ISearchPathsInfo, message?: string): void {
 	cleanUndefinedQueryValues(actual);
 	assert.deepEqual(actual.pattern, expected.pattern, message);
 
@@ -1003,7 +977,7 @@ function assertEqualSearchPathResults(actual: ISearchPathsInfo, expected: ISearc
  * Recursively delete all undefined property values from the search query, to make it easier to
  * assert.deepEqual with some expected object.
  */
-function cleanUndefinedQueryValues(q: any): void {
+export function cleanUndefinedQueryValues(q: any): void {
 	for (const key in q) {
 		if (q[key] === undefined) {
 			delete q[key];
@@ -1015,24 +989,24 @@ function cleanUndefinedQueryValues(q: any): void {
 	return q;
 }
 
-function globalGlob(pattern: string): string[] {
+export function globalGlob(pattern: string): string[] {
 	return [
 		`**/${pattern}/**`,
 		`**/${pattern}`
 	];
 }
 
-function patternsToIExpression(...patterns: string[]): IExpression {
+export function patternsToIExpression(...patterns: string[]): IExpression {
 	return patterns.length ?
 		patterns.reduce((glob, cur) => { glob[cur] = true; return glob; }, Object.create(null)) :
 		undefined;
 }
 
-function getUri(...slashPathParts: string[]): uri {
+export function getUri(...slashPathParts: string[]): uri {
 	return uri.file(fixPath(...slashPathParts));
 }
 
-function fixPath(...slashPathParts: string[]): string {
+export function fixPath(...slashPathParts: string[]): string {
 	if (isWindows && slashPathParts.length && !slashPathParts[0].match(/^c:/i)) {
 		slashPathParts.unshift('c:');
 	}
@@ -1040,7 +1014,7 @@ function fixPath(...slashPathParts: string[]): string {
 	return join(...slashPathParts);
 }
 
-function normalizeExpression(expression: IExpression | undefined): IExpression | undefined {
+export function normalizeExpression(expression: IExpression | undefined): IExpression | undefined {
 	if (!expression) {
 		return expression;
 	}

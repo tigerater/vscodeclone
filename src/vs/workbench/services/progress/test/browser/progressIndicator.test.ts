@@ -10,7 +10,7 @@ import { CompositeScope, CompositeProgressIndicator } from 'vs/workbench/service
 import { IViewletService } from 'vs/workbench/services/viewlet/browser/viewlet';
 import { IPanelService } from 'vs/workbench/services/panel/common/panelService';
 import { IViewlet } from 'vs/workbench/common/viewlet';
-import { TestViewletService, TestPanelService } from 'vs/workbench/test/workbenchTestServices';
+import { TestViewletService, TestPanelService } from 'vs/workbench/test/browser/workbenchTestServices';
 import { Event } from 'vs/base/common/event';
 import { IView, IViewPaneContainer } from 'vs/workbench/common/views';
 

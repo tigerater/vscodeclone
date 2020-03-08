@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 import * as assert from 'assert';
 import { URI } from 'vs/base/common/uri';
-import { workbenchInstantiationService, TestTextFileService } from 'vs/workbench/test/workbenchTestServices';
 import { ITextFileService, snapshotToString, TextFileOperationResult, TextFileOperationError } from 'vs/workbench/services/textfile/common/textfiles';
 import { IFileService } from 'vs/platform/files/common/files';
 import { TextFileEditorModelManager } from 'vs/workbench/services/textfile/common/textFileEditorModelManager';
@@ -27,6 +26,7 @@ import { TextModel } from 'vs/editor/common/model/textModel';
 import { isWindows } from 'vs/base/common/platform';
 import { readFileSync, statSync } from 'fs';
 import { detectEncodingByBOM } from 'vs/base/test/node/encoding/encoding.test';
+import { workbenchInstantiationService, TestTextFileService } from 'vs/workbench/test/electron-browser/workbenchTestServices';
 
 class ServiceAccessor {
 	constructor(

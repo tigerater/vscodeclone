@@ -50,7 +50,7 @@ export function assertResolveUserBinding(mapper: IKeyboardMapper, parts: (Simple
 }
 
 export function readRawMapping<T>(file: string): Promise<T> {
-	return readFile(getPathFromAmdModule(require, `vs/workbench/services/keybinding/test/${file}.js`)).then((buff) => {
+	return readFile(getPathFromAmdModule(require, `vs/workbench/services/keybinding/test/electron-browser/${file}.js`)).then((buff) => {
 		let contents = buff.toString();
 		let func = new Function('define', contents);
 		let rawMappings: T | null = null;
@@ -62,7 +62,7 @@ export function readRawMapping<T>(file: string): Promise<T> {
 }
 
 export function assertMapping(writeFileIfDifferent: boolean, mapper: IKeyboardMapper, file: string): Promise<void> {
-	const filePath = path.normalize(getPathFromAmdModule(require, `vs/workbench/services/keybinding/test/${file}`));
+	const filePath = path.normalize(getPathFromAmdModule(require, `vs/workbench/services/keybinding/test/electron-browser/${file}`));
 
 	return readFile(filePath).then((buff) => {
 		let expected = buff.toString();

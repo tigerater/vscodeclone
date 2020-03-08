@@ -7,7 +7,7 @@ import * as assert from 'assert';
 import { URI } from 'vs/base/common/uri';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { TextFileEditorModelManager } from 'vs/workbench/services/textfile/common/textFileEditorModelManager';
-import { workbenchInstantiationService, TestFileService } from 'vs/workbench/test/workbenchTestServices';
+import { workbenchInstantiationService, TestFileService } from 'vs/workbench/test/browser/workbenchTestServices';
 import { TextFileEditorModel } from 'vs/workbench/services/textfile/common/textFileEditorModel';
 import { IFileService, FileChangesEvent, FileChangeType } from 'vs/platform/files/common/files';
 import { IModelService } from 'vs/editor/common/services/modelService';

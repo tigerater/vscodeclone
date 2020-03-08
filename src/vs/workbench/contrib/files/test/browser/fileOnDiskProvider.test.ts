@@ -5,7 +5,7 @@
 
 import * as assert from 'assert';
 import { URI } from 'vs/base/common/uri';
-import { workbenchInstantiationService, TestFileService } from 'vs/workbench/test/workbenchTestServices';
+import { workbenchInstantiationService, TestFileService } from 'vs/workbench/test/browser/workbenchTestServices';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { TextFileContentProvider } from 'vs/workbench/contrib/files/common/files';
 import { snapshotToString } from 'vs/workbench/services/textfile/common/textfiles';

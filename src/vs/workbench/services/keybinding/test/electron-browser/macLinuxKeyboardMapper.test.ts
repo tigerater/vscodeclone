@@ -10,7 +10,7 @@ import { OperatingSystem } from 'vs/base/common/platform';
 import { ScanCode, ScanCodeBinding, ScanCodeUtils } from 'vs/base/common/scanCode';
 import { USLayoutResolvedKeybinding } from 'vs/platform/keybinding/common/usLayoutResolvedKeybinding';
 import { IMacLinuxKeyboardMapping, MacLinuxKeyboardMapper } from 'vs/workbench/services/keybinding/common/macLinuxKeyboardMapper';
-import { IResolvedKeybinding, assertMapping, assertResolveKeybinding, assertResolveKeyboardEvent, assertResolveUserBinding, readRawMapping } from 'vs/workbench/services/keybinding/test/keyboardMapperTestUtils';
+import { IResolvedKeybinding, assertMapping, assertResolveKeybinding, assertResolveKeyboardEvent, assertResolveUserBinding, readRawMapping } from 'vs/workbench/services/keybinding/test/electron-browser/keyboardMapperTestUtils';
 
 const WRITE_FILE_IF_DIFFERENT = false;
 

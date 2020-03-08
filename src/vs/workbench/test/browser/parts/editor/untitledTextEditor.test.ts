@@ -9,7 +9,7 @@ import { IInstantiationService } from 'vs/platform/instantiation/common/instanti
 import { IUntitledTextEditorService, UntitledTextEditorService } from 'vs/workbench/services/untitled/common/untitledTextEditorService';
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { TestConfigurationService } from 'vs/platform/configuration/test/common/testConfigurationService';
-import { workbenchInstantiationService, TestEditorService } from 'vs/workbench/test/workbenchTestServices';
+import { workbenchInstantiationService, TestEditorService } from 'vs/workbench/test/browser/workbenchTestServices';
 import { IModeService } from 'vs/editor/common/services/modeService';
 import { ModeServiceImpl } from 'vs/editor/common/services/modeServiceImpl';
 import { snapshotToString } from 'vs/workbench/services/textfile/common/textfiles';
