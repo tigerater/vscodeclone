@@ -3440,13 +3440,7 @@ export const EditorOptions = {
 		EditorOption.foldingStrategy, 'foldingStrategy',
 		'auto' as 'auto' | 'indentation',
 		['auto', 'indentation'] as const,
-		{
-			enumDescriptions: [
-				nls.localize('foldingStrategy.auto', "Use a language-specific folding strategy if available, else the indentation-based one."),
-				nls.localize('foldingStrategy.indentation', "Use the indentation-based folding strategy."),
-			],
-			description: nls.localize('foldingStrategy', "Controls the strategy for computing folding ranges.")
-		}
+		{ markdownDescription: nls.localize('foldingStrategy', "Controls the strategy for computing folding ranges. `auto` uses a language specific folding strategy, if available. `indentation` uses the indentation based folding strategy.") }
 	)),
 	foldingHighlight: register(new EditorBooleanOption(
 		EditorOption.foldingHighlight, 'foldingHighlight', true,
