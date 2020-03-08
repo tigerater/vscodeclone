@@ -1111,8 +1111,15 @@ export class TextEditorOptions extends EditorOptions implements ITextEditorOptio
 
 	/**
 	 * Option to scroll vertically or horizontally as necessary and reveal a range centered vertically only if it lies outside the viewport.
+	 * This can't be used in combination with revealAtDefinition.
 	 */
 	revealInCenterIfOutsideViewport: boolean | undefined;
+
+	/**
+	 * Option to scroll vertically or horizontally as necessary and reveal a range close to the top of the viewport,
+	 * optimized for viewing a code definition.
+	 */
+	revealAtDefinition: boolean | undefined;
 
 	static from(input?: IBaseResourceInput): TextEditorOptions | undefined {
 		if (!input || !input.options) {
@@ -1149,6 +1156,13 @@ export class TextEditorOptions extends EditorOptions implements ITextEditorOptio
 
 		if (options.viewState) {
 			this.editorViewState = options.viewState as IEditorViewState;
+		}
+
+		if (typeof options.revealAtDefinition === 'boolean') {
+			this.revealAtDefinition = options.revealAtDefinition;
+			if (options.revealInCenterIfOutsideViewport) {
+				throw new Error('revealInCenterIfOutsideViewport and revealAtDefinition cannot both be true');
+			}
 		}
 
 		if (typeof options.revealInCenterIfOutsideViewport === 'boolean') {
@@ -1202,7 +1216,9 @@ export class TextEditorOptions extends EditorOptions implements ITextEditorOptio
 
 			editor.setSelection(range);
 
-			if (this.revealInCenterIfOutsideViewport) {
+			if (this.revealAtDefinition) {
+				editor.revealRangeAtDefinition(range, scrollType);
+			} else if (this.revealInCenterIfOutsideViewport) {
 				editor.revealRangeInCenterIfOutsideViewport(range, scrollType);
 			} else {
 				editor.revealRangeInCenter(range, scrollType);
