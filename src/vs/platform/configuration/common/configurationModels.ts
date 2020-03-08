@@ -515,7 +515,7 @@ export class Configuration {
 		const currentFolderConfiguration = this.folderConfigurations.get(resource);
 		const { added, updated, removed, overrides } = compare(currentFolderConfiguration, folderConfiguration);
 		let keys = [...added, ...updated, ...removed];
-		if (keys.length || !currentFolderConfiguration) {
+		if (keys.length) {
 			this.updateFolderConfiguration(resource, folderConfiguration);
 		}
 		return { keys, overrides };

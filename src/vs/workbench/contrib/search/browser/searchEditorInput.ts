@@ -134,15 +134,11 @@ export class SearchEditorInput extends EditorInput {
 		return SearchEditorInput.ID;
 	}
 
-	getName(maxLength = 12): string {
-		const trimToMax = (label: string) => (label.length < maxLength ? label : `${label.slice(0, maxLength - 3)}...`);
-
+	getName(): string {
 		if (this.isUntitled()) {
-			const query = this.query?.query?.trim();
-			if (query) {
-				return localize('searchTitle.withQuery', "Search: {0}", trimToMax(query));
-			}
-			return localize('searchTitle', "Search");
+			return (this.query?.query
+				? localize('searchTitle.withQuery', "Search: {0}", this.query.query)
+				: localize('searchTitle', "Search"));
 		}
 
 		return localize('searchTitle.withQuery', "Search: {0}", basename(this.resource.path, '.code-search'));
