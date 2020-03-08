@@ -56,7 +56,6 @@ suite('HTML SelectionRange', () => {
 			[34, 'none'],
 			[25, 'display: none'],
 			[24, ' display: none; '],
-			[23, '{ display: none; }'],
 			[19, 'foo { display: none; }'],
 			[19, 'foo { display: none; } '],
 			[12, '<style>foo { display: none; } </style>'],
