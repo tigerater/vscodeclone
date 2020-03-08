@@ -26,6 +26,11 @@ declare module 'vscode' {
 	}
 
 	export interface AuthenticationProvider {
+		/**
+		 * Used as an identifier for extensions trying to work with a particular
+		 * provider: 'Microsoft', 'GitHub', etc. id must be unique, registering
+		 * another provider with the same id will fail.
+		 */
 		readonly id: string;
 		readonly displayName: string;
 		readonly onDidChangeSessions: Event<void>;
@@ -93,7 +98,8 @@ declare module 'vscode' {
 	}
 
 	/**
-	 * Used as part of the ResolverResult if the extension has any candidate, published, or forwarded ports.
+	 * Used as part of the ResolverResult if the extension has any candidate,
+	 * published, or forwarded ports.
 	 */
 	export interface TunnelInformation {
 		/**
@@ -235,7 +241,7 @@ declare module 'vscode' {
 		 *  - at index `5*i`   - `deltaLine`: token line number, relative to the previous token
 		 *  - at index `5*i+1` - `deltaStart`: token start character, relative to the previous token (relative to 0 or the previous token's start if they are on the same line)
 		 *  - at index `5*i+2` - `length`: the length of the token. A token cannot be multiline.
-		 *  - at index `5*i+3` - `tokenType`: will be looked up in `SemanticTokensLegend.tokenTypes`
+		 *  - at index `5*i+3` - `tokenType`: will be looked up in `SemanticTokensLegend.tokenTypes`. We currently ask that `tokenType` < 65536.
 		 *  - at index `5*i+4` - `tokenModifiers`: each set bit will be looked up in `SemanticTokensLegend.tokenModifiers`
 		 *
 		 * ---
@@ -960,8 +966,8 @@ declare module 'vscode' {
 	export interface SourceControlInputBox {
 
 		/**
-			* Controls whether the input box is visible (default is `true`).
-			*/
+		 * Controls whether the input box is visible (default is `true`).
+		 */
 		visible: boolean;
 	}
 
@@ -1315,8 +1321,8 @@ declare module 'vscode' {
 
 	export interface QuickPick<T extends QuickPickItem> extends QuickInput {
 		/**
-		* An optional flag to sort the final results by index of first query match in label. Defaults to true.
-		*/
+		 * An optional flag to sort the final results by index of first query match in label. Defaults to true.
+		 */
 		sortByLabel: boolean;
 	}
 
@@ -1466,6 +1472,106 @@ declare module 'vscode' {
 			 */
 			link: Uri;
 		}
+	}
+
+	//#endregion
+
+	//#region eamodio - timeline: https://github.com/microsoft/vscode/issues/84297
+
+	export class TimelineItem {
+		/**
+		 * A timestamp (in milliseconds since 1 January 1970 00:00:00) for when the timeline item occurred
+		 */
+		timestamp: number;
+
+		/**
+		 * A human-readable string describing the timeline item. When `falsy`, it is derived from [resourceUri](#TreeItem.resourceUri).
+		 */
+		label: string;
+
+		/**
+		 * Optional id for the timeline item. See [TreeItem.id](#TreeItem.id) for more details.
+		 */
+		id?: string;
+
+		/**
+		 * The icon path or [ThemeIcon](#ThemeIcon) for the timeline item. See [TreeItem.iconPath](#TreeItem.iconPath) for more details.
+		 */
+		iconPath?: Uri | { light: Uri; dark: Uri } | ThemeIcon;
+
+		/**
+		 * A human readable string describing less prominent details of the timeline item. See [TreeItem.description](#TreeItem.description) for more details.
+		 */
+		description?: string;
+
+		/**
+		 * The tooltip text when you hover over the timeline item.
+		 */
+		detail?: string;
+
+		/**
+		 * The [command](#Command) that should be executed when the timeline item is selected.
+		 */
+		command?: Command;
+
+		/**
+		 * Context value of the timeline item.  See [TreeItem.contextValue](#TreeItem.contextValue) for more details.
+		 */
+		contextValue?: string;
+
+		/**
+		 * @param label A human-readable string describing the timeline item
+		 * @param timestamp A timestamp (in milliseconds since 1 January 1970 00:00:00) for when the timeline item occurred
+		 */
+		constructor(label: string, timestamp: number);
+	}
+
+	export interface TimelineProvider {
+		/**
+		 * An optional event to signal that the timeline for a source has changed.
+		 * To signal that the timeline for all resources (uris) has changed, do not pass any argument or pass `undefined`.
+		 */
+		onDidChange?: Event<Uri | undefined>;
+
+		/**
+		 * An identifier of the source of the timeline items. This can be used for filtering and/or overriding existing sources.
+		 */
+		source: string;
+
+		/**
+		 * A human-readable string describing the source of the timeline items. This can be as the display label when filtering by sources.
+		 */
+		sourceDescription: string;
+
+		/**
+		 * A flag that signals whether this provider can be swapped out (replaced) for another provider using the same [TimelineProvider.source](#TimelineProvider.source).
+		 */
+		replaceable?: boolean;
+
+		/**
+		 * Provide [timeline items](#TimelineItem) for a [Uri](#Uri).
+		 *
+		 * @param uri The uri of the file to provide the timeline for.
+		 * @param token A cancellation token.
+		 * @return An array of timeline items or a thenable that resolves to such. The lack of a result
+		 * can be signaled by returning `undefined`, `null`, or an empty array.
+		 */
+		provideTimeline(uri: Uri, token: CancellationToken): ProviderResult<TimelineItem[]>;
+	}
+
+	export namespace workspace {
+		/**
+		 * Register a timeline provider.
+		 *
+		 * Multiple providers can be registered. In that case, providers are asked in
+		 * parallel and the results are merged. A failing provider (rejected promise or exception) will
+		 * not cause a failure of the whole operation.
+		 *
+		 * @param selector A selector that defines the documents this provider is applicable to.
+		 * @param provider A timeline provider.
+		 * @return A [disposable](#Disposable) that unregisters this provider when being disposed.
+		*/
+		export function registerTimelineProvider(selector: DocumentSelector, provider: TimelineProvider): Disposable;
 	}
 
 	//#endregion
