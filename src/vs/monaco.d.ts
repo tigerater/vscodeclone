@@ -3031,6 +3031,10 @@ declare namespace monaco.editor {
 		 */
 		showUnused?: boolean;
 		/**
+		 * Controls whether editors should be focused on hover.
+		 */
+		focusOnHover?: boolean;
+		/**
 		 * Controls whether to focus the inline editor in the peek widget by default.
 		 * Defaults to false.
 		 */
