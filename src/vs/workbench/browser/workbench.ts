@@ -45,7 +45,6 @@ import { coalesce } from 'vs/base/common/arrays';
 import { InstantiationService } from 'vs/platform/instantiation/common/instantiationService';
 import { Layout } from 'vs/workbench/browser/layout';
 import { IHostService } from 'vs/workbench/services/host/browser/host';
-import { Extensions as PanelExtensions, PanelRegistry } from 'vs/workbench/browser/panel';
 
 export class Workbench extends Layout {
 
@@ -440,16 +439,9 @@ export class Workbench extends Layout {
 
 		// Restore Panel
 		if (this.state.panel.panelToRestore) {
-			restorePromises.push((async () => {
-				mark('willRestorePanel');
-
-				const panel = await panelService.openPanelAsync(this.state.panel.panelToRestore);
-				if (!panel) {
-					panelService.openPanel(Registry.as<PanelRegistry>(PanelExtensions.Panels).getDefaultPanelId()); // fallback to default panel as needed
-				}
-
-				mark('didRestorePanel');
-			})());
+			mark('willRestorePanel');
+			panelService.openPanel(this.state.panel.panelToRestore);
+			mark('didRestorePanel');
 		}
 
 		// Restore Zen Mode

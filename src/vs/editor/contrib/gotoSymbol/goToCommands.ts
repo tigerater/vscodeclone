@@ -36,7 +36,6 @@ import { URI } from 'vs/base/common/uri';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { ScrollType, IEditorAction } from 'vs/editor/common/editorCommon';
 import { assertType } from 'vs/base/common/types';
-import { EmbeddedCodeEditorWidget } from 'vs/editor/browser/widget/embeddedCodeEditorWidget';
 
 
 MenuRegistry.appendMenuItem(MenuId.EditorContext, <ISubmenuItem>{
@@ -130,7 +129,7 @@ abstract class SymbolNavigationAction extends EditorAction {
 	private async _onResult(editorService: ICodeEditorService, symbolNavService: ISymbolNavigationService, editor: IActiveCodeEditor, model: ReferencesModel): Promise<void> {
 
 		const gotoLocation = this._getGoToPreference(editor);
-		if (!(editor instanceof EmbeddedCodeEditorWidget) && (this._configuration.openInPeek || (gotoLocation === 'peek' && model.references.length > 1))) {
+		if (this._configuration.openInPeek || (gotoLocation === 'peek' && model.references.length > 1)) {
 			this._openInPeek(editor, model);
 
 		} else {

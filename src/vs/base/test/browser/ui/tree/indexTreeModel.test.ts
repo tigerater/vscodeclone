@@ -356,15 +356,13 @@ suite('IndexTreeModel', function () {
 		assert.deepEqual(list[1].collapsible, false);
 		assert.deepEqual(list[1].collapsed, false);
 
-		assert.deepEqual(model.setCollapsed([0], true), false);
+		model.setCollapsed([0], true);
+		assert.deepEqual(list.length, 1);
 		assert.deepEqual(list[0].element, 0);
 		assert.deepEqual(list[0].collapsible, false);
-		assert.deepEqual(list[0].collapsed, false);
-		assert.deepEqual(list[1].element, 10);
-		assert.deepEqual(list[1].collapsible, false);
-		assert.deepEqual(list[1].collapsed, false);
+		assert.deepEqual(list[0].collapsed, true);
 
-		assert.deepEqual(model.setCollapsed([0], false), false);
+		model.setCollapsed([0], false);
 		assert.deepEqual(list[0].element, 0);
 		assert.deepEqual(list[0].collapsible, false);
 		assert.deepEqual(list[0].collapsed, false);
@@ -381,13 +379,13 @@ suite('IndexTreeModel', function () {
 		assert.deepEqual(list[1].collapsible, false);
 		assert.deepEqual(list[1].collapsed, false);
 
-		assert.deepEqual(model.setCollapsed([0], true), true);
+		model.setCollapsed([0], true);
 		assert.deepEqual(list.length, 1);
 		assert.deepEqual(list[0].element, 0);
 		assert.deepEqual(list[0].collapsible, true);
 		assert.deepEqual(list[0].collapsed, true);
 
-		assert.deepEqual(model.setCollapsed([0], false), true);
+		model.setCollapsed([0], false);
 		assert.deepEqual(list[0].element, 0);
 		assert.deepEqual(list[0].collapsible, true);
 		assert.deepEqual(list[0].collapsed, false);

@@ -98,14 +98,8 @@ export async function launch(_args: string[]): Promise<void> {
 		VSCODE_AGENT_FOLDER: agentFolder,
 		...process.env
 	};
-	let serverLocation: string | undefined;
-	if (process.env.VSCODE_REMOTE_SERVER_PATH) {
-		serverLocation = join(process.env.VSCODE_REMOTE_SERVER_PATH, `server.${process.platform === 'win32' ? 'cmd' : 'sh'}`);
-	} else {
-		serverLocation = join(args[0], `resources/server/web.${process.platform === 'win32' ? 'bat' : 'sh'}`);
-	}
 	server = spawn(
-		serverLocation,
+		join(args[0], `resources/server/web.${process.platform === 'win32' ? 'bat' : 'sh'}`),
 		['--browser', 'none', '--driver', 'web'],
 		{ env }
 	);
@@ -146,7 +140,7 @@ export function connect(headless: boolean, outPath: string, handle: string): Pro
 		});
 		const page = (await browser.pages())[0];
 		await page.setViewport({ width, height });
-		await page.goto(`${endpoint}&folder=vscode-remote://localhost:9888${args![1]}`);
+		await page.goto(`${endpoint}&folder=${args![1]}`);
 		const result = {
 			client: { dispose: () => teardown },
 			driver: buildDriver(browser, page)

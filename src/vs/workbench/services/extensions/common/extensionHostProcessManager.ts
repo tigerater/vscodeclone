@@ -9,7 +9,7 @@ import { Disposable, IDisposable } from 'vs/base/common/lifecycle';
 import * as strings from 'vs/base/common/strings';
 import { IMessagePassingProtocol } from 'vs/base/parts/ipc/common/ipc';
 import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
-import { IInstantiationService, ServicesAccessor } from 'vs/platform/instantiation/common/instantiation';
+import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { ExtHostCustomersRegistry } from 'vs/workbench/api/common/extHostCustomers';
 import { ExtHostContext, ExtHostExtensionServiceShape, IExtHostContext, MainContext } from 'vs/workbench/api/common/extHost.protocol';
 import { ProxyIdentifier } from 'vs/workbench/services/extensions/common/proxyIdentifier';
@@ -17,7 +17,10 @@ import { IRPCProtocolLogger, RPCProtocol, RequestInitiator, ResponsiveState } fr
 import { RemoteAuthorityResolverError, ResolverResult } from 'vs/platform/remote/common/remoteAuthorityResolver';
 import { ExtensionIdentifier, IExtensionDescription } from 'vs/platform/extensions/common/extensions';
 import * as nls from 'vs/nls';
-import { registerAction2, Action2 } from 'vs/platform/actions/common/actions';
+import { Action } from 'vs/base/common/actions';
+import { SyncActionDescriptor } from 'vs/platform/actions/common/actions';
+import { Registry } from 'vs/platform/registry/common/platform';
+import { Extensions as ActionExtensions, IWorkbenchActionRegistry } from 'vs/workbench/common/actions';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
 import { IUntitledTextResourceInput } from 'vs/workbench/common/editor';
 import { StopWatch } from 'vs/base/common/stopwatch';
@@ -386,26 +389,21 @@ function getLatencyTestProviders(): ExtHostLatencyProvider[] {
 	return providers.slice(0);
 }
 
-registerAction2(class MeasureExtHostLatencyAction extends Action2 {
+export class MeasureExtHostLatencyAction extends Action {
+	public static readonly ID = 'editor.action.measureExtHostLatency';
+	public static readonly LABEL = nls.localize('measureExtHostLatency', "Measure Extension Host Latency");
 
-	constructor() {
-		super({
-			id: 'editor.action.measureExtHostLatency',
-			title: {
-				value: nls.localize('measureExtHostLatency', "Measure Extension Host Latency"),
-				original: 'Developer: Measure Extension Host Latency'
-			},
-			category: nls.localize('developer', "Developer"),
-			f1: true
-		});
+	constructor(
+		id: string,
+		label: string,
+		@IEditorService private readonly _editorService: IEditorService
+	) {
+		super(id, label);
 	}
 
-	async run(accessor: ServicesAccessor) {
-
-		const editorService = accessor.get(IEditorService);
-
+	public async run(): Promise<any> {
 		const measurements = await Promise.all(getLatencyTestProviders().map(provider => provider.measure()));
-		editorService.openEditor({ contents: measurements.map(MeasureExtHostLatencyAction._print).join('\n\n'), options: { pinned: true } } as IUntitledTextResourceInput);
+		this._editorService.openEditor({ contents: measurements.map(MeasureExtHostLatencyAction._print).join('\n\n'), options: { pinned: true } } as IUntitledTextResourceInput);
 	}
 
 	private static _print(m: ExtHostLatencyResult | null): string {
@@ -424,4 +422,7 @@ registerAction2(class MeasureExtHostLatencyAction extends Action2 {
 		}
 		return `${(n / 1024 / 1024).toFixed(1)} Mbps`;
 	}
-});
+}
+
+const registry = Registry.as<IWorkbenchActionRegistry>(ActionExtensions.WorkbenchActions);
+registry.registerWorkbenchAction(SyncActionDescriptor.create(MeasureExtHostLatencyAction, MeasureExtHostLatencyAction.ID, MeasureExtHostLatencyAction.LABEL), 'Developer: Measure Extension Host Latency', nls.localize('developer', "Developer"));

@@ -327,12 +327,6 @@ function getGitErrorCode(stderr: string): string | undefined {
 	return undefined;
 }
 
-// https://github.com/microsoft/vscode/issues/89373
-// https://github.com/git-for-windows/git/issues/2478
-function sanitizePath(path: string): string {
-	return path.replace(/^([a-z]):\\/i, (_, letter) => `${letter.toUpperCase()}:\\`);
-}
-
 const COMMIT_FORMAT = '%H\n%aN\n%aE\n%at\n%P\n%B';
 
 export class Git {
@@ -501,10 +495,6 @@ export class Git {
 			LC_ALL: 'en_US.UTF-8',
 			LANG: 'en_US.UTF-8'
 		});
-
-		if (options.cwd) {
-			options.cwd = sanitizePath(options.cwd);
-		}
 
 		if (options.log !== false) {
 			this.log(`> git ${args.join(' ')}\n`);
@@ -897,12 +887,12 @@ export class Repository {
 	}
 
 	async lstree(treeish: string, path: string): Promise<LsTreeElement[]> {
-		const { stdout } = await this.run(['ls-tree', '-l', treeish, '--', sanitizePath(path)]);
+		const { stdout } = await this.run(['ls-tree', '-l', treeish, '--', path]);
 		return parseLsTree(stdout);
 	}
 
 	async lsfiles(path: string): Promise<LsFilesElement[]> {
-		const { stdout } = await this.run(['ls-files', '--stage', '--', sanitizePath(path)]);
+		const { stdout } = await this.run(['ls-files', '--stage', '--', path]);
 		return parseLsFiles(stdout);
 	}
 
@@ -996,7 +986,7 @@ export class Repository {
 			return await this.diffFiles(false);
 		}
 
-		const args = ['diff', '--', sanitizePath(path)];
+		const args = ['diff', '--', path];
 		const result = await this.run(args);
 		return result.stdout;
 	}
@@ -1009,7 +999,7 @@ export class Repository {
 			return await this.diffFiles(false, ref);
 		}
 
-		const args = ['diff', ref, '--', sanitizePath(path)];
+		const args = ['diff', ref, '--', path];
 		const result = await this.run(args);
 		return result.stdout;
 	}
@@ -1022,7 +1012,7 @@ export class Repository {
 			return await this.diffFiles(true);
 		}
 
-		const args = ['diff', '--cached', '--', sanitizePath(path)];
+		const args = ['diff', '--cached', '--', path];
 		const result = await this.run(args);
 		return result.stdout;
 	}
@@ -1035,7 +1025,7 @@ export class Repository {
 			return await this.diffFiles(true, ref);
 		}
 
-		const args = ['diff', '--cached', ref, '--', sanitizePath(path)];
+		const args = ['diff', '--cached', ref, '--', path];
 		const result = await this.run(args);
 		return result.stdout;
 	}
@@ -1055,7 +1045,7 @@ export class Repository {
 			return await this.diffFiles(false, range);
 		}
 
-		const args = ['diff', range, '--', sanitizePath(path)];
+		const args = ['diff', range, '--', path];
 		const result = await this.run(args);
 
 		return result.stdout.trim();
@@ -1168,7 +1158,7 @@ export class Repository {
 		args.push('--');
 
 		if (paths && paths.length) {
-			args.push.apply(args, paths.map(sanitizePath));
+			args.push.apply(args, paths);
 		} else {
 			args.push('.');
 		}
@@ -1183,13 +1173,13 @@ export class Repository {
 			return;
 		}
 
-		args.push(...paths.map(sanitizePath));
+		args.push(...paths);
 
 		await this.run(args);
 	}
 
 	async stage(path: string, data: string): Promise<void> {
-		const child = this.stream(['hash-object', '--stdin', '-w', '--path', sanitizePath(path)], { stdio: [null, null, null] });
+		const child = this.stream(['hash-object', '--stdin', '-w', '--path', path], { stdio: [null, null, null] });
 		child.stdin!.end(data, 'utf8');
 
 		const { exitCode, stdout } = await exec(child);
@@ -1234,7 +1224,7 @@ export class Repository {
 
 		try {
 			if (paths && paths.length > 0) {
-				for (const chunk of splitInChunks(paths.map(sanitizePath), MAX_CLI_LENGTH)) {
+				for (const chunk of splitInChunks(paths, MAX_CLI_LENGTH)) {
 					await this.run([...args, '--', ...chunk]);
 				}
 			} else {
@@ -1373,7 +1363,7 @@ export class Repository {
 	}
 
 	async clean(paths: string[]): Promise<void> {
-		const pathsByGroup = groupBy(paths.map(sanitizePath), p => path.dirname(p));
+		const pathsByGroup = groupBy(paths, p => path.dirname(p));
 		const groups = Object.keys(pathsByGroup).map(k => pathsByGroup[k]);
 
 		const limiter = new Limiter(5);
@@ -1419,7 +1409,7 @@ export class Repository {
 		}
 
 		if (paths && paths.length) {
-			args.push.apply(args, paths.map(sanitizePath));
+			args.push.apply(args, paths);
 		} else {
 			args.push('.');
 		}
@@ -1570,8 +1560,11 @@ export class Repository {
 
 	async blame(path: string): Promise<string> {
 		try {
-			const args = ['blame', sanitizePath(path)];
-			const result = await this.run(args);
+			const args = ['blame'];
+			args.push(path);
+
+			let result = await this.run(args);
+
 			return result.stdout.trim();
 		} catch (err) {
 			if (/^fatal: no such path/.test(err.stderr || '')) {
@@ -1901,7 +1894,7 @@ export class Repository {
 	async updateSubmodules(paths: string[]): Promise<void> {
 		const args = ['submodule', 'update', '--'];
 
-		for (const chunk of splitInChunks(paths.map(sanitizePath), MAX_CLI_LENGTH)) {
+		for (const chunk of splitInChunks(paths, MAX_CLI_LENGTH)) {
 			await this.run([...args, ...chunk]);
 		}
 	}

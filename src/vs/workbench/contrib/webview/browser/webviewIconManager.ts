@@ -20,7 +20,7 @@ export class WebviewIconManager {
 	) {
 		this._configService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration('workbench.iconTheme')) {
-				this.updateStyleSheet();
+				this.updateStyleSheet(this._lifecycleService);
 			}
 		});
 	}
@@ -42,11 +42,12 @@ export class WebviewIconManager {
 			this._icons.delete(webviewId);
 		}
 
-		this.updateStyleSheet();
+		this.updateStyleSheet(this._lifecycleService);
 	}
 
-	private async updateStyleSheet() {
-		await this._lifecycleService.when(LifecyclePhase.Starting);
+	private async updateStyleSheet(lifecycleService: ILifecycleService) {
+		console.log('update');
+		await lifecycleService.when(LifecyclePhase.Starting);
 
 		try {
 			const cssRules: string[] = [];

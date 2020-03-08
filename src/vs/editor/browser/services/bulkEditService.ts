@@ -27,8 +27,6 @@ export type IBulkEditPreviewHandler = (edit: WorkspaceEdit, options?: IBulkEditO
 export interface IBulkEditService {
 	_serviceBrand: undefined;
 
-	hasPreviewHandler(): boolean;
-
 	setPreviewHandler(handler: IBulkEditPreviewHandler): IDisposable;
 
 	apply(edit: WorkspaceEdit, options?: IBulkEditOptions): Promise<IBulkEditResult>;

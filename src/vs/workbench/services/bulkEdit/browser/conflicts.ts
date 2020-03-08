@@ -10,11 +10,31 @@ import { IModelService } from 'vs/editor/common/services/modelService';
 import { ResourceMap } from 'vs/base/common/map';
 import { DisposableStore } from 'vs/base/common/lifecycle';
 import { Emitter, Event } from 'vs/base/common/event';
-import { ITextModel } from 'vs/editor/common/model';
+import type { ITextModel } from 'vs/editor/common/model';
+
+export abstract class Recording {
+
+	static start(fileService: IFileService): Recording {
+
+		let _changes = new Set<string>();
+		let subscription = fileService.onAfterOperation(e => {
+			_changes.add(e.resource.toString());
+		});
+
+		return {
+			stop() { return subscription.dispose(); },
+			hasChanged(resource) { return _changes.has(resource.toString()); }
+		};
+	}
+
+	abstract stop(): void;
+	abstract hasChanged(resource: URI): boolean;
+}
 
 export class ConflictDetector {
 
 	private readonly _conflicts = new ResourceMap<boolean>();
+	private readonly _changes = new ResourceMap<boolean>();
 	private readonly _disposables = new DisposableStore();
 
 	private readonly _onDidConflict = new Emitter<this>();
@@ -59,6 +79,9 @@ export class ConflictDetector {
 					continue;
 				}
 
+				// change
+				this._changes.set(change.resource, true);
+
 				// conflict
 				if (_workspaceEditResources.has(change.resource)) {
 					this._conflicts.set(change.resource, true);
@@ -69,6 +92,8 @@ export class ConflictDetector {
 
 		// listen to model changes...?
 		const onDidChangeModel = (model: ITextModel) => {
+			// change
+			this._changes.set(model.uri, true);
 
 			// conflict
 			if (_workspaceEditResources.has(model.uri)) {
@@ -87,10 +112,12 @@ export class ConflictDetector {
 	}
 
 	list(): URI[] {
-		return this._conflicts.keys();
-	}
-
-	hasConflicts(): boolean {
-		return this._conflicts.size > 0;
+		const result: URI[] = this._conflicts.keys();
+		this._changes.forEach((_value, key) => {
+			if (!this._conflicts.has(key)) {
+				result.push(key);
+			}
+		});
+		return result;
 	}
 }

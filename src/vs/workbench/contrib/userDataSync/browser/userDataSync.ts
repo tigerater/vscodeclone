@@ -23,7 +23,7 @@ import { IDialogService } from 'vs/platform/dialogs/common/dialogs';
 import { IQuickInputService } from 'vs/platform/quickinput/common/quickInput';
 import { isWeb } from 'vs/base/common/platform';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
-import { UserDataAutoSyncService } from 'vs/workbench/contrib/userDataSync/browser/userDataAutoSyncService';
+import { UserDataAutoSync } from 'vs/workbench/contrib/userDataSync/browser/userDataAutoSync';
 import { UserDataSyncTrigger } from 'vs/workbench/contrib/userDataSync/browser/userDataSyncTrigger';
 import { timeout } from 'vs/base/common/async';
 import { IOutputService } from 'vs/workbench/contrib/output/common/output';
@@ -119,7 +119,7 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 			this.registerActions();
 			this.initializeActiveAccount().then(_ => {
 				if (isWeb) {
-					this._register(instantiationService.createInstance(UserDataAutoSyncService));
+					this._register(instantiationService.createInstance(UserDataAutoSync));
 				} else {
 					this._register(instantiationService.createInstance(UserDataSyncTrigger).onDidTriggerSync(() => userDataAutoSyncService.triggerAutoSync()));
 				}
@@ -131,31 +131,31 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 	}
 
 	private async initializeActiveAccount(): Promise<void> {
-		const sessions = await this.authenticationService.getSessions(this.userDataSyncStore!.authenticationProviderId);
+		const accounts = await this.authenticationService.getSessions(this.userDataSyncStore!.authenticationProviderId);
 		// Auth provider has not yet been registered
-		if (!sessions) {
+		if (!accounts) {
 			return;
 		}
 
-		if (sessions.length === 0) {
+		if (accounts.length === 0) {
 			this.activeAccount = undefined;
 			return;
 		}
 
-		if (sessions.length === 1) {
-			this.activeAccount = sessions[0];
+		if (accounts.length === 1) {
+			this.activeAccount = accounts[0];
 			return;
 		}
 
-		const selectedAccount = await this.quickInputService.pick(sessions.map(session => {
+		const selectedAccount = await this.quickInputService.pick(accounts.map(account => {
 			return {
-				id: session.id,
-				label: session.accountName
+				id: account.id,
+				label: account.displayName
 			};
 		}), { canPickMany: false });
 
 		if (selectedAccount) {
-			this.activeAccount = sessions.filter(account => selectedAccount.id === account.id)[0];
+			this.activeAccount = accounts.filter(account => selectedAccount.id === account.id)[0];
 		}
 	}
 
@@ -433,6 +433,7 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 		switch (result.choice) {
 			case 0:
 				this.telemetryService.publicLog2<{ action: string }, FirstTimeSyncClassification>('sync/firstTimeSync', { action: 'merge' });
+				await this.userDataSyncService.sync();
 				break;
 			case 1:
 				this.telemetryService.publicLog2<{ action: string }, FirstTimeSyncClassification>('sync/firstTimeSync', { action: 'cancelled' });
@@ -782,7 +783,7 @@ class AcceptChangesContribution extends Disposable implements IEditorContributio
 						}
 					}
 					try {
-						await this.userDataSyncService.resolveConflictsAndContinueSync(model.getValue(), syncSource !== undefined);
+						await this.userDataSyncService.resolveConflictsAndContinueSync(model.getValue());
 					} catch (e) {
 						this.userDataSyncService.restart().then(() => {
 							if (conflictsSource === this.userDataSyncService.conflictsSource) {
