@@ -585,6 +585,6 @@ export function asArray<T>(x: T | T[]): T[] {
 	return Array.isArray(x) ? x : [x];
 }
 
-export function getRandomElement<T>(arr: T[]): T | undefined {
+export function getRandomElement<T>(arr: T[]): T {
 	return arr[Math.floor(Math.random() * arr.length)];
 }

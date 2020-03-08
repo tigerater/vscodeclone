@@ -17,7 +17,6 @@ import { trackFocus } from 'vs/base/browser/dom';
 import { Disposable } from 'vs/base/common/lifecycle';
 import { URI } from 'vs/base/common/uri';
 import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
-import { mapToSerializable } from 'vs/base/common/map';
 
 /**
  * A workspace to open in the workbench can either be:
@@ -47,7 +46,6 @@ export interface IWorkspaceProvider {
 	 * - `reuse`: whether to open inside the current window or a new window
 	 * - `payload`: arbitrary payload that should be made available
 	 * to the opening window via the `IWorkspaceProvider.payload` property.
-	 * @param payload optional payload to send to the workspace to open.
 	 */
 	open(workspace: IWorkspace, options?: { reuse?: boolean, payload?: object }): Promise<void>;
 }
@@ -116,30 +114,18 @@ export class BrowserHostService extends Disposable implements IHostService {
 
 			// Folder
 			if (isFolderToOpen(openable)) {
-				this.workspaceProvider.open({ folderUri: openable.folderUri }, { reuse: this.shouldReuse(options, false /* no file */) });
+				this.workspaceProvider.open({ folderUri: openable.folderUri }, { reuse: this.shouldReuse(options) });
 			}
 
 			// Workspace
 			else if (isWorkspaceToOpen(openable)) {
-				this.workspaceProvider.open({ workspaceUri: openable.workspaceUri }, { reuse: this.shouldReuse(options, false /* no file */) });
+				this.workspaceProvider.open({ workspaceUri: openable.workspaceUri }, { reuse: this.shouldReuse(options) });
 			}
 
-			// File
+			// File: open via editor service in current window
 			else if (isFileToOpen(openable)) {
-
-				// Same Window: open via editor service in current window
-				if (this.shouldReuse(options, true /* file */)) {
-					const inputs: IResourceEditor[] = await pathsToEditors([openable], this.fileService);
-					this.editorService.openEditors(inputs);
-				}
-
-				// New Window: open into empty window
-				else {
-					const environment = new Map<string, string>();
-					environment.set('openFile', openable.fileUri.toString());
-
-					this.workspaceProvider.open(undefined, { payload: mapToSerializable(environment) });
-				}
+				const inputs: IResourceEditor[] = await pathsToEditors([openable], this.fileService);
+				this.editorService.openEditors(inputs);
 			}
 		}
 	}
@@ -156,16 +142,16 @@ export class BrowserHostService extends Disposable implements IHostService {
 		return this.labelService.getUriLabel(openable.fileUri);
 	}
 
-	private shouldReuse(options: IOpenWindowOptions = {}, isFile: boolean): boolean {
+	private shouldReuse(options: IOpenWindowOptions = {}): boolean {
 		const windowConfig = this.configurationService.getValue<IWindowSettings>('window');
-		const openInNewWindowConfig = isFile ? (windowConfig?.openFilesInNewWindow || 'off' /* default */) : (windowConfig?.openFoldersInNewWindow || 'default' /* default */);
+		const openFolderInNewWindowConfig = windowConfig?.openFoldersInNewWindow || 'default' /* default */;
 
-		let openInNewWindow = (options.preferNewWindow || !!options.forceNewWindow) && !options.forceReuseWindow;
-		if (!options.forceNewWindow && !options.forceReuseWindow && (openInNewWindowConfig === 'on' || openInNewWindowConfig === 'off')) {
-			openInNewWindow = (openInNewWindowConfig === 'on');
+		let openFolderInNewWindow = (options.preferNewWindow || !!options.forceNewWindow) && !options.forceReuseWindow;
+		if (!options.forceNewWindow && !options.forceReuseWindow && (openFolderInNewWindowConfig === 'on' || openFolderInNewWindowConfig === 'off')) {
+			openFolderInNewWindow = (openFolderInNewWindowConfig === 'on');
 		}
 
-		return !openInNewWindow;
+		return !openFolderInNewWindow;
 	}
 
 	private async doOpenEmptyWindow(options?: IOpenEmptyWindowOptions): Promise<void> {
