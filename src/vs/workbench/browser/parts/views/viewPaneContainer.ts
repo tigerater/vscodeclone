@@ -293,14 +293,6 @@ export class ViewPaneContainer extends Component implements IViewPaneContainer {
 	private readonly _onDidChangeVisibility = this._register(new Emitter<boolean>());
 	readonly onDidChangeVisibility = this._onDidChangeVisibility.event;
 
-	private readonly _onDidAddViews = this._register(new Emitter<IView[]>());
-	readonly onDidAddViews = this._onDidAddViews.event;
-
-	private readonly _onDidRemoveViews = this._register(new Emitter<IView[]>());
-	readonly onDidRemoveViews = this._onDidRemoveViews.event;
-
-	private readonly _onDidChangeViewVisibility = this._register(new Emitter<IView>());
-	readonly onDidChangeViewVisibility = this._onDidChangeViewVisibility.event;
 
 	get onDidSashChange(): Event<number> {
 		return assertIsDefined(this.paneview).onDidSashChange;
@@ -355,15 +347,15 @@ export class ViewPaneContainer extends Component implements IViewPaneContainer {
 		this._register(addDisposableListener(parent, EventType.CONTEXT_MENU, (e: MouseEvent) => this.showContextMenu(new StandardMouseEvent(e))));
 
 		this._register(this.onDidSashChange(() => this.saveViewSizes()));
-		this.viewsModel.onDidAdd(added => this.onDidAddViewDescriptors(added));
-		this.viewsModel.onDidRemove(removed => this.onDidRemoveViewDescriptors(removed));
+		this.viewsModel.onDidAdd(added => this.onDidAddViews(added));
+		this.viewsModel.onDidRemove(removed => this.onDidRemoveViews(removed));
 		const addedViews: IAddedViewDescriptorRef[] = this.viewsModel.visibleViewDescriptors.map((viewDescriptor, index) => {
 			const size = this.viewsModel.getSize(viewDescriptor.id);
 			const collapsed = this.viewsModel.isCollapsed(viewDescriptor.id);
 			return ({ viewDescriptor, index, size, collapsed });
 		});
 		if (addedViews.length) {
-			this.onDidAddViewDescriptors(addedViews);
+			this.onDidAddViews(addedViews);
 		}
 
 		// Update headers after and title contributed views after available, since we read from cache in the beginning to know if the viewlet has single view or not. Ref #29609
@@ -511,8 +503,6 @@ export class ViewPaneContainer extends Component implements IViewPaneContainer {
 		if (this.isViewMergedWithContainer() !== wasMerged) {
 			this.updateTitleArea();
 		}
-
-		this._onDidAddViews.fire(panes.map(({ pane }) => pane));
 	}
 
 	setVisible(visible: boolean): void {
@@ -616,7 +606,7 @@ export class ViewPaneContainer extends Component implements IViewPaneContainer {
 		return view;
 	}
 
-	protected onDidAddViewDescriptors(added: IAddedViewDescriptorRef[]): ViewPane[] {
+	protected onDidAddViews(added: IAddedViewDescriptorRef[]): ViewPane[] {
 		const panesToAdd: { pane: ViewPane, size: number, index: number }[] = [];
 
 		for (const { viewDescriptor, collapsed, index, size } of added) {
@@ -663,7 +653,7 @@ export class ViewPaneContainer extends Component implements IViewPaneContainer {
 		return this.actionRunner;
 	}
 
-	private onDidRemoveViewDescriptors(removed: IViewDescriptorRef[]): void {
+	private onDidRemoveViews(removed: IViewDescriptorRef[]): void {
 		removed = removed.sort((a, b) => b.index - a.index);
 		const panesToRemove: ViewPane[] = [];
 		for (const { index } of removed) {
@@ -692,7 +682,6 @@ export class ViewPaneContainer extends Component implements IViewPaneContainer {
 				this.updateTitleArea();
 			}
 		});
-		const onDidChangeVisibility = pane.onDidChangeBodyVisibility(() => this._onDidChangeViewVisibility.fire(pane));
 		const onDidChange = pane.onDidChange(() => {
 			if (pane === this.lastFocusedPane && !pane.isExpanded()) {
 				this.lastFocusedPane = undefined;
@@ -706,7 +695,7 @@ export class ViewPaneContainer extends Component implements IViewPaneContainer {
 			headerBorder: SIDE_BAR_SECTION_HEADER_BORDER,
 			dropBackground: SIDE_BAR_DRAG_AND_DROP_BACKGROUND
 		}, pane);
-		const disposable = combinedDisposable(onDidFocus, onDidChangeTitleArea, paneStyler, onDidChange, onDidChangeVisibility);
+		const disposable = combinedDisposable(onDidFocus, onDidChangeTitleArea, paneStyler, onDidChange);
 		const paneItem: IViewPaneItem = { pane: pane, disposable };
 
 		this.paneItems.splice(index, 0, paneItem);
@@ -722,8 +711,6 @@ export class ViewPaneContainer extends Component implements IViewPaneContainer {
 		if (wasMerged !== this.isViewMergedWithContainer()) {
 			this.updateTitleArea();
 		}
-
-		this._onDidRemoveViews.fire(panes);
 	}
 
 	private removePane(pane: ViewPane): void {
