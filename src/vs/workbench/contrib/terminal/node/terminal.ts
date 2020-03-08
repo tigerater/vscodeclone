@@ -64,17 +64,18 @@ function getSystemShellWindows(): string {
 let detectedDistro = LinuxDistro.Unknown;
 if (platform.isLinux) {
 	const file = '/etc/os-release';
-	fileExists(file).then(async exists => {
+	fileExists(file).then(exists => {
 		if (!exists) {
 			return;
 		}
-		const buffer = await readFile(file);
-		const contents = buffer.toString();
-		if (/NAME="?Fedora"?/.test(contents)) {
-			detectedDistro = LinuxDistro.Fedora;
-		} else if (/NAME="?Ubuntu"?/.test(contents)) {
-			detectedDistro = LinuxDistro.Ubuntu;
-		}
+		readFile(file).then(b => {
+			const contents = b.toString();
+			if (/NAME="?Fedora"?/.test(contents)) {
+				detectedDistro = LinuxDistro.Fedora;
+			} else if (/NAME="?Ubuntu"?/.test(contents)) {
+				detectedDistro = LinuxDistro.Ubuntu;
+			}
+		});
 	});
 }
 
@@ -127,8 +128,8 @@ async function detectAvailableWindowsShells(): Promise<IShellDefinition[]> {
 	};
 	const promises: PromiseLike<IShellDefinition | undefined>[] = [];
 	Object.keys(expectedLocations).forEach(key => promises.push(validateShellPaths(key, expectedLocations[key])));
-	const shells = await Promise.all(promises);
-	return coalesce(shells);
+
+	return Promise.all(promises).then(coalesce);
 }
 
 async function detectAvailableUnixShells(): Promise<IShellDefinition[]> {

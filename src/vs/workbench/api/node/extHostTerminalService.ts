@@ -200,16 +200,16 @@ export class ExtHostTerminalService extends BaseExtHostTerminalService {
 		this._setupExtHostProcessListeners(id, new TerminalProcess(shellLaunchConfig, initialCwd, cols, rows, env, enableConpty, this._logService));
 	}
 
-	public $getAvailableShells(): Promise<IShellDefinitionDto[]> {
+	public $requestAvailableShells(): Promise<IShellDefinitionDto[]> {
 		return detectAvailableShells();
 	}
 
-	public async $getDefaultShellAndArgs(useAutomationShell: boolean): Promise<IShellAndArgsDto> {
+	public async $requestDefaultShellAndArgs(useAutomationShell: boolean): Promise<IShellAndArgsDto> {
 		const configProvider = await this._extHostConfiguration.getConfigProvider();
-		return {
+		return Promise.resolve({
 			shell: this.getDefaultShell(useAutomationShell, configProvider),
 			args: this.getDefaultShellArgs(useAutomationShell, configProvider)
-		};
+		});
 	}
 
 	public $acceptWorkspacePermissionsChanged(isAllowed: boolean): void {

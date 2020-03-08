@@ -70,7 +70,6 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 			conptyInheritCursor: useConpty && !!shellLaunchConfig.initialText
 		};
 
-		// TODO: Pull verification out into its own function
 		const cwdVerification = stat(cwd).then(async stat => {
 			if (!stat.isDirectory()) {
 				return Promise.reject(SHELL_CWD_INVALID_EXIT_CODE);
@@ -179,25 +178,26 @@ export class TerminalProcess extends Disposable implements ITerminalChildProcess
 		this._closeTimeout = setTimeout(() => this._kill(), 250);
 	}
 
-	private async _kill(): Promise<void> {
+	private _kill(): void {
 		// Wait to kill to process until the start up code has run. This prevents us from firing a process exit before a
 		// process start.
-		await this._processStartupComplete;
-		if (this._isDisposed) {
-			return;
-		}
-		// Attempt to kill the pty, it may have already been killed at this
-		// point but we want to make sure
-		try {
-			if (this._ptyProcess) {
-				this._logService.trace('IPty#kill');
-				this._ptyProcess.kill();
+		this._processStartupComplete!.then(() => {
+			if (this._isDisposed) {
+				return;
 			}
-		} catch (ex) {
-			// Swallow, the pty has already been killed
-		}
-		this._onProcessExit.fire(this._exitCode || 0);
-		this.dispose();
+			// Attempt to kill the pty, it may have already been killed at this
+			// point but we want to make sure
+			try {
+				if (this._ptyProcess) {
+					this._logService.trace('IPty#kill');
+					this._ptyProcess.kill();
+				}
+			} catch (ex) {
+				// Swallow, the pty has already been killed
+			}
+			this._onProcessExit.fire(this._exitCode || 0);
+			this.dispose();
+		});
 	}
 
 	private _sendProcessId(ptyProcess: pty.IPty) {
