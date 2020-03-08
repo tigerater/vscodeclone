@@ -26,22 +26,25 @@ export class DeferredPromise<T> {
 
 	public complete(value: T) {
 		return new Promise(resolve => {
-			this.completeCallback(value);
-			resolve();
+			process.nextTick(() => {
+				this.completeCallback(value);
+				resolve();
+			});
 		});
 	}
 
 	public error(err: any) {
 		return new Promise(resolve => {
-			this.errorCallback(err);
-			resolve();
+			process.nextTick(() => {
+				this.errorCallback(err);
+				resolve();
+			});
 		});
 	}
 
 	public cancel() {
-		new Promise(resolve => {
+		process.nextTick(() => {
 			this.errorCallback(canceled());
-			resolve();
 		});
 	}
 }

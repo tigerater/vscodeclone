@@ -14,27 +14,19 @@ import { eventToPromise } from '../util';
 
 suite('git smoke test', function () {
 	const cwd = fs.realpathSync(workspace.workspaceFolders![0].uri.fsPath);
-
-	function file(relativePath: string) {
-		return path.join(cwd, relativePath);
-	}
-
-	function uri(relativePath: string) {
-		return Uri.file(file(relativePath));
-	}
-
-	async function open(relativePath: string) {
+	const file = (relativePath: string) => path.join(cwd, relativePath);
+	const uri = (relativePath: string) => Uri.file(file(relativePath));
+	const open = async (relativePath: string) => {
 		const doc = await workspace.openTextDocument(uri(relativePath));
 		await window.showTextDocument(doc);
 		return doc;
-	}
-
-	async function type(doc: TextDocument, text: string) {
+	};
+	const type = async (doc: TextDocument, text: string) => {
 		const edit = new WorkspaceEdit();
 		const end = doc.lineAt(doc.lineCount - 1).range.end;
 		edit.replace(doc.uri, new Range(end, end), text);
 		await workspace.applyEdit(edit);
-	}
+	};
 
 	let git: API;
 	let repository: Repository;
@@ -48,8 +40,6 @@ suite('git smoke test', function () {
 		cp.execSync('git add .', { cwd });
 		cp.execSync('git commit -m "initial commit"', { cwd });
 
-		// make sure git is activated
-		await commands.executeCommand('git.activate');
 		git = extensions.getExtension<GitExtension>('vscode.git')!.exports.getAPI(1);
 
 		if (git.repositories.length === 0) {
@@ -68,7 +58,7 @@ suite('git smoke test', function () {
 		const appjs = await open('app.js');
 		await type(appjs, ' world');
 		await appjs.save();
-		await repository.status();
+		await eventToPromise(repository.state.onDidChange);
 		assert.equal(repository.state.workingTreeChanges.length, 1);
 		repository.state.workingTreeChanges.some(r => r.uri.path === appjs.uri.path && r.status === Status.MODIFIED);
 
