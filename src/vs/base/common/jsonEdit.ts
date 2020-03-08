@@ -175,3 +175,7 @@ export function applyEdits(text: string, edits: Edit[]): string {
 	}
 	return text;
 }
+
+export function isWS(text: string, offset: number) {
+	return '\r\n \t'.indexOf(text.charAt(offset)) !== -1;
+}

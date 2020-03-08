@@ -331,7 +331,7 @@ export class TextAreaInput extends Disposable {
 					this._onType.fire(typeInput);
 				}
 			} else {
-				if (typeInput.text !== '' || typeInput.replaceCharCnt !== 0) {
+				if (typeInput.text !== '') {
 					this._firePaste(typeInput.text, null);
 				}
 				this._nextCommand = ReadFromTextArea.Type;

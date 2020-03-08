@@ -228,8 +228,7 @@ MenuRegistry.appendMenuItem(MenuId.MenubarTerminalMenu, {
 MenuRegistry.appendMenuItem(MenuId.CommandPalette, ({
 	command: {
 		id: 'workbench.action.tasks.openWorkspaceFileTasks',
-		title: nls.localize('workbench.action.tasks.openWorkspaceFileTasks', "Open Workspace Tasks"),
-		category: tasksCategory
+		title: nls.localize('workbench.action.tasks.openWorkspaceFileTasks', "Open Workspace File Tasks")
 	},
 	when: WorkbenchStateContext.isEqualTo('workspace')
 }));

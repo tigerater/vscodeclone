@@ -84,8 +84,8 @@ export class SettingsSyncService extends Disposable implements ISettingsSyncServ
 		return this.channel.call('hasLocalData');
 	}
 
-	resolveConflicts(content: string, remote: boolean): Promise<void> {
-		return this.channel.call('resolveConflicts', [content, remote]);
+	resolveConflicts(content: string): Promise<void> {
+		return this.channel.call('resolveConflicts', [content]);
 	}
 
 	resolveSettingsConflicts(conflicts: { key: string, value: any | undefined }[]): Promise<void> {

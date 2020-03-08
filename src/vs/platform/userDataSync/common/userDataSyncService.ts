@@ -123,12 +123,12 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 		this.logService.trace(`Finished Syncing. Took ${new Date().getTime() - startTime}ms`);
 	}
 
-	async resolveConflictsAndContinueSync(content: string, remote: boolean): Promise<void> {
+	async resolveConflictsAndContinueSync(content: string): Promise<void> {
 		const synchroniser = this.getSynchroniserInConflicts();
 		if (!synchroniser) {
 			throw new Error(localize('no synchroniser with conflicts', "No conflicts detected."));
 		}
-		await synchroniser.resolveConflicts(content, remote);
+		await synchroniser.resolveConflicts(content);
 		if (synchroniser.status !== SyncStatus.HasConflicts) {
 			await this.sync();
 		}

@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IdleValue, raceCancellation } from 'vs/base/common/async';
+import { IdleValue } from 'vs/base/common/async';
 import { CancellationTokenSource, CancellationToken } from 'vs/base/common/cancellation';
 import * as strings from 'vs/base/common/strings';
 import { IActiveCodeEditor } from 'vs/editor/browser/editorBrowser';
@@ -22,6 +22,7 @@ import { CodeActionKind } from 'vs/editor/contrib/codeAction/types';
 import { formatDocumentWithSelectedProvider, FormattingMode } from 'vs/editor/contrib/format/format';
 import { SnippetController2 } from 'vs/editor/contrib/snippet/snippetController2';
 import { localize } from 'vs/nls';
+import { CommandsRegistry } from 'vs/platform/commands/common/commands';
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { ILogService } from 'vs/platform/log/common/log';
@@ -30,6 +31,9 @@ import { extHostCustomer } from 'vs/workbench/api/common/extHostCustomers';
 import { ISaveParticipant, IResolvedTextFileEditorModel, ITextFileService } from 'vs/workbench/services/textfile/common/textfiles';
 import { SaveReason } from 'vs/workbench/common/editor';
 import { ExtHostContext, ExtHostDocumentSaveParticipantShape, IExtHostContext } from '../common/extHost.protocol';
+import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
+import { SettingsEditor2 } from 'vs/workbench/contrib/preferences/browser/settingsEditor2';
+import { IPreferencesService } from 'vs/workbench/services/preferences/common/preferences';
 import { ILabelService } from 'vs/platform/label/common/label';
 import { canceled } from 'vs/base/common/errors';
 
@@ -387,8 +391,7 @@ export class SaveParticipant implements ISaveParticipant {
 					break;
 				}
 				try {
-					const promise = p.participate(model, env, progress, cts.token);
-					await raceCancellation(promise, cts.token);
+					await p.participate(model, env, progress, cts.token);
 				} catch (err) {
 					this._logService.warn(err);
 				}
@@ -400,3 +403,13 @@ export class SaveParticipant implements ISaveParticipant {
 		});
 	}
 }
+
+CommandsRegistry.registerCommand('_showSettings', (accessor, ...args: any[]) => {
+	const [setting] = args;
+	const control = accessor.get(IEditorService).activeControl as SettingsEditor2;
+	if (control instanceof SettingsEditor2) {
+		control.focusSearch(`@tag:usesOnlineServices`);
+	} else {
+		accessor.get(IPreferencesService).openSettings(false, setting);
+	}
+});

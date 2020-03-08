@@ -74,7 +74,7 @@ export interface IEditorOptions {
 	 * If it is a function, it will be invoked when rendering a line number and the return value will be rendered.
 	 * Otherwise, if it is a truey, line numbers will be rendered normally (equivalent of using an identity function).
 	 * Otherwise, line numbers will not be rendered.
-	 * Defaults to `on`.
+	 * Defaults to true.
 	 */
 	lineNumbers?: LineNumbersType;
 	/**
@@ -385,8 +385,8 @@ export interface IEditorOptions {
 	 */
 	autoSurround?: EditorAutoSurroundStrategy;
 	/**
-	 * Controls whether the editor should automatically adjust the indentation when users type, paste, move or indent lines.
-	 * Defaults to advanced.
+	 * Enable auto indentation adjustment.
+	 * Defaults to false.
 	 */
 	autoIndent?: 'none' | 'keep' | 'brackets' | 'advanced' | 'full';
 	/**
@@ -555,6 +555,11 @@ export interface IEditorOptions {
 	 * Defaults to false.
 	 */
 	peekWidgetDefaultFocus?: 'tree' | 'editor';
+	/**
+	 * Controls whether the mouse click opens element definition in the peek widget.
+	 * Defaults to false.
+	 */
+	mouseOpensDefinitionInPeek?: boolean;
 }
 
 export interface IEditorConstructionOptions extends IEditorOptions {
@@ -3192,6 +3197,7 @@ export const enum EditorOption {
 	overviewRulerLanes,
 	parameterHints,
 	peekWidgetDefaultFocus,
+	mouseOpensDefinitionInPeek,
 	quickSuggestions,
 	quickSuggestionsDelay,
 	readOnly,
@@ -3582,6 +3588,10 @@ export const EditorOptions = {
 			],
 			description: nls.localize('peekWidgetDefaultFocus', "Controls whether to focus the inline editor or the tree in the peek widget.")
 		}
+	)),
+	mouseOpensDefinitionInPeek: register(new EditorBooleanOption(
+		EditorOption.mouseOpensDefinitionInPeek, 'mouseOpensDefinitionInPeek', false,
+		{ description: nls.localize('mouseOpensDefinitionInPeek', "Controls whether the mouse click opens element definition in the peek widget.") }
 	)),
 	quickSuggestions: register(new EditorQuickSuggestions()),
 	quickSuggestionsDelay: register(new EditorIntOption(
