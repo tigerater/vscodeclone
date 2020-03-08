@@ -27,7 +27,6 @@ import { IWordAtPosition, IModelDeltaDecoration, ITextModel, IFoundBracket } fro
 import { Position } from 'vs/editor/common/core/position';
 import { withNullAsUndefined } from 'vs/base/common/types';
 import { IKeyboardEvent } from 'vs/base/browser/keyboardEvent';
-import { EditorOption } from 'vs/editor/common/config/editorOptions';
 
 export class GotoDefinitionAtPositionEditorContribution implements IEditorContribution {
 
@@ -335,8 +334,7 @@ export class GotoDefinitionAtPositionEditorContribution implements IEditorContri
 
 	private gotoDefinition(position: Position, openToSide: boolean): Promise<any> {
 		this.editor.setPosition(position);
-		const openInPeek = this.editor.getOption(EditorOption.definitionLinkOpensInPeek);
-		const action = new DefinitionAction({ openToSide, openInPeek: openInPeek, muteMessage: true }, { alias: '', label: '', id: '', precondition: undefined });
+		const action = new DefinitionAction({ openToSide, openInPeek: false, muteMessage: true }, { alias: '', label: '', id: '', precondition: undefined });
 		return this.editor.invokeWithinContext(accessor => action.run(accessor, this.editor));
 	}
 
