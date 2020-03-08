@@ -171,8 +171,6 @@ declare module 'vscode' {
 		/**
 		 * Fired when the list of tunnels has changed.
 		 */
-		// TODO@alexr
-		// eslint-disable-next-line vscode-dts-event-naming
 		export const onDidTunnelsChange: Event<void>;
 	}
 
@@ -184,8 +182,6 @@ declare module 'vscode' {
 
 	export interface ResourceLabelFormatting {
 		label: string; // myLabel:/${path}
-		// TODO@isi
-		// eslint-disable-next-line vscode-dts-literal-or-types
 		separator: '/' | '\\' | '';
 		tildify?: boolean;
 		normalizeDriveLetter?: boolean;
@@ -1245,8 +1241,6 @@ declare module 'vscode' {
 		/**
 		 * Event triggered by extensions to signal to VS Code that an edit has occurred.
 		 */
-		// TODO@matt
-		// eslint-disable-next-line vscode-dts-event-naming
 		readonly onEdit: Event<{ readonly resource: Uri, readonly edit: EditType }>;
 
 		/**
