@@ -785,21 +785,10 @@ class ModelSemanticColoring extends Disposable {
 			contentChangeListener.dispose();
 			this._setSemanticTokens(provider, res || null, styling, pendingChanges);
 		}, (err) => {
-			if (!err || typeof err.message !== 'string' || err.message.indexOf('busy') === -1) {
-				errors.onUnexpectedError(err);
-			}
-
-			// Semantic tokens eats up all errors and considers errors to mean that the result is temporarily not available
-			// The API does not have a special error kind to express this...
+			errors.onUnexpectedError(err);
 			this._currentRequestCancellationTokenSource = null;
 			contentChangeListener.dispose();
-
-			if (pendingChanges.length > 0) {
-				// More changes occurred while the request was running
-				if (!this._fetchSemanticTokens.isScheduled()) {
-					this._fetchSemanticTokens.schedule();
-				}
-			}
+			this._setSemanticTokens(provider, null, styling, pendingChanges);
 		});
 	}
 
