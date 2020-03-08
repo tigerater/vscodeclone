@@ -48,7 +48,6 @@ import { onDidChangeZoomLevel } from 'vs/base/browser/browser';
 import { withNullAsUndefined, withUndefinedAsNull } from 'vs/base/common/types';
 import { ILabelService } from 'vs/platform/label/common/label';
 import { ITextResourceConfigurationService } from 'vs/editor/common/services/textResourceConfigurationService';
-import { TextEditorSelectionRevealType } from 'vs/platform/editor/common/editor';
 
 class Item extends BreadcrumbsItem {
 
@@ -491,7 +490,7 @@ export class BreadcrumbsControl {
 					resource: model.textModel.uri,
 					options: {
 						selection: Range.collapseToStart(element.symbol.selectionRange),
-						selectionRevealType: TextEditorSelectionRevealType.CenterIfOutsideViewport
+						revealInCenterIfOutsideViewport: true
 					}
 				}, withUndefinedAsNull(this._getActiveCodeEditor()), group === SIDE_GROUP);
 			}

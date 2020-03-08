@@ -37,7 +37,6 @@ import { IInstantiationService } from 'vs/platform/instantiation/common/instanti
 import { ScrollType, IEditorAction } from 'vs/editor/common/editorCommon';
 import { assertType } from 'vs/base/common/types';
 import { EmbeddedCodeEditorWidget } from 'vs/editor/browser/widget/embeddedCodeEditorWidget';
-import { TextEditorSelectionRevealType } from 'vs/platform/editor/common/editor';
 
 
 MenuRegistry.appendMenuItem(MenuId.EditorContext, <ISubmenuItem>{
@@ -167,7 +166,7 @@ abstract class SymbolNavigationAction extends EditorAction {
 			resource: reference.uri,
 			options: {
 				selection: Range.collapseToStart(range),
-				selectionRevealType: TextEditorSelectionRevealType.CenterIfOutsideViewport
+				revealInCenterIfOutsideViewport: true
 			}
 		}, editor, sideBySide);
 
