@@ -9,7 +9,7 @@ import { Disposable } from 'vs/base/common/lifecycle';
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { IUserDataSyncLogService, IUserDataSyncService, SyncStatus, IUserDataAuthTokenService, IUserDataAutoSyncService, IUserDataSyncUtilService, UserDataSyncError, UserDataSyncErrorCode, SyncSource } from 'vs/platform/userDataSync/common/userDataSync';
 
-export class UserDataAutoSyncService extends Disposable implements IUserDataAutoSyncService {
+export class UserDataAutoSync extends Disposable implements IUserDataAutoSyncService {
 
 	_serviceBrand: any;
 
@@ -125,17 +125,13 @@ export class UserDataAutoSyncService extends Disposable implements IUserDataAuto
 		this.successiveFailures = 0;
 	}
 
-	async triggerAutoSync(): Promise<void> {
-		if (this.enabled) {
-			return this.syncDelayer.trigger(() => {
-				this.logService.info('Sync: Triggerred.');
-				return this.sync(false, true);
-			}, this.successiveFailures
-				? 1000 * 1 * Math.min(this.successiveFailures, 60) /* Delay by number of seconds as number of failures up to 1 minute */
-				: 1000);
-		} else {
-			this.syncDelayer.cancel();
-		}
+	triggerAutoSync(): Promise<void> {
+		return this.syncDelayer.trigger(() => {
+			this.logService.info('Sync: Triggerred.');
+			return this.sync(false, true);
+		}, this.successiveFailures
+			? 1000 * 1 * Math.min(this.successiveFailures, 60) /* Delay by number of seconds as number of failures up to 1 minute */
+			: 1000);
 	}
 
 }

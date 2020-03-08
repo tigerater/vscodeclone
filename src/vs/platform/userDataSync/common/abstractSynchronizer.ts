@@ -54,8 +54,7 @@ export abstract class AbstractSynchroniser extends Disposable {
 	}
 
 	async hasRemoteData(): Promise<boolean> {
-		const lastSyncData = await this.getLastSyncUserData();
-		const remoteUserData = await this.getRemoteUserData(lastSyncData);
+		const remoteUserData = await this.getRemoteUserData();
 		return remoteUserData.content !== null;
 	}
 
@@ -78,8 +77,11 @@ export abstract class AbstractSynchroniser extends Disposable {
 		await this.fileService.writeFile(this.lastSyncResource, VSBuffer.fromString(JSON.stringify(lastSyncUserData)));
 	}
 
-	protected async getRemoteUserData(lastSyncData: IUserData | null): Promise<IUserData> {
-		return this.userDataSyncStoreService.read(this.getRemoteDataResourceKey(), lastSyncData, this.source);
+	protected async getRemoteUserData(lastSyncData?: IUserData | null): Promise<IUserData> {
+		if (lastSyncData === undefined) {
+			lastSyncData = await this.getLastSyncUserData();
+		}
+		return this.userDataSyncStoreService.read(this.getRemoteDataResourceKey(), lastSyncData || null, this.source);
 	}
 
 	protected async updateRemoteUserData(content: string, ref: string | null): Promise<string> {

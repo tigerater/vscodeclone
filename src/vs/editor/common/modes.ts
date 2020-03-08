@@ -1341,7 +1341,7 @@ export interface RenameProvider {
 export interface Session {
 	id: string;
 	accessToken: string;
-	accountName: string;
+	displayName: string;
 }
 
 export interface Command {
