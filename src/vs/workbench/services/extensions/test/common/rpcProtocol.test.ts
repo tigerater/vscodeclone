@@ -24,7 +24,7 @@ suite('RPCProtocol', () => {
 		}
 
 		public send(buffer: VSBuffer): void {
-			Promise.resolve().then(() => {
+			process.nextTick(() => {
 				this._pair!._onMessage.fire(buffer);
 			});
 		}
