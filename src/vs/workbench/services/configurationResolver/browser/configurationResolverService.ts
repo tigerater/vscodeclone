@@ -277,31 +277,28 @@ export abstract class BaseConfigurationResolverService extends AbstractVariableR
 					} else {
 						missingAttribute('options');
 					}
-					interface PickStringItem extends IQuickPickItem {
-						value: string;
-					}
-					const picks = new Array<PickStringItem>();
+					const picks = new Array<IQuickPickItem>();
 					info.options.forEach(pickOption => {
 						const value = Types.isString(pickOption) ? pickOption : pickOption.value;
 						const label = Types.isString(pickOption) ? undefined : pickOption.label;
 
 						// If there is no label defined, use value as label
-						const item: PickStringItem = {
-							label: label ? `${label}: ${value}` : value,
-							value: value
+						const item: IQuickPickItem = {
+							label: label ? label : value,
+							detail: label ? value : undefined
 						};
 
 						if (value === info.default) {
-							item.description = nls.localize('inputVariable.defaultInputValue', "(Default)");
+							item.description = nls.localize('inputVariable.defaultInputValue', "Default");
 							picks.unshift(item);
 						} else {
 							picks.push(item);
 						}
 					});
-					const pickOptions: IPickOptions<PickStringItem> = { placeHolder: info.description, matchOnDetail: true };
+					const pickOptions: IPickOptions<IQuickPickItem> = { placeHolder: info.description, matchOnDetail: true };
 					return this.quickInputService.pick(picks, pickOptions, undefined).then(resolvedInput => {
 						if (resolvedInput) {
-							return resolvedInput.value;
+							return Types.isString(resolvedInput.detail) ? resolvedInput.detail : resolvedInput.label;
 						}
 						return undefined;
 					});

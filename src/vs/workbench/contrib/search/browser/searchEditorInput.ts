@@ -11,24 +11,22 @@ import { ITextModel, ITextBufferFactory } from 'vs/editor/common/model';
 import { localize } from 'vs/nls';
 import { IInstantiationService, ServicesAccessor } from 'vs/platform/instantiation/common/instantiation';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
-import { IEditorInputFactory, GroupIdentifier, EditorInput, IRevertOptions, ISaveOptions, IEditorInput } from 'vs/workbench/common/editor';
+import { IEditorInputFactory, GroupIdentifier, EditorInput, IRevertOptions, IEditorInput } from 'vs/workbench/common/editor';
 import { IModelService } from 'vs/editor/common/services/modelService';
 import { IModeService } from 'vs/editor/common/services/modeService';
 import { IEditorGroupsService } from 'vs/workbench/services/editor/common/editorGroupsService';
 import { ITextFileSaveOptions, ITextFileService } from 'vs/workbench/services/textfile/common/textfiles';
 import type { IWorkbenchContribution } from 'vs/workbench/common/contributions';
 import { FileEditorInput } from 'vs/workbench/contrib/files/common/editors/fileEditorInput';
-import { joinPath, isEqual, toLocalResource } from 'vs/base/common/resources';
+import { joinPath, isEqual } from 'vs/base/common/resources';
 import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
 import { IFileDialogService } from 'vs/platform/dialogs/common/dialogs';
 import { basename } from 'vs/base/common/path';
 import { IWorkingCopyService, WorkingCopyCapabilities, IWorkingCopy, IWorkingCopyBackup } from 'vs/workbench/services/workingCopy/common/workingCopyService';
 import { IBackupFileService } from 'vs/workbench/services/backup/common/backup';
+import { assertIsDefined } from 'vs/base/common/types';
 import { extractSearchQuery, serializeSearchConfiguration } from 'vs/workbench/contrib/search/browser/searchEditorSerialization';
 import type { ICodeEditorViewState } from 'vs/editor/common/editorCommon';
-import { IFilesConfigurationService, AutoSaveMode } from 'vs/workbench/services/filesConfiguration/common/filesConfigurationService';
-import { Emitter, Event } from 'vs/base/common/event';
-import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 
 export type SearchConfiguration = {
 	query: string,
@@ -46,24 +44,17 @@ type SearchEditorViewState =
 	| { focused: 'input' }
 	| { focused: 'editor', state: ICodeEditorViewState };
 
-const searchEditorScheme = 'search-editor';
-
 export class SearchEditorInput extends EditorInput {
 	static readonly ID: string = 'workbench.editorinputs.searchEditorInput';
 
 	private dirty: boolean = false;
 	private readonly model: Promise<ITextModel>;
-	private query: Partial<SearchConfiguration> | undefined;
-
-	private readonly _onDidChangeContent = new Emitter<void>();
-	readonly onDidChangeContent: Event<void> = this._onDidChangeContent.event;
-
+	private resolvedModel?: { model: ITextModel, query: SearchConfiguration };
 	viewState: SearchEditorViewState = { focused: 'input' };
 
 	constructor(
 		public readonly resource: URI,
 		getModel: () => Promise<ITextModel>,
-		startingConfig: Partial<SearchConfiguration> | undefined,
 		@IModelService private readonly modelService: IModelService,
 		@IEditorService protected readonly editorService: IEditorService,
 		@IEditorGroupsService protected readonly editorGroupService: IEditorGroupsService,
@@ -72,33 +63,24 @@ export class SearchEditorInput extends EditorInput {
 		@IFileDialogService private readonly fileDialogService: IFileDialogService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@IWorkingCopyService private readonly workingCopyService: IWorkingCopyService,
-		@IFilesConfigurationService private readonly filesConfigurationService: IFilesConfigurationService,
-		@ITelemetryService private readonly telemetryService: ITelemetryService,
 	) {
 		super();
 
-		this.model = getModel()
-			.then(model => {
-				this._register(model.onDidChangeContent(() => this._onDidChangeContent.fire()));
-				return model;
-			});
+		this.model = getModel();
 
-		const input = this;
-		const workingCopyAdapter = new class implements IWorkingCopy {
-			readonly resource = input.getResource();
-			get name() { return input.getName(); }
-			readonly capabilities = input.isUntitled() ? WorkingCopyCapabilities.Untitled : 0;
-			readonly onDidChangeDirty = input.onDidChangeDirty;
-			readonly onDidChangeContent = input.onDidChangeContent;
-			isDirty(): boolean { return input.isDirty(); }
-			backup(): Promise<IWorkingCopyBackup> { return input.backup(); }
-			save(options?: ISaveOptions): Promise<boolean> { return input.save(0, options).then(editor => !!editor); }
-			revert(options?: IRevertOptions): Promise<boolean> { return input.revert(0, options); }
+		const workingCopyAdapter: IWorkingCopy = {
+			resource: this.resource,
+			name: basename(this.resource.path),
+			capabilities: this.resource.scheme === 'search-editor' ? WorkingCopyCapabilities.Untitled : 0,
+			onDidChangeDirty: this.onDidChangeDirty,
+			onDidChangeContent: this.onDidChangeDirty,
+			isDirty: () => this.isDirty(),
+			backup: () => this.backup(),
+			save: (options) => this.save(0, options).then(editor => !!editor),
+			revert: () => this.revert(0),
 		};
 
 		this.workingCopyService.registerWorkingCopy(workingCopyAdapter);
-
-		this.query = startingConfig;
 	}
 
 	getResource() {
@@ -106,43 +88,34 @@ export class SearchEditorInput extends EditorInput {
 	}
 
 	async save(group: GroupIdentifier, options?: ITextFileSaveOptions): Promise<IEditorInput | undefined> {
-		if (this.isUntitled()) {
-			return this.saveAs(group, options);
-		} else {
-			await this.textFileService.write(this.resource, (await this.model).getValue(), options);
-			this.setDirty(false);
-			return this;
-		}
-	}
-
-	async saveAs(group: GroupIdentifier, options?: ITextFileSaveOptions): Promise<IEditorInput | undefined> {
-		const path = await this.fileDialogService.pickFileToSave(await this.suggestFileName(), options?.availableFileSystems);
-		if (path) {
-			this.telemetryService.publicLog2('searchEditor/saveSearchResults');
-			if (await this.textFileService.saveAs(this.resource, path, options)) {
-				this.setDirty(false);
-				if (!isEqual(path, this.resource)) {
-					return this.instantiationService.invokeFunction(getOrMakeSearchEditorInput, { uri: path });
+		if (this.resource.scheme === 'search-editor') {
+			const path = await this.fileDialogService.pickFileToSave(await this.suggestFileName(), options?.availableFileSystems);
+			if (path) {
+				if (await this.textFileService.saveAs(this.resource, path, options)) {
+					this.setDirty(false);
+					if (!isEqual(path, this.resource)) {
+						return this.instantiationService.invokeFunction(getOrMakeSearchEditorInput, { uri: path });
+					}
+					return this;
 				}
-				return this;
 			}
+			return undefined;
+		} else {
+			this.setDirty(false);
+			const res = await !!this.textFileService.write(this.resource, (await this.model).getValue(), options);
+			return res ? this : undefined;
 		}
-		return undefined;
 	}
 
 	getTypeId(): string {
 		return SearchEditorInput.ID;
 	}
 
-	getName(maxLength = 12): string {
-		const trimToMax = (label: string) => (label.length < maxLength ? label : `${label.slice(0, maxLength - 3)}...`);
-
-		if (this.isUntitled()) {
-			const query = this.query?.query?.trim();
-			if (query) {
-				return localize('searchTitle.withQuery', "Search: {0}", trimToMax(query));
-			}
-			return localize('searchTitle', "Search");
+	getName(): string {
+		if (this.resource.scheme === 'search-editor') {
+			return this.resolvedModel?.query.query
+				? localize('searchTitle.withQuery', "Search: {0}", this.resolvedModel?.query.query)
+				: localize('searchTitle', "Search");
 		}
 
 		return localize('searchTitle.withQuery', "Search: {0}", basename(this.resource.path, '.code-search'));
@@ -151,13 +124,17 @@ export class SearchEditorInput extends EditorInput {
 	async reloadModel() {
 		const model = await this.model;
 		const query = extractSearchQuery(model);
-		this.query = query;
+		this.resolvedModel = { model, query };
 		this._onDidChangeLabel.fire();
 		return { model, query };
 	}
 
 	getConfigSync() {
-		return this.query;
+		if (!this.resolvedModel) {
+			console.error('Requested config for Search Editor before initalization');
+		}
+
+		return this.resolvedModel?.query;
 	}
 
 	async resolve() {
@@ -171,30 +148,6 @@ export class SearchEditorInput extends EditorInput {
 
 	isDirty() {
 		return this.dirty;
-	}
-
-	isSaving(): boolean {
-		if (!this.isDirty()) {
-			return false; // the editor needs to be dirty for being saved
-		}
-
-		if (this.isUntitled()) {
-			return false; // untitled are not saving automatically
-		}
-
-		if (this.filesConfigurationService.getAutoSaveMode() === AutoSaveMode.AFTER_SHORT_DELAY) {
-			return true; // a short auto save is configured, treat this as being saved
-		}
-
-		return false;
-	}
-
-	isReadonly() {
-		return false;
-	}
-
-	isUntitled() {
-		return this.resource.scheme === searchEditorScheme;
 	}
 
 	dispose() {
@@ -243,7 +196,7 @@ export class SearchEditorInput extends EditorInput {
 			return joinPath(defaultFilePath, searchFileName);
 		}
 
-		return toLocalResource(URI.from({ scheme: schemeFilter, path: searchFileName }), remoteAuthority);
+		return URI.from({ scheme: schemeFilter, path: searchFileName });
 	}
 }
 
@@ -255,14 +208,13 @@ export class SearchEditorContribution implements IWorkbenchContribution {
 		@ITextFileService protected readonly textFileService: ITextFileService,
 		@IInstantiationService protected readonly instantiationService: IInstantiationService,
 		@IModelService protected readonly modelService: IModelService,
-		@ITelemetryService protected readonly telemetryService: ITelemetryService,
 	) {
 
 		this.editorService.overrideOpenEditor((editor, options, group) => {
 			const resource = editor.getResource();
 			if (!resource ||
-				!(endsWith(resource.path, '.code-search') || resource.scheme === searchEditorScheme) ||
-				!(editor instanceof FileEditorInput || (resource.scheme === searchEditorScheme))) {
+				!(endsWith(resource.path, '.code-search') || resource.scheme === 'search-editor') ||
+				!(editor instanceof FileEditorInput || (resource.scheme === 'search-editor'))) {
 				return undefined;
 			}
 
@@ -270,9 +222,8 @@ export class SearchEditorContribution implements IWorkbenchContribution {
 				return undefined;
 			}
 
-			this.telemetryService.publicLog2('searchEditor/openSavedSearchEditor');
 			const input = instantiationService.invokeFunction(getOrMakeSearchEditorInput, { uri: resource });
-			const opened = editorService.openEditor(input, { ...options, pinned: resource.scheme === searchEditorScheme, ignoreOverrides: true }, group);
+			const opened = editorService.openEditor(input, { ...options, pinned: resource.scheme === 'search-editor', ignoreOverrides: true }, group);
 			return { override: Promise.resolve(opened) };
 		});
 	}
@@ -290,13 +241,13 @@ export class SearchEditorInputFactory implements IEditorInputFactory {
 
 		const config = input.getConfigSync();
 
-		return JSON.stringify({ resource, dirty: input.isDirty(), config, viewState: input.viewState, name: input.getName() });
+		return JSON.stringify({ resource, dirty: input.isDirty(), config, viewState: input.viewState });
 	}
 
 	deserialize(instantiationService: IInstantiationService, serializedEditorInput: string): SearchEditorInput | undefined {
 		const { resource, dirty, config, viewState } = JSON.parse(serializedEditorInput);
 		if (config && (config.query !== undefined)) {
-			const input = instantiationService.invokeFunction(getOrMakeSearchEditorInput, { config, uri: URI.parse(resource) });
+			const input = instantiationService.invokeFunction(getOrMakeSearchEditorInput, { text: serializeSearchConfiguration(config), uri: URI.parse(resource) });
 			input.viewState = viewState;
 			input.setDirty(dirty);
 			return input;
@@ -309,13 +260,10 @@ export class SearchEditorInputFactory implements IEditorInputFactory {
 const inputs = new Map<string, SearchEditorInput>();
 export const getOrMakeSearchEditorInput = (
 	accessor: ServicesAccessor,
-	existingData:
-		{ uri: URI, config?: Partial<SearchConfiguration>, text?: never } |
-		{ text: string, uri?: never, config?: never } |
-		{ config: Partial<SearchConfiguration>, text?: never, uri?: never }
+	existingData: { uri: URI, text?: string } | { text: string, uri?: URI }
 ): SearchEditorInput => {
 
-	const uri = existingData.uri ?? URI.from({ scheme: searchEditorScheme, fragment: `${Math.random()}` });
+	const uri = existingData.uri ?? URI.from({ scheme: 'search-editor', fragment: `${Math.random()}` });
 
 	const instantiationService = accessor.get(IInstantiationService);
 	const modelService = accessor.get(IModelService);
@@ -328,33 +276,27 @@ export const getOrMakeSearchEditorInput = (
 		return existing;
 	}
 
-	const config = existingData.config ?? (existingData.text ? extractSearchQuery(existingData.text) : {});
 
 	const getModel = async () => {
 		const existing = modelService.getModel(uri);
 		if (existing) { return existing; }
 
-		const backup = await backupService.resolve(uri);
-		backupService.discardBackup(uri);
+		// must be called before `hasBackupSync` to ensure the backup service is initalized.
+		await backupService.getBackups();
 
 		let contents: string | ITextBufferFactory;
-
-		if (backup) {
-			contents = backup.value;
-		} else if (uri.scheme !== searchEditorScheme) {
+		if (backupService.hasBackupSync(uri)) {
+			contents = assertIsDefined((await backupService.resolve(uri))?.value);
+			// backupService.discardBackup(uri);
+		} else if (uri.scheme !== 'search-editor') {
 			contents = (await textFileService.read(uri)).value;
-		} else if (existingData.text) {
-			contents = existingData.text;
-		} else if (existingData.config) {
-			contents = serializeSearchConfiguration(existingData.config);
 		} else {
-			throw new Error('no initial contents for search editor');
+			contents = existingData.text ?? '';
 		}
-
 		return modelService.createModel(contents, modeService.create('search-result'), uri);
 	};
 
-	const input = instantiationService.createInstance(SearchEditorInput, uri, getModel, config);
+	const input = instantiationService.createInstance(SearchEditorInput, uri, getModel);
 
 	inputs.set(uri.toString(), input);
 	input.onDispose(() => inputs.delete(uri.toString()));

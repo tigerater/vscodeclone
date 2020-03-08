@@ -332,7 +332,7 @@ class ConfigureSaveConflictAction extends Action {
 	}
 
 	run(): Promise<any> {
-		this.preferencesService.openSettings(undefined, 'files.saveConflictResolution');
+		this.preferencesService.openSettings(undefined, 'files.preventSaveConflicts');
 
 		return Promise.resolve(true);
 	}

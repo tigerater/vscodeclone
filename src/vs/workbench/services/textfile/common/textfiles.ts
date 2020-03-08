@@ -422,7 +422,7 @@ export interface ITextFileEditorModel extends ITextEditorModel, IEncodingSupport
 
 	isDirty(): this is IResolvedTextFileEditorModel;
 
-	setDirty(dirty: boolean): void;
+	makeDirty(): void;
 
 	getMode(): string | undefined;
 

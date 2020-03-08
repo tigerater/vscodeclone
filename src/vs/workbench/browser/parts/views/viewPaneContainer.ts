@@ -616,7 +616,6 @@ export class ViewPaneContainer extends Component implements IViewPaneContainer {
 					title: viewDescriptor.name,
 					actionRunner: this.getActionRunner(),
 					expanded: !collapsed,
-					minimumBodySize: this.viewDescriptorService.getViewContainerLocation(this.viewContainer) === ViewContainerLocation.Panel ? 0 : 120
 				});
 
 			pane.render();

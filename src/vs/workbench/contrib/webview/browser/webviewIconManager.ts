@@ -8,7 +8,6 @@ import { memoize } from 'vs/base/common/decorators';
 import { URI } from 'vs/base/common/uri';
 import { ILifecycleService, LifecyclePhase } from 'vs/platform/lifecycle/common/lifecycle';
 import { WebviewIcons } from 'vs/workbench/contrib/webview/browser/webview';
-import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 
 export class WebviewIconManager {
 
@@ -16,14 +15,7 @@ export class WebviewIconManager {
 
 	constructor(
 		@ILifecycleService private readonly _lifecycleService: ILifecycleService,
-		@IConfigurationService private readonly _configService: IConfigurationService,
-	) {
-		this._configService.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration('workbench.iconTheme')) {
-				this.updateStyleSheet(this._lifecycleService);
-			}
-		});
-	}
+	) { }
 
 	@memoize
 	private get _styleElement(): HTMLStyleElement {
@@ -46,22 +38,19 @@ export class WebviewIconManager {
 	}
 
 	private async updateStyleSheet(lifecycleService: ILifecycleService) {
-		console.log('update');
 		await lifecycleService.when(LifecyclePhase.Starting);
 
 		try {
 			const cssRules: string[] = [];
-			if (this._configService.getValue('workbench.iconTheme') !== null) {
-				this._icons.forEach((value, key) => {
-					const webviewSelector = `.show-file-icons .webview-${key}-name-file-icon::before`;
-					if (URI.isUri(value)) {
-						cssRules.push(`${webviewSelector} { content: ""; background-image: ${dom.asCSSUrl(value)}; }`);
-					} else {
-						cssRules.push(`.vs ${webviewSelector} { content: ""; background-image: ${dom.asCSSUrl(value.light)}; }`);
-						cssRules.push(`.vs-dark ${webviewSelector} { content: ""; background-image: ${dom.asCSSUrl(value.dark)}; }`);
-					}
-				});
-			}
+			this._icons.forEach((value, key) => {
+				const webviewSelector = `.show-file-icons .webview-${key}-name-file-icon::before`;
+				if (URI.isUri(value)) {
+					cssRules.push(`${webviewSelector} { content: ""; background-image: ${dom.asCSSUrl(value)}; }`);
+				} else {
+					cssRules.push(`.vs ${webviewSelector} { content: ""; background-image: ${dom.asCSSUrl(value.light)}; }`);
+					cssRules.push(`.vs-dark ${webviewSelector} { content: ""; background-image: ${dom.asCSSUrl(value.dark)}; }`);
+				}
+			});
 			this._styleElement.innerHTML = cssRules.join('\n');
 		} catch {
 			// noop

@@ -22,7 +22,6 @@ import { GitExtensionImpl } from './api/extension';
 import * as path from 'path';
 import * as fs from 'fs';
 import { createIPCServer, IIPCServer } from './ipc/ipcServer';
-import { GitTimelineProvider } from './timelineProvider';
 
 const deactivateTasks: { (): Promise<any>; }[] = [];
 
@@ -83,8 +82,7 @@ async function createModel(context: ExtensionContext, outputChannel: OutputChann
 		new GitContentProvider(model),
 		new GitFileSystemProvider(model),
 		new GitDecorations(model),
-		new GitProtocolHandler(),
-		new GitTimelineProvider(model)
+		new GitProtocolHandler()
 	);
 
 	await checkGitVersion(info);

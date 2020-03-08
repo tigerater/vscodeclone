@@ -10,7 +10,7 @@ import { TextModel } from 'vs/editor/common/model/textModel';
 import { IIdentifiedSingleEditOperation } from 'vs/editor/common/model';
 import { MetadataConsts, TokenMetadata } from 'vs/editor/common/modes';
 
-suite.skip('TokensStore', () => {
+suite('TokensStore', () => {
 
 	const SEMANTIC_COLOR = 5;
 

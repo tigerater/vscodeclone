@@ -1165,7 +1165,7 @@ export class RenameTerminalQuickOpenAction extends RenameTerminalAction {
 		@ITerminalService terminalService: ITerminalService
 	) {
 		super(id, label, quickOpenService, quickInputService, terminalService);
-		this.class = 'codicon codicon-gear';
+		this.class = 'quick-open-terminal-configure';
 	}
 
 	public run(): Promise<any> {

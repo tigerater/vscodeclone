@@ -34,13 +34,6 @@ function getLastModifiedTime(model: TextFileEditorModel): number {
 	return stat ? stat.mtime : -1;
 }
 
-class TestTextFileEditorModel extends TextFileEditorModel {
-
-	isReadonly(): boolean {
-		return true;
-	}
-}
-
 suite('Files - TextFileEditorModel', () => {
 
 	let instantiationService: IInstantiationService;
@@ -318,12 +311,12 @@ suite('Files - TextFileEditorModel', () => {
 		assert.equal(accessor.workingCopyService.isDirty(model.resource), true);
 	});
 
-	test('Update Dirty', async function () {
+	test('Make Dirty', async function () {
 		let eventCounter = 0;
 
 		const model = instantiationService.createInstance(TextFileEditorModel, toResource.call(this, '/path/index_async.txt'), 'utf8', undefined);
 
-		model.setDirty(true);
+		model.makeDirty();
 		assert.ok(!model.isDirty()); // needs to be resolved
 
 		await model.load();
@@ -344,36 +337,10 @@ suite('Files - TextFileEditorModel', () => {
 			}
 		});
 
-		model.setDirty(true);
+		model.makeDirty();
 		assert.ok(model.isDirty());
 		assert.equal(eventCounter, 1);
 		assert.ok(workingCopyEvent);
-
-		model.setDirty(false);
-		assert.ok(!model.isDirty());
-		assert.equal(eventCounter, 2);
-
-		model.dispose();
-	});
-
-	test('No Dirty for readonly models', async function () {
-		let workingCopyEvent = false;
-		accessor.workingCopyService.onDidChangeDirty(e => {
-			if (e.resource.toString() === model.resource.toString()) {
-				workingCopyEvent = true;
-			}
-		});
-
-		const model = instantiationService.createInstance(TestTextFileEditorModel, toResource.call(this, '/path/index_async.txt'), 'utf8', undefined);
-
-		await model.load();
-		model.textEditorModel!.setValue('foo');
-		assert.ok(!model.isDirty());
-
-		await model.revert({ soft: true });
-		assert.ok(!model.isDirty());
-
-		assert.ok(!workingCopyEvent);
 
 		model.dispose();
 	});

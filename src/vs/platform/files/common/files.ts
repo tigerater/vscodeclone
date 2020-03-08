@@ -804,7 +804,7 @@ export interface IFilesConfiguration {
 		eol: string;
 		enableTrash: boolean;
 		hotExit: string;
-		saveConflictResolution: 'askUser' | 'overwriteFileOnDisk';
+		preventSaveConflicts: boolean;
 	};
 }
 

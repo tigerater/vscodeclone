@@ -77,7 +77,9 @@ export function activate(context: vscode.ExtensionContext) {
 				const lineResult = parseSearchResults(document, token)[position.line];
 				if (!lineResult) { return []; }
 				if (lineResult.type === 'file') {
-					return lineResult.allLocations;
+					// TODO: The multi-match peek UX isnt very smooth.
+					// return lineResult.allLocations.length > 1 ? lineResult.allLocations : [lineResult.location];
+					return [];
 				}
 
 				const translateRangeSidewaysBy = (r: vscode.Range, n: number) =>

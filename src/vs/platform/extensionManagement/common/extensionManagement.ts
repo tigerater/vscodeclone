@@ -213,11 +213,11 @@ export const IGlobalExtensionEnablementService = createDecorator<IGlobalExtensio
 
 export interface IGlobalExtensionEnablementService {
 	_serviceBrand: undefined;
-	readonly onDidChangeEnablement: Event<{ readonly extensions: IExtensionIdentifier[], readonly source?: string }>;
+	readonly onDidChangeEnablement: Event<readonly IExtensionIdentifier[]>;
 
 	getDisabledExtensions(): IExtensionIdentifier[];
-	enableExtension(extension: IExtensionIdentifier, source?: string): Promise<boolean>;
-	disableExtension(extension: IExtensionIdentifier, source?: string): Promise<boolean>;
+	enableExtension(extension: IExtensionIdentifier): Promise<boolean>;
+	disableExtension(extension: IExtensionIdentifier): Promise<boolean>;
 
 	// Async method until storage service is available in shared process
 	getDisabledExtensionsAsync(): Promise<IExtensionIdentifier[]>;

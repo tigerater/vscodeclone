@@ -29,7 +29,14 @@ export class TaskEntry extends Model.QuickOpenEntry {
 	}
 
 	public getDescription(): string | undefined {
-		return this.taskService.getTaskDescription(this.task);
+		if (!this.taskService.needsFolderQualification()) {
+			return undefined;
+		}
+		let workspaceFolder = this.task.getWorkspaceFolder();
+		if (!workspaceFolder) {
+			return undefined;
+		}
+		return `${workspaceFolder.name}`;
 	}
 
 	public getAriaLabel(): string {

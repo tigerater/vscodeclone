@@ -60,13 +60,12 @@ export class UserDataAutoSync extends Disposable implements IUserDataAutoSyncSer
 				if (auto) {
 					if (await this.isTurnedOffEverywhere()) {
 						// Turned off everywhere. Reset & Stop Sync.
-						this.logService.info('Turning off sync as it is turned off everywhere.');
 						await this.userDataSyncService.resetLocal();
 						await this.userDataSyncUtilService.updateConfigurationValue('sync.enable', false);
 						return;
 					}
 					if (this.userDataSyncService.status !== SyncStatus.Idle) {
-						this.logService.trace('Sync Skipped as it is syncing already');
+						this.logService.info('Skipped auto sync as sync is happening');
 						return;
 					}
 				}
@@ -87,8 +86,6 @@ export class UserDataAutoSync extends Disposable implements IUserDataAutoSyncSer
 				await timeout(1000 * 60 * 5 * (this.successiveFailures + 1)); // Loop sync for every (successive failures count + 1) times 5 mins interval.
 				this.sync(loop, true);
 			}
-		} else {
-			this.logService.trace('Not syncing as it is disabled.');
 		}
 	}
 
@@ -105,7 +102,6 @@ export class UserDataAutoSync extends Disposable implements IUserDataAutoSyncSer
 	}
 
 	triggerAutoSync(): Promise<void> {
-		this.logService.trace('Triggerred Sync...');
 		return this.sync(false, true);
 	}
 

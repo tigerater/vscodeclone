@@ -49,7 +49,6 @@ export class BulkEditPane extends ViewPane {
 
 	static readonly ctxHasCategories = new RawContextKey('refactorPreview.hasCategories', false);
 	static readonly ctxGroupByFile = new RawContextKey('refactorPreview.groupByFile', true);
-	static readonly ctxHasCheckedChanges = new RawContextKey('refactorPreview.hasCheckedChanges', true);
 
 	private static readonly _memGroupByFile = `${BulkEditPane.ID}.groupByFile`;
 
@@ -60,7 +59,6 @@ export class BulkEditPane extends ViewPane {
 
 	private readonly _ctxHasCategories: IContextKey<boolean>;
 	private readonly _ctxGroupByFile: IContextKey<boolean>;
-	private readonly _ctxHasCheckedChanges: IContextKey<boolean>;
 
 	private readonly _disposables = new DisposableStore();
 	private readonly _sessionDisposables = new DisposableStore();
@@ -92,7 +90,6 @@ export class BulkEditPane extends ViewPane {
 		this.element.classList.add('bulk-edit-panel', 'show-file-icons');
 		this._ctxHasCategories = BulkEditPane.ctxHasCategories.bindTo(_contextKeyService);
 		this._ctxGroupByFile = BulkEditPane.ctxGroupByFile.bindTo(_contextKeyService);
-		this._ctxHasCheckedChanges = BulkEditPane.ctxHasCheckedChanges.bindTo(_contextKeyService);
 	}
 
 	dispose(): void {
@@ -177,7 +174,6 @@ export class BulkEditPane extends ViewPane {
 		const hasCategories = input.categories.length > 1;
 		this._ctxHasCategories.set(hasCategories);
 		this._treeDataSource.groupByFile = !hasCategories || this._treeDataSource.groupByFile;
-		this._ctxHasCheckedChanges.set(input.checked.checkedCount > 0);
 
 		this._currentInput = input;
 
@@ -191,7 +187,6 @@ export class BulkEditPane extends ViewPane {
 			// refresh when check state changes
 			this._sessionDisposables.add(input.checked.onDidChange(() => {
 				this._tree.updateChildren();
-				this._ctxHasCheckedChanges.set(input.checked.checkedCount > 0);
 			}));
 		});
 	}
@@ -309,44 +304,40 @@ export class BulkEditPane extends ViewPane {
 			return;
 		}
 
-		const previewUri = BulkEditPreviewProvider.asPreviewUri(fileElement.edit.uri);
-
-		if (fileElement.edit.type & BulkFileOperationType.Delete) {
-			// delete -> show single editor
-			this._editorService.openEditor({
-				label: localize('edt.title.del', "{0} (delete, refactor preview)", basename(fileElement.edit.uri)),
-				resource: previewUri,
-				options
-			});
-
-		} else {
-			// rename, create, edits -> show diff editr
-			let leftResource: URI | undefined;
+		let leftResource: URI | undefined;
+		if (fileElement.edit.type & BulkFileOperationType.TextEdit) {
 			try {
 				(await this._textModelService.createModelReference(fileElement.edit.uri)).dispose();
 				leftResource = fileElement.edit.uri;
 			} catch {
 				leftResource = BulkEditPreviewProvider.emptyPreview;
 			}
+		}
 
+		const previewUri = BulkEditPreviewProvider.asPreviewUri(fileElement.edit.uri);
+
+		if (leftResource) {
+			// show diff editor
+			this._editorService.openEditor({
+				leftResource,
+				rightResource: previewUri,
+				label: localize('edt.title', "{0} (refactor preview)", basename(fileElement.edit.uri)),
+				options
+			});
+		} else {
+			// show 'normal' editor
 			let typeLabel: string | undefined;
 			if (fileElement.edit.type & BulkFileOperationType.Rename) {
 				typeLabel = localize('rename', "rename");
 			} else if (fileElement.edit.type & BulkFileOperationType.Create) {
 				typeLabel = localize('create', "create");
-			}
-
-			let label: string;
-			if (typeLabel) {
-				label = localize('edt.title.2', "{0} ({1}, refactor preview)", basename(fileElement.edit.uri), typeLabel);
-			} else {
-				label = localize('edt.title.1', "{0} (refactor preview)", basename(fileElement.edit.uri));
+			} else if (fileElement.edit.type & BulkFileOperationType.Delete) {
+				typeLabel = localize('delete', "delete");
 			}
 
 			this._editorService.openEditor({
-				leftResource,
-				rightResource: previewUri,
-				label,
+				label: typeLabel && localize('edt.title2', "{0} ({1}, refactor preview)", basename(fileElement.edit.uri), typeLabel),
+				resource: previewUri,
 				options
 			});
 		}

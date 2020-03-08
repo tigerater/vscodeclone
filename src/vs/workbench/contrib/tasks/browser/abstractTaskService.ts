@@ -7,7 +7,6 @@ import * as nls from 'vs/nls';
 import Severity from 'vs/base/common/severity';
 import * as Objects from 'vs/base/common/objects';
 import * as resources from 'vs/base/common/resources';
-import * as json from 'vs/base/common/json';
 import { URI } from 'vs/base/common/uri';
 import { IStringDictionary } from 'vs/base/common/collections';
 import { Action } from 'vs/base/common/actions';
@@ -422,17 +421,10 @@ export abstract class AbstractTaskService extends Disposable implements ITaskSer
 			}
 		});
 
-		CommandsRegistry.registerCommand('workbench.action.tasks.openUserTasks', async () => {
+		CommandsRegistry.registerCommand('workbench.action.tasks.configureUserTask', async () => {
 			const resource = this.getResourceForKind(TaskSourceKind.User);
 			if (resource) {
-				this.openTaskFile(resource, TaskSourceKind.User);
-			}
-		});
-
-		CommandsRegistry.registerCommand('workbench.action.tasks.openWorkspaceFileTasks', async () => {
-			const resource = this.getResourceForKind(TaskSourceKind.WorkspaceFile);
-			if (resource) {
-				this.openTaskFile(resource, TaskSourceKind.WorkspaceFile);
+				this.openTaskFile(resource);
 			}
 		});
 	}
@@ -1088,7 +1080,6 @@ export abstract class AbstractTaskService extends Disposable implements ITaskSer
 	}
 
 	private getResourceForKind(kind: string): URI | undefined {
-		this.updateSetup();
 		switch (kind) {
 			case TaskSourceKind.User: {
 				return resources.joinPath(resources.dirname(this.preferencesService.userSettingsResource), 'tasks.json');
@@ -2418,25 +2409,17 @@ export abstract class AbstractTaskService extends Disposable implements ITaskSer
 		return result;
 	}
 
-	private openTaskFile(resource: URI, taskSource: string) {
+	private openTaskFile(resource: URI) {
 		let configFileCreated = false;
-		this.fileService.resolve(resource).then((stat) => stat, () => undefined).then(async (stat) => {
-			const fileExists: boolean = !!stat;
-			const configValue = this.configurationService.inspect<TaskConfig.ExternalTaskRunnerConfiguration>('tasks');
-			let tasksExistInFile: boolean;
-			let target: ConfigurationTarget;
-			switch (taskSource) {
-				case TaskSourceKind.User: tasksExistInFile = !!configValue.userValue; target = ConfigurationTarget.USER; break;
-				case TaskSourceKind.WorkspaceFile: tasksExistInFile = !!configValue.workspaceValue; target = ConfigurationTarget.WORKSPACE; break;
-				default: tasksExistInFile = !!configValue.value; target = ConfigurationTarget.WORKSPACE_FOLDER;
+		this.fileService.resolve(resource).then((stat) => stat, () => undefined).then((stat) => {
+			if (stat) {
+				return stat.resource;
 			}
-			let content;
-			if (!tasksExistInFile) {
-				const pickTemplateResult = await this.quickInputService.pick(getTaskTemplates(), { placeHolder: nls.localize('TaskService.template', 'Select a Task Template') });
-				if (!pickTemplateResult) {
+			return this.quickInputService.pick(getTaskTemplates(), { placeHolder: nls.localize('TaskService.template', 'Select a Task Template') }).then((selection) => {
+				if (!selection) {
 					return Promise.resolve(undefined);
 				}
-				content = pickTemplateResult.content;
+				let content = selection.content;
 				let editorConfig = this.configurationService.getValue<any>();
 				if (editorConfig.editor.insertSpaces) {
 					content = content.replace(/(\n)(\t+)/g, (_, s1, s2) => s1 + strings.repeat(' ', s2.length * editorConfig.editor.tabSize));
@@ -2450,23 +2433,14 @@ export abstract class AbstractTaskService extends Disposable implements ITaskSer
 					templateId?: string;
 					autoDetect: boolean;
 				};
-				this.telemetryService.publicLog2<TaskServiceEvent, TaskServiceTemplateClassification>('taskService.template', {
-					templateId: pickTemplateResult.id,
-					autoDetect: pickTemplateResult.autoDetect
-				});
-			}
-
-			if (!fileExists && content) {
 				return this.textFileService.create(resource, content).then((result): URI => {
+					this.telemetryService.publicLog2<TaskServiceEvent, TaskServiceTemplateClassification>('taskService.template', {
+						templateId: selection.id,
+						autoDetect: selection.autoDetect
+					});
 					return result.resource;
 				});
-			} else if (fileExists && (tasksExistInFile || content)) {
-				if (content) {
-					this.configurationService.updateValue('tasks', json.parse(content), target);
-				}
-				return stat?.resource;
-			}
-			return undefined;
+			});
 		}).then((resource) => {
 			if (!resource) {
 				return;
@@ -2502,11 +2476,11 @@ export abstract class AbstractTaskService extends Disposable implements ITaskSer
 		if (this.isTaskEntry(selection)) {
 			this.configureTask(selection.task);
 		} else {
-			this.openTaskFile(selection.folder.toResource('.vscode/tasks.json'), TaskSourceKind.Workspace);
+			this.openTaskFile(selection.folder.toResource('.vscode/tasks.json'));
 		}
 	}
 
-	public getTaskDescription(task: Task): string | undefined {
+	private getTaskDescription(task: Task): string | undefined {
 		let description: string | undefined;
 		if (task._source.kind === TaskSourceKind.User) {
 			description = nls.localize('taskQuickPick.userSettings', 'User Settings');

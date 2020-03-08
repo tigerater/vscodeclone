@@ -17,7 +17,7 @@ import { Position } from 'vs/editor/common/core/position';
 import { Range } from 'vs/editor/common/core/range';
 import { IEditorContribution } from 'vs/editor/common/editorCommon';
 import { ITextModel } from 'vs/editor/common/model';
-import { FontStyle, LanguageIdentifier, StandardTokenType, TokenMetadata, DocumentSemanticTokensProviderRegistry, SemanticTokensLegend, SemanticTokens, LanguageId } from 'vs/editor/common/modes';
+import { FontStyle, LanguageIdentifier, StandardTokenType, TokenMetadata, DocumentSemanticTokensProviderRegistry, SemanticTokensLegend, SemanticTokens } from 'vs/editor/common/modes';
 import { IModeService } from 'vs/editor/common/services/modeService';
 import { INotificationService } from 'vs/platform/notification/common/notification';
 import { editorHoverBackground, editorHoverBorder } from 'vs/platform/theme/common/colorRegistry';
@@ -28,8 +28,6 @@ import { IWorkbenchThemeService } from 'vs/workbench/services/themes/common/work
 import { CancellationTokenSource } from 'vs/base/common/cancellation';
 import { ColorThemeData, TokenStyleDefinitions, TokenStyleDefinition } from 'vs/workbench/services/themes/common/colorThemeData';
 import { TokenStylingRule } from 'vs/platform/theme/common/tokenClassificationRegistry';
-import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
-import type { IEditorSemanticHighlightingOptions } from 'vs/editor/common/config/editorOptions';
 
 class InspectEditorTokensController extends Disposable implements IEditorContribution {
 
@@ -44,7 +42,6 @@ class InspectEditorTokensController extends Disposable implements IEditorContrib
 	private _themeService: IWorkbenchThemeService;
 	private _modeService: IModeService;
 	private _notificationService: INotificationService;
-	private _configurationService: IConfigurationService;
 	private _widget: InspectEditorTokensWidget | null;
 
 	constructor(
@@ -52,8 +49,7 @@ class InspectEditorTokensController extends Disposable implements IEditorContrib
 		@ITextMateService textMateService: ITextMateService,
 		@IModeService modeService: IModeService,
 		@IWorkbenchThemeService themeService: IWorkbenchThemeService,
-		@INotificationService notificationService: INotificationService,
-		@IConfigurationService configurationService: IConfigurationService
+		@INotificationService notificationService: INotificationService
 	) {
 		super();
 		this._editor = editor;
@@ -61,7 +57,6 @@ class InspectEditorTokensController extends Disposable implements IEditorContrib
 		this._themeService = themeService;
 		this._modeService = modeService;
 		this._notificationService = notificationService;
-		this._configurationService = configurationService;
 		this._widget = null;
 
 		this._register(this._editor.onDidChangeModel((e) => this.stop()));
@@ -81,7 +76,7 @@ class InspectEditorTokensController extends Disposable implements IEditorContrib
 		if (!this._editor.hasModel()) {
 			return;
 		}
-		this._widget = new InspectEditorTokensWidget(this._editor, this._textMateService, this._modeService, this._themeService, this._notificationService, this._configurationService);
+		this._widget = new InspectEditorTokensWidget(this._editor, this._textMateService, this._modeService, this._themeService, this._notificationService);
 	}
 
 	public stop(): void {
@@ -189,7 +184,6 @@ class InspectEditorTokensWidget extends Disposable implements IContentWidget {
 	private readonly _modeService: IModeService;
 	private readonly _themeService: IWorkbenchThemeService;
 	private readonly _notificationService: INotificationService;
-	private readonly _configurationService: IConfigurationService;
 	private readonly _model: ITextModel;
 	private readonly _domNode: HTMLElement;
 	private readonly _grammar: Promise<IGrammar | null>;
@@ -201,8 +195,7 @@ class InspectEditorTokensWidget extends Disposable implements IContentWidget {
 		textMateService: ITextMateService,
 		modeService: IModeService,
 		themeService: IWorkbenchThemeService,
-		notificationService: INotificationService,
-		configurationService: IConfigurationService
+		notificationService: INotificationService
 	) {
 		super();
 		this._isDisposed = false;
@@ -210,7 +203,6 @@ class InspectEditorTokensWidget extends Disposable implements IContentWidget {
 		this._modeService = modeService;
 		this._themeService = themeService;
 		this._notificationService = notificationService;
-		this._configurationService = configurationService;
 		this._model = this._editor.getModel();
 		this._domNode = document.createElement('div');
 		this._domNode.className = 'token-inspect-widget';
@@ -252,11 +244,6 @@ class InspectEditorTokensWidget extends Disposable implements IContentWidget {
 			});
 		});
 
-	}
-
-	private _isSemanticColoringEnabled() {
-		const options = this._configurationService.getValue<IEditorSemanticHighlightingOptions>('editor.semanticHighlighting', { overrideIdentifier: this._model.getLanguageIdentifier().language, resource: this._model.uri });
-		return options && options.enabled;
 	}
 
 	private _compute(grammar: IGrammar | null, semanticTokens: SemanticTokensResult | null, position: Position): string {
@@ -445,10 +432,6 @@ class InspectEditorTokensWidget extends Disposable implements IContentWidget {
 	}
 
 	private async _computeSemanticTokens(): Promise<SemanticTokensResult | null> {
-		if (!this._isSemanticColoringEnabled()) {
-			return null;
-		}
-
 		const tokenProviders = DocumentSemanticTokensProviderRegistry.ordered(this._model);
 		if (tokenProviders.length) {
 			const provider = tokenProviders[0];
@@ -474,30 +457,9 @@ class InspectEditorTokensWidget extends Disposable implements IContentWidget {
 				const modifiers = semanticTokens.legend.tokenModifiers.filter((_, k) => modSet & 1 << k);
 				const range = new Range(line + 1, character + 1, line + 1, character + 1 + len);
 				const definitions = {};
-				const colorMap = this._themeService.getColorTheme().tokenColorMap;
 				const theme = this._themeService.getTheme() as ColorThemeData;
-				const tokenStyle = theme.getTokenStyleMetadata(type, modifiers, true, definitions);
-
-				let fontStyle = FontStyle.None;
-				let foreground: string | undefined = undefined;
-				if (tokenStyle) {
-					fontStyle = (
-						(tokenStyle.italic ? FontStyle.Italic : 0)
-						| (tokenStyle.bold ? FontStyle.Bold : 0)
-						| (tokenStyle.underline ? FontStyle.Underline : 0)
-					);
-					if (tokenStyle.foreground) {
-						foreground = colorMap[tokenStyle.foreground];
-					}
-				}
-
-				const metadata: IDecodedMetadata = {
-					languageIdentifier: this._modeService.getLanguageIdentifier(LanguageId.Null)!,
-					tokenType: StandardTokenType.Other,
-					fontStyle: this._fontStyleToString(fontStyle),
-					foreground: foreground,
-				};
-
+				const m = theme.getTokenStyleMetadata(type, modifiers, true, definitions);
+				const metadata = this._decodeMetadata(m || 0);
 				return { type, modifiers, range, metadata, definitions };
 			}
 			lastLine = line;
@@ -515,19 +477,18 @@ class InspectEditorTokensWidget extends Disposable implements IContentWidget {
 		const isTokenStylingRule = (d: any): d is TokenStylingRule => !!d.value;
 		if (Array.isArray(definition)) {
 			let result = '';
-			let matchingRule = undefined;
 			result += `<ul>`;
 			for (const d of definition) {
 				result += `<li>${escape(d.join(' '))}</li>`;
-				matchingRule = findMatchingThemeRule(theme, d, false);
-				if (matchingRule) {
-					break;
-				}
 			}
 			result += `</ul>`;
 
-			if (matchingRule) {
-				result += `<code class="tiw-theme-selector">${matchingRule.rawSelector}\n${JSON.stringify(matchingRule.settings, null, '\t')}</code>`;
+			for (const d of definition) {
+				let matchingRule = findMatchingThemeRule(theme, d, false);
+				if (matchingRule) {
+					result += `<code class="tiw-theme-selector">${matchingRule.rawSelector}\n${JSON.stringify(matchingRule.settings, null, '\t')}</code>`;
+					break;
+				}
 			}
 			return result;
 		} else if (isTokenStylingRule(definition)) {
@@ -541,13 +502,7 @@ class InspectEditorTokensWidget extends Disposable implements IContentWidget {
 			}
 			return '';
 		} else if (typeof definition === 'string') {
-			const [type, ...modifiers] = definition.split('.');
-			const definitions: TokenStyleDefinitions = {};
-			const m = theme.getTokenStyleMetadata(type, modifiers, true, definitions);
-			if (m && definitions.foreground) {
-				return this._renderTokenStyleDefinition(definitions.foreground);
-			}
-			return '';
+			return `Selector: ${definition}`;
 		} else {
 			return `Token style: Foreground: ${definition.foreground}, bold: ${definition.bold}, italic: ${definition.italic}, underline: ${definition.underline},`;
 		}

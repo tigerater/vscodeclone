@@ -321,10 +321,6 @@
 		{
 			"name": "vs/workbench/services/userDataSync",
 			"project": "vscode-workbench"
-		},
-		{
-			"name": "vs/workbench/contrib/timeline",
-			"project": "vscode-workbench"
 		}
 	]
 }

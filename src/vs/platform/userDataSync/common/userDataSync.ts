@@ -140,8 +140,6 @@ export class UserDataSyncError extends Error {
 
 }
 
-export class UserDataSyncStoreError extends UserDataSyncError { }
-
 export interface IUserDataSyncStore {
 	url: string;
 	authenticationProviderId: string;

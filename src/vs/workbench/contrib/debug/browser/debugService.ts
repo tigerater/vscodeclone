@@ -523,9 +523,6 @@ export class DebugService implements IDebugService {
 			}
 		} catch (err) {
 			session.shutdown();
-			if (this.viewModel.focusedSession === session) {
-				await this.focusStackFrame(undefined);
-			}
 			return Promise.reject(err);
 		}
 	}

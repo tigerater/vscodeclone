@@ -158,7 +158,7 @@ registerAction2(class ApplyAction extends Action2 {
 			title: { value: localize('apply', "Apply Refactoring"), original: 'Apply Refactoring' },
 			category: localize('cat', "Refactor Preview"),
 			icon: { id: 'codicon/check' },
-			precondition: ContextKeyExpr.and(BulkEditPreviewContribution.ctxEnabled, BulkEditPane.ctxHasCheckedChanges),
+			precondition: BulkEditPreviewContribution.ctxEnabled,
 			menu: [{
 				id: MenuId.BulkEditTitle,
 				group: 'navigation'
@@ -168,7 +168,7 @@ registerAction2(class ApplyAction extends Action2 {
 			}],
 			keybinding: {
 				weight: KeybindingWeight.EditorContrib - 10,
-				when: ContextKeyExpr.and(BulkEditPreviewContribution.ctxEnabled, ContextKeyExpr.equals('activePanel', BulkEditPane.ID), ContextKeyExpr.has('panelFocus')),
+				when: ContextKeyExpr.and(BulkEditPreviewContribution.ctxEnabled, ContextKeyExpr.equals('activePanel', BulkEditPane.ID)),
 				primary: KeyMod.Shift + KeyCode.Enter,
 			}
 		});

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import type * as Proto from '../protocol';
+import * as Proto from '../protocol';
 import * as PConst from '../protocol.const';
 
 export function snippetForFunctionCall(

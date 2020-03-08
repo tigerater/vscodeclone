@@ -18,7 +18,7 @@ import { registerEditorAction, ServicesAccessor, EditorAction } from 'vs/editor/
 import { IModelService } from 'vs/editor/common/services/modelService';
 import { ServiceCollection } from 'vs/platform/instantiation/common/serviceCollection';
 import { IContextKeyService, IContextKey } from 'vs/platform/contextkey/common/contextkey';
-import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
+import { IInstantiationService, createDecorator } from 'vs/platform/instantiation/common/instantiation';
 import { IStorageService, StorageScope } from 'vs/platform/storage/common/storage';
 import { IThemeService } from 'vs/platform/theme/common/themeService';
 import { ICodeEditor, isCodeEditor } from 'vs/editor/browser/editorBrowser';
@@ -60,8 +60,17 @@ import { IViewsService, IViewDescriptorService } from 'vs/workbench/common/views
 const $ = dom.$;
 
 const HISTORY_STORAGE_KEY = 'debug.repl.history';
+const IPrivateReplService = createDecorator<IPrivateReplService>('privateReplService');
 const DECORATION_KEY = 'replinputdecoration';
 
+interface IPrivateReplService {
+	_serviceBrand: undefined;
+	acceptReplInput(): void;
+	getVisibleContent(): string;
+	selectSession(session?: IDebugSession): Promise<void>;
+	clearRepl(): Promise<void>;
+	focusRepl(): void;
+}
 
 function revealLastElement(tree: WorkbenchAsyncDataTree<any, any, any>) {
 	tree.scrollTop = tree.scrollHeight - tree.renderHeight;
@@ -69,7 +78,7 @@ function revealLastElement(tree: WorkbenchAsyncDataTree<any, any, any>) {
 
 const sessionsToIgnore = new Set<IDebugSession>();
 
-export class Repl extends ViewPane implements IHistoryNavigationWidget {
+export class Repl extends ViewPane implements IPrivateReplService, IHistoryNavigationWidget {
 	_serviceBrand: undefined;
 
 	private static readonly REFRESH_DELAY = 100; // delay in ms to refresh the repl for new elements to show
@@ -490,7 +499,8 @@ export class Repl extends ViewPane implements IHistoryNavigationWidget {
 		this._register(scopedContextKeyService);
 		CONTEXT_IN_DEBUG_REPL.bindTo(scopedContextKeyService).set(true);
 
-		this.scopedInstantiationService = this.instantiationService.createChild(new ServiceCollection([IContextKeyService, scopedContextKeyService]));
+		this.scopedInstantiationService = this.instantiationService.createChild(new ServiceCollection(
+			[IContextKeyService, scopedContextKeyService], [IPrivateReplService, this]));
 		const options = getSimpleEditorOptions();
 		options.readOnly = true;
 		options.ariaLabel = localize('debugConsole', "Debug Console");
@@ -624,8 +634,7 @@ class AcceptReplInputAction extends EditorAction {
 
 	run(accessor: ServicesAccessor, editor: ICodeEditor): void | Promise<void> {
 		SuggestController.get(editor).acceptSelectedSuggestion(false, true);
-		const repl = getReplView(accessor.get(IViewsService));
-		repl?.acceptReplInput();
+		accessor.get(IPrivateReplService).acceptReplInput();
 	}
 }
 
@@ -647,8 +656,7 @@ class FilterReplAction extends EditorAction {
 
 	run(accessor: ServicesAccessor, editor: ICodeEditor): void | Promise<void> {
 		SuggestController.get(editor).acceptSelectedSuggestion(false, true);
-		const repl = getReplView(accessor.get(IViewsService));
-		repl?.focusRepl();
+		accessor.get(IPrivateReplService).focusRepl();
 	}
 }
 
@@ -665,10 +673,7 @@ class ReplCopyAllAction extends EditorAction {
 
 	run(accessor: ServicesAccessor, editor: ICodeEditor): void | Promise<void> {
 		const clipboardService = accessor.get(IClipboardService);
-		const repl = getReplView(accessor.get(IViewsService));
-		if (repl) {
-			return clipboardService.writeText(repl.getVisibleContent());
-		}
+		return clipboardService.writeText(accessor.get(IPrivateReplService).getVisibleContent());
 	}
 }
 
@@ -697,7 +702,7 @@ class SelectReplAction extends Action {
 
 	constructor(id: string, label: string,
 		@IDebugService private readonly debugService: IDebugService,
-		@IViewsService private readonly viewsService: IViewsService
+		@IPrivateReplService private readonly replService: IPrivateReplService
 	) {
 		super(id, label);
 	}
@@ -707,10 +712,7 @@ class SelectReplAction extends Action {
 		if (session && session.state !== State.Inactive && session !== this.debugService.getViewModel().focusedSession) {
 			await this.debugService.focusStackFrame(undefined, undefined, session, true);
 		} else {
-			const repl = getReplView(this.viewsService);
-			if (repl) {
-				await repl.selectSession(session);
-			}
+			await this.replService.selectSession(session);
 		}
 	}
 }
@@ -730,8 +732,4 @@ export class ClearReplAction extends Action {
 		await view.clearRepl();
 		aria.status(localize('debugConsoleCleared', "Debug console was cleared"));
 	}
-}
-
-function getReplView(viewsService: IViewsService): Repl | undefined {
-	return viewsService.getActiveViewWithId(REPL_VIEW_ID) as Repl ?? undefined;
 }
