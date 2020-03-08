@@ -28,7 +28,6 @@ else
 	yarn gulp compile-extension:css-language-features-server
 	yarn gulp compile-extension:html-language-features-server
 	yarn gulp compile-extension:json-language-features-server
-	yarn gulp compile-extension:git
 
 	# Configuration for more verbose output
 	export VSCODE_CLI=1
