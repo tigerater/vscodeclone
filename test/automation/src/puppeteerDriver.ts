@@ -3,18 +3,17 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as playwright from 'playwright';
+import * as puppeteer from 'puppeteer';
 import { ChildProcess, spawn } from 'child_process';
 import { join } from 'path';
 import { mkdir } from 'fs';
 import { promisify } from 'util';
 import { IDriver, IDisposable } from './driver';
-import { URI } from 'vscode-uri';
 
 const width = 1200;
 const height = 800;
 
-const vscodeToPlaywrightKey: { [key: string]: string } = {
+const vscodeToPuppeteerKey: { [key: string]: string } = {
 	cmd: 'Meta',
 	ctrl: 'Control',
 	shift: 'Shift',
@@ -27,7 +26,7 @@ const vscodeToPlaywrightKey: { [key: string]: string } = {
 	home: 'Home'
 };
 
-function buildDriver(browser: playwright.Browser, page: playwright.Page): IDriver {
+function buildDriver(browser: puppeteer.Browser, page: puppeteer.Page): IDriver {
 	const driver: IDriver = {
 		_serviceBrand: undefined,
 		getWindowIds: () => {
@@ -46,8 +45,8 @@ function buildDriver(browser: playwright.Browser, page: playwright.Page): IDrive
 				const keys = chord.split('+');
 				const keysDown: string[] = [];
 				for (let i = 0; i < keys.length; i++) {
-					if (keys[i] in vscodeToPlaywrightKey) {
-						keys[i] = vscodeToPlaywrightKey[keys[i]];
+					if (keys[i] in vscodeToPuppeteerKey) {
+						keys[i] = vscodeToPuppeteerKey[keys[i]];
 					}
 					await page.keyboard.down(keys[i]);
 					keysDown.push(keys[i]);
@@ -69,7 +68,7 @@ function buildDriver(browser: playwright.Browser, page: playwright.Page): IDrive
 			await driver.click(windowId, selector, 0, 0);
 			await timeout(100);
 		},
-		setValue: async (windowId, selector, text) => page.evaluate(`window.driver.setValue('${selector}', '${text}')`).then(undefined),
+		setValue: async (windowId, selector, text) => page.evaluate(`window.driver.setValue('${selector}', '${text}')`),
 		getTitle: (windowId) => page.evaluate(`window.driver.getTitle()`),
 		isActiveElement: (windowId, selector) => page.evaluate(`window.driver.isActiveElement('${selector}')`),
 		getElements: (windowId, selector, recursive) => page.evaluate(`window.driver.getElements('${selector}', ${recursive})`),
@@ -87,32 +86,31 @@ function timeout(ms: number): Promise<void> {
 
 // function runInDriver(call: string, args: (string | boolean)[]): Promise<any> {}
 
+let args: string[] | undefined;
 let server: ChildProcess | undefined;
 let endpoint: string | undefined;
-let workspacePath: string | undefined;
 
-export async function launch(userDataDir: string, _workspacePath: string, codeServerPath = process.env.VSCODE_REMOTE_SERVER_PATH): Promise<void> {
-	workspacePath = _workspacePath;
-	const agentFolder = userDataDir;
+export async function launch(_args: string[]): Promise<void> {
+	args = _args;
+	const agentFolder = args.filter(e => e.includes('--user-data-dir='))[0].replace('--user-data-dir=', '');
 	await promisify(mkdir)(agentFolder);
 	const env = {
 		VSCODE_AGENT_FOLDER: agentFolder,
-		VSCODE_REMOTE_SERVER_PATH: codeServerPath,
 		...process.env
 	};
 	let serverLocation: string | undefined;
-	if (codeServerPath) {
-		serverLocation = join(codeServerPath, `server.${process.platform === 'win32' ? 'cmd' : 'sh'}`);
+	if (process.env.VSCODE_REMOTE_SERVER_PATH) {
+		serverLocation = join(process.env.VSCODE_REMOTE_SERVER_PATH, `server.${process.platform === 'win32' ? 'cmd' : 'sh'}`);
 	} else {
-		serverLocation = join(__dirname, '..', '..', '..', `resources/server/web.${process.platform === 'win32' ? 'bat' : 'sh'}`);
+		serverLocation = join(args[0], `resources/server/web.${process.platform === 'win32' ? 'bat' : 'sh'}`);
 	}
 	server = spawn(
 		serverLocation,
 		['--browser', 'none', '--driver', 'web'],
 		{ env }
 	);
-	server.stderr?.on('data', e => console.log('Server stderr: ' + e));
-	server.stdout?.on('data', e => console.log('Server stdout: ' + e));
+	server.stderr.on('data', e => console.log('Server stderr: ' + e));
+	server.stdout.on('data', e => console.log('Server stdout: ' + e));
 	process.on('exit', teardown);
 	process.on('SIGINT', teardown);
 	process.on('SIGTERM', teardown);
@@ -128,7 +126,7 @@ function teardown(): void {
 
 function waitForEndpoint(): Promise<string> {
 	return new Promise<string>(r => {
-		server!.stdout?.on('data', (d: Buffer) => {
+		server!.stdout.on('data', (d: Buffer) => {
 			const matches = d.toString('ascii').match(/Web UI available at (.+)/);
 			if (matches !== null) {
 				r(matches[1]);
@@ -137,18 +135,20 @@ function waitForEndpoint(): Promise<string> {
 	});
 }
 
-export function connect(headless: boolean, engine: 'chromium' | 'webkit' | 'firefox' = 'chromium'): Promise<{ client: IDisposable, driver: IDriver }> {
+export function connect(headless: boolean, outPath: string, handle: string): Promise<{ client: IDisposable, driver: IDriver }> {
 	return new Promise(async (c) => {
-		const browser = await playwright[engine].launch({
+		const browser = await puppeteer.launch({
 			// Run in Edge dev on macOS
 			// executablePath: '/Applications/Microsoft\ Edge\ Dev.app/Contents/MacOS/Microsoft\ Edge\ Dev',
-			headless
+			headless,
+			slowMo: 80,
+			args: [`--window-size=${width},${height}`]
 		});
-		const page = (await browser.defaultContext().pages())[0];
+		const page = (await browser.pages())[0];
 		await page.setViewport({ width, height });
-		await page.goto(`${endpoint}&folder=vscode-remote://localhost:9888${URI.file(workspacePath!).path}`);
+		await page.goto(`${endpoint}&folder=vscode-remote://localhost:9888${args![1]}`);
 		const result = {
-			client: { dispose: () => teardown() },
+			client: { dispose: () => teardown },
 			driver: buildDriver(browser, page)
 		};
 		c(result);
