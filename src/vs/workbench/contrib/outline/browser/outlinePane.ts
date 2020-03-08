@@ -630,7 +630,7 @@ export class OutlinePane extends ViewPane {
 			options: {
 				preserveFocus: !focus,
 				selection: Range.collapseToStart(element.symbol.selectionRange),
-				revealAtDefinition: true,
+				revealInCenterIfOutsideViewport: true
 			}
 		} as IResourceInput, aside ? SIDE_GROUP : ACTIVE_GROUP);
 	}
