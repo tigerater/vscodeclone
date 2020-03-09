@@ -366,7 +366,6 @@ export abstract class AbstractExtHostExtensionService implements ExtHostExtensio
 				globalState,
 				workspaceState,
 				subscriptions: [],
-				get extensionUri() { return extensionDescription.extensionLocation; },
 				get extensionPath() { return extensionDescription.extensionLocation.fsPath; },
 				get storagePath() { return that._storagePath.workspaceValue(extensionDescription); },
 				get globalStoragePath() { return that._storagePath.globalValue(extensionDescription); },

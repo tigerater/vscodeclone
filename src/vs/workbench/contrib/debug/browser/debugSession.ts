@@ -37,6 +37,7 @@ import { ILifecycleService } from 'vs/platform/lifecycle/common/lifecycle';
 
 export class DebugSession implements IDebugSession {
 
+	private id: string;
 	private _subId: string | undefined;
 	private raw: RawDebugSession | undefined;
 	private initialized = false;
@@ -61,7 +62,6 @@ export class DebugSession implements IDebugSession {
 	private readonly _onDidChangeName = new Emitter<string>();
 
 	constructor(
-		private id: string,
 		private _configuration: { resolved: IConfig, unresolved: IConfig | undefined },
 		public root: IWorkspaceFolder | undefined,
 		private model: DebugModel,
@@ -78,6 +78,7 @@ export class DebugSession implements IDebugSession {
 		@INotificationService private readonly notificationService: INotificationService,
 		@ILifecycleService lifecycleService: ILifecycleService
 	) {
+		this.id = generateUuid();
 		this._options = options || {};
 		if (this.hasSeparateRepl()) {
 			this.repl = new ReplModel();

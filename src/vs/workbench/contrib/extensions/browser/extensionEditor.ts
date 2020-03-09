@@ -83,9 +83,7 @@ class NavBar extends Disposable {
 	private _onChange = this._register(new Emitter<{ id: string | null, focus: boolean }>());
 	get onChange(): Event<{ id: string | null, focus: boolean }> { return this._onChange.event; }
 
-	private _currentId: string | null = null;
-	get currentId(): string | null { return this._currentId; }
-
+	private currentId: string | null = null;
 	private actions: Action[];
 	private actionbar: ActionBar;
 
@@ -115,11 +113,11 @@ class NavBar extends Disposable {
 	}
 
 	update(): void {
-		this._update(this._currentId);
+		this._update(this.currentId);
 	}
 
-	_update(id: string | null = this._currentId, focus?: boolean): Promise<void> {
-		this._currentId = id;
+	_update(id: string | null = this.currentId, focus?: boolean): Promise<void> {
+		this.currentId = id;
 		this._onChange.fire({ id, focus: !!focus });
 		this.actions.forEach(a => a.checked = a.id === id);
 		return Promise.resolve(undefined);
@@ -310,12 +308,12 @@ export class ExtensionEditor extends BaseEditor {
 
 	async setInput(input: ExtensionsInput, options: EditorOptions | undefined, token: CancellationToken): Promise<void> {
 		if (this.template) {
-			await this.updateTemplate(input, this.template, !!options?.preserveFocus);
+			await this.updateTemplate(input, this.template);
 		}
 		return super.setInput(input, options, token);
 	}
 
-	private async updateTemplate(input: ExtensionsInput, template: IExtensionEditorTemplate, preserveFocus: boolean): Promise<void> {
+	private async updateTemplate(input: ExtensionsInput, template: IExtensionEditorTemplate): Promise<void> {
 		const runningExtensions = await this.extensionService.getExtensions();
 		const colorThemes = await this.workbenchThemeService.getColorThemes();
 		const fileIconThemes = await this.workbenchThemeService.getFileIconThemes();
@@ -425,34 +423,31 @@ export class ExtensionEditor extends BaseEditor {
 		template.content.innerHTML = ''; // Clear content before setting navbar actions.
 
 		template.navbar.clear();
+		template.navbar.onChange(e => this.onNavbarChange(extension, e, template), this, this.transientDisposables);
 
 		if (extension.hasReadme()) {
 			template.navbar.push(NavbarSection.Readme, localize('details', "Details"), localize('detailstooltip', "Extension details, rendered from the extension's 'README.md' file"));
 		}
-
-		const manifest = await this.extensionManifest.get().promise;
-		if (manifest) {
-			combinedInstallAction.manifest = manifest;
-		}
-		if (extension.extensionPack.length) {
-			template.navbar.push(NavbarSection.ExtensionPack, localize('extensionPack', "Extension Pack"), localize('extensionsPack', "Set of extensions that can be installed together"));
-		}
-		if (manifest && manifest.contributes) {
-			template.navbar.push(NavbarSection.Contributions, localize('contributions', "Feature Contributions"), localize('contributionstooltip', "Lists contributions to VS Code by this extension"));
-		}
-		if (extension.hasChangelog()) {
-			template.navbar.push(NavbarSection.Changelog, localize('changelog', "Changelog"), localize('changelogtooltip', "Extension update history, rendered from the extension's 'CHANGELOG.md' file"));
-		}
-		if (extension.dependencies.length) {
-			template.navbar.push(NavbarSection.Dependencies, localize('dependencies', "Dependencies"), localize('dependenciestooltip', "Lists extensions this extension depends on"));
-		}
-
-		if (template.navbar.currentId) {
-			this.onNavbarChange(extension, { id: template.navbar.currentId, focus: !preserveFocus }, template);
-		}
-		template.navbar.onChange(e => this.onNavbarChange(extension, e, template), this, this.transientDisposables);
-
-		this.editorLoadComplete = true;
+		this.extensionManifest.get()
+			.promise
+			.then(manifest => {
+				if (manifest) {
+					combinedInstallAction.manifest = manifest;
+				}
+				if (extension.extensionPack.length) {
+					template.navbar.push(NavbarSection.ExtensionPack, localize('extensionPack', "Extension Pack"), localize('extensionsPack', "Set of extensions that can be installed together"));
+				}
+				if (manifest && manifest.contributes) {
+					template.navbar.push(NavbarSection.Contributions, localize('contributions', "Feature Contributions"), localize('contributionstooltip', "Lists contributions to VS Code by this extension"));
+				}
+				if (extension.hasChangelog()) {
+					template.navbar.push(NavbarSection.Changelog, localize('changelog', "Changelog"), localize('changelogtooltip', "Extension update history, rendered from the extension's 'CHANGELOG.md' file"));
+				}
+				if (extension.dependencies.length) {
+					template.navbar.push(NavbarSection.Dependencies, localize('dependencies', "Dependencies"), localize('dependenciestooltip', "Lists extensions this extension depends on"));
+				}
+				this.editorLoadComplete = true;
+			});
 	}
 
 	private setSubText(extension: IExtension, reloadAction: ReloadAction, template: IExtensionEditorTemplate): void {
