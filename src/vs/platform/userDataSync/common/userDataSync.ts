@@ -187,7 +187,6 @@ export enum UserDataSyncErrorCode {
 	// Local Errors
 	LocalPreconditionFailed = 'LocalPreconditionFailed',
 	LocalInvalidContent = 'LocalInvalidContent',
-	LocalError = 'LocalError',
 	Incompatible = 'Incompatible',
 
 	Unknown = 'Unknown',
@@ -294,7 +293,6 @@ export interface IUserDataSyncService {
 	readonly onDidChangeConflicts: Event<SyncSource[]>;
 
 	readonly onDidChangeLocal: Event<void>;
-	readonly onSyncErrors: Event<[SyncSource, UserDataSyncError][]>;
 
 	readonly lastSyncTime: number | undefined;
 	readonly onDidChangeLastSyncTime: Event<number>;
