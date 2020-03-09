@@ -18,9 +18,8 @@ const clientId = 'aebc6443-996d-45c2-90f0-388ff96faa56';
 const tenant = 'organizations';
 
 interface IToken {
-	accessToken?: string; // When unable to refresh due to network problems, the access token becomes undefined
-
-	expiresIn?: string; // How long access token is valid, in seconds
+	expiresIn: string; // How long access token is valid, in seconds
+	accessToken: string;
 	refreshToken: string;
 
 	accountName: string;
@@ -42,7 +41,6 @@ interface IStoredSession {
 	id: string;
 	refreshToken: string;
 	scope: string; // Scopes are alphabetized and joined with a space
-	accountName: string;
 }
 
 function parseQuery(uri: vscode.Uri) {
@@ -78,24 +76,24 @@ export class AzureActiveDirectoryService {
 		if (storedData) {
 			try {
 				const sessions = this.parseStoredData(storedData);
-				const refreshes = sessions.map(async session => {
+
+				// TODO remove, temporary fix to delete duplicated refresh tokens from https://github.com/microsoft/vscode/issues/89334
+				const seen: { [key: string]: boolean; } = Object.create(null);
+				const dedupedSessions = sessions.filter(session => {
+					if (seen[session.id]) {
+						return false;
+					}
+
+					seen[session.id] = true;
+
+					return true;
+				});
+
+				const refreshes = dedupedSessions.map(async session => {
 					try {
 						await this.refreshToken(session.refreshToken, session.scope);
 					} catch (e) {
-						if (e.message === REFRESH_NETWORK_FAILURE) {
-							const didSucceedOnRetry = await this.handleRefreshNetworkError(session.id, session.refreshToken, session.scope);
-							if (!didSucceedOnRetry) {
-								this._tokens.push({
-									accessToken: undefined,
-									refreshToken: session.refreshToken,
-									accountName: session.accountName,
-									scope: session.scope,
-									sessionId: session.id
-								});
-							}
-						} else {
-							await this.logout(session.id);
-						}
+						this.handleTokenRefreshFailure(e, session.id, session.refreshToken, session.scope, false);
 					}
 				});
 
@@ -117,8 +115,7 @@ export class AzureActiveDirectoryService {
 			return {
 				id: token.sessionId,
 				refreshToken: token.refreshToken,
-				scope: token.scope,
-				accountName: token.accountName
+				scope: token.scope
 			};
 		});
 
@@ -139,11 +136,7 @@ export class AzureActiveDirectoryService {
 								await this.refreshToken(session.refreshToken, session.scope);
 								didChange = true;
 							} catch (e) {
-								if (e.message === REFRESH_NETWORK_FAILURE) {
-									// Ignore, will automatically retry on next poll.
-								} else {
-									await this.logout(session.id);
-								}
+								this.handleTokenRefreshFailure(e, session.id, session.refreshToken, session.scope, false);
 							}
 						}
 					});
@@ -182,7 +175,7 @@ export class AzureActiveDirectoryService {
 	private convertToSession(token: IToken): vscode.AuthenticationSession {
 		return {
 			id: token.sessionId,
-			accessToken: () => !token.accessToken ? Promise.reject('Unavailable due to network problems') : Promise.resolve(token.accessToken),
+			accessToken: () => Promise.resolve(token.accessToken),
 			accountName: token.accountName,
 			scopes: token.scope.split(' ')
 		};
@@ -346,21 +339,14 @@ export class AzureActiveDirectoryService {
 
 		this.clearSessionTimeout(token.sessionId);
 
-		if (token.expiresIn) {
-			this._refreshTimeouts.set(token.sessionId, setTimeout(async () => {
-				try {
-					await this.refreshToken(token.refreshToken, scope);
-					onDidChangeSessions.fire();
-				} catch (e) {
-					if (e.message === REFRESH_NETWORK_FAILURE) {
-						await this.handleRefreshNetworkError(token.sessionId, token.refreshToken, scope);
-					} else {
-						await this.logout(token.sessionId);
-						onDidChangeSessions.fire();
-					}
-				}
-			}, 1000 * (parseInt(token.expiresIn) - 30)));
-		}
+		this._refreshTimeouts.set(token.sessionId, setTimeout(async () => {
+			try {
+				await this.refreshToken(token.refreshToken, scope);
+				onDidChangeSessions.fire();
+			} catch (e) {
+				this.handleTokenRefreshFailure(e, token.sessionId, token.refreshToken, scope, true);
+			}
+		}, 1000 * (parseInt(token.expiresIn) - 30)));
 
 		this.storeTokenData();
 	}
@@ -494,35 +480,40 @@ export class AzureActiveDirectoryService {
 		this.clearSessionTimeout(sessionId);
 	}
 
-	private handleRefreshNetworkError(sessionId: string, refreshToken: string, scope: string, attempts: number = 1): Promise<boolean> {
-		return new Promise((resolve, _) => {
-			if (attempts === 3) {
-				Logger.error('Token refresh failed after 3 attempts');
-				return resolve(false);
-			}
-
-			if (attempts === 1) {
-				const token = this._tokens.find(token => token.sessionId === sessionId);
-				if (token) {
-					token.accessToken = undefined;
-				}
-
+	private async handleTokenRefreshFailure(e: Error, sessionId: string, refreshToken: string, scope: string, sendChangeEvent: boolean): Promise<void> {
+		if (e.message === REFRESH_NETWORK_FAILURE) {
+			this.handleRefreshNetworkError(sessionId, refreshToken, scope);
+		} else {
+			await this.logout(sessionId);
+			if (sendChangeEvent) {
 				onDidChangeSessions.fire();
 			}
+		}
+	}
 
-			const delayBeforeRetry = 5 * attempts * attempts;
+	private handleRefreshNetworkError(sessionId: string, refreshToken: string, scope: string, attempts: number = 1) {
+		if (attempts === 5) {
+			Logger.error('Token refresh failed after 5 attempts');
+			return;
+		}
 
-			this.clearSessionTimeout(sessionId);
+		if (attempts === 1) {
+			this.removeInMemorySessionData(sessionId);
+			onDidChangeSessions.fire();
+		}
 
-			this._refreshTimeouts.set(sessionId, setTimeout(async () => {
-				try {
-					await this.refreshToken(refreshToken, scope);
-					return resolve(true);
-				} catch (e) {
-					return resolve(await this.handleRefreshNetworkError(sessionId, refreshToken, scope, attempts + 1));
-				}
-			}, 1000 * delayBeforeRetry));
-		});
+		const delayBeforeRetry = 5 * attempts * attempts;
+
+		this.clearSessionTimeout(sessionId);
+
+		this._refreshTimeouts.set(sessionId, setTimeout(async () => {
+			try {
+				await this.refreshToken(refreshToken, scope);
+				onDidChangeSessions.fire();
+			} catch (e) {
+				await this.handleRefreshNetworkError(sessionId, refreshToken, scope, attempts + 1);
+			}
+		}, 1000 * delayBeforeRetry));
 	}
 
 	public async logout(sessionId: string) {

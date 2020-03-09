@@ -48,8 +48,7 @@ import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 const enum AuthStatus {
 	Initializing = 'Initializing',
 	SignedIn = 'SignedIn',
-	SignedOut = 'SignedOut',
-	Unavailable = 'Unavailable'
+	SignedOut = 'SignedOut'
 }
 const CONTEXT_AUTH_TOKEN_STATE = new RawContextKey<string>('authTokenStatus', AuthStatus.Initializing);
 
@@ -177,14 +176,9 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 		this._activeAccount = account;
 
 		if (account) {
-			try {
-				const token = await account.accessToken();
-				this.userDataAuthTokenService.setToken(token);
-				this.authenticationState.set(AuthStatus.SignedIn);
-			} catch (e) {
-				this.userDataAuthTokenService.setToken(undefined);
-				this.authenticationState.set(AuthStatus.Unavailable);
-			}
+			const token = await account.accessToken();
+			this.userDataAuthTokenService.setToken(token);
+			this.authenticationState.set(AuthStatus.SignedIn);
 		} else {
 			this.userDataAuthTokenService.setToken(undefined);
 			this.authenticationState.set(AuthStatus.SignedOut);
