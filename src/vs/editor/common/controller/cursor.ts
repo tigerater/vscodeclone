@@ -297,7 +297,7 @@ export class Cursor extends viewEvents.ViewEventEmitter implements ICursors {
 		return this._cursors.getAll();
 	}
 
-	public setStates(source: string, reason: CursorChangeReason, states: PartialCursorState[] | null): boolean {
+	public setStates(source: string, reason: CursorChangeReason, states: PartialCursorState[] | null): void {
 		if (states !== null && states.length > Cursor.MAX_CURSOR_COUNT) {
 			states = states.slice(0, Cursor.MAX_CURSOR_COUNT);
 			this._onDidReachMaxCursorCount.fire(undefined);
@@ -311,7 +311,7 @@ export class Cursor extends viewEvents.ViewEventEmitter implements ICursors {
 
 		this._validateAutoClosedActions();
 
-		return this._emitStateChangedIfNecessary(source, reason, oldState);
+		this._emitStateChangedIfNecessary(source, reason, oldState);
 	}
 
 	public setColumnSelectData(columnSelectData: IColumnSelectData): void {
@@ -411,9 +411,7 @@ export class Cursor extends viewEvents.ViewEventEmitter implements ICursors {
 		} else {
 			if (this._hasFocus && e.resultingSelection && e.resultingSelection.length > 0) {
 				const cursorState = CursorState.fromModelSelections(e.resultingSelection);
-				if (this.setStates('modelChange', e.isUndoing ? CursorChangeReason.Undo : e.isRedoing ? CursorChangeReason.Redo : CursorChangeReason.RecoverFromMarkers, cursorState)) {
-					this._revealRange('modelChange', RevealTarget.Primary, viewEvents.VerticalRevealType.Simple, true, editorCommon.ScrollType.Smooth);
-				}
+				this.setStates('modelChange', e.isUndoing ? CursorChangeReason.Undo : e.isRedoing ? CursorChangeReason.Redo : CursorChangeReason.RecoverFromMarkers, cursorState);
 			} else {
 				const selectionsFromMarkers = this._cursors.readSelectionFromMarkers();
 				this.setStates('modelChange', CursorChangeReason.RecoverFromMarkers, CursorState.fromModelSelections(selectionsFromMarkers));

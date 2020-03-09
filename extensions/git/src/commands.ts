@@ -430,25 +430,25 @@ export class CommandCenter {
 			case Status.INDEX_MODIFIED:
 			case Status.INDEX_RENAMED:
 			case Status.INDEX_ADDED:
-				return localize('git.title.index', '{0} (Index)', basename);
+				return `${basename} (Index)`;
 
 			case Status.MODIFIED:
 			case Status.BOTH_ADDED:
 			case Status.BOTH_MODIFIED:
-				return localize('git.title.workingTree', '{0} (Working Tree)', basename);
+				return `${basename} (Working Tree)`;
 
 			case Status.DELETED_BY_US:
-				return localize('git.title.theirs', '{0} (Theirs)', basename);
+				return `${basename} (Theirs)`;
 
 			case Status.DELETED_BY_THEM:
-				return localize('git.title.ours', '{0} (Ours)', basename);
+				return `${basename} (Ours)`;
 
 			case Status.UNTRACKED:
-				return localize('git.title.untracked', '{0} (Untracked)', basename);
 
-			default:
-				return '';
+				return `${basename} (Untracked)`;
 		}
+
+		return '';
 	}
 
 	@command('git.clone')
@@ -2348,12 +2348,12 @@ export class CommandCenter {
 
 		let title;
 		if ((item.previousRef === 'HEAD' || item.previousRef === '~') && item.ref === '') {
-			title = localize('git.title.workingTree', '{0} (Working Tree)', basename);
+			title = `${basename} (Working Tree)`;
 		}
 		else if (item.previousRef === 'HEAD' && item.ref === '~') {
-			title = localize('git.title.index', '{0} (Index)', basename);
+			title = `${basename} (Index)`;
 		} else {
-			title = localize('git.title.diffRefs', '{0} ({1}) \u27f7 {0} ({2})', basename, item.shortPreviousRef, item.shortRef);
+			title = `${basename} (${item.shortPreviousRef}) \u27f7 ${basename} (${item.shortRef})`;
 		}
 
 		return commands.executeCommand('vscode.diff', toGitUri(uri, item.previousRef), item.ref === '' ? uri : toGitUri(uri, item.ref), title);

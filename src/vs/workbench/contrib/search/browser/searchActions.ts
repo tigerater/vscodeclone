@@ -488,19 +488,12 @@ export class FocusNextSearchResultAction extends Action {
 	static readonly LABEL = nls.localize('FocusNextSearchResult.label', "Focus Next Search Result");
 
 	constructor(id: string, label: string,
-		@IViewsService private readonly viewsService: IViewsService,
-		@IEditorService private readonly editorService: IEditorService,
+		@IViewsService private readonly viewsService: IViewsService
 	) {
 		super(id, label);
 	}
 
-	async run(): Promise<any> {
-		const input = this.editorService.activeEditor;
-		if (input instanceof SearchEditorInput) {
-			// cast as we cannot import SearchEditor as a value b/c cyclic dependency.
-			return (this.editorService.activeControl as SearchEditor).focusNextResult();
-		}
-
+	run(): Promise<any> {
 		return openSearchView(this.viewsService).then(searchView => {
 			if (searchView) {
 				searchView.selectNextMatch();
@@ -514,19 +507,12 @@ export class FocusPreviousSearchResultAction extends Action {
 	static readonly LABEL = nls.localize('FocusPreviousSearchResult.label', "Focus Previous Search Result");
 
 	constructor(id: string, label: string,
-		@IViewsService private readonly viewsService: IViewsService,
-		@IEditorService private readonly editorService: IEditorService,
+		@IViewsService private readonly viewsService: IViewsService
 	) {
 		super(id, label);
 	}
 
-	async run(): Promise<any> {
-		const input = this.editorService.activeEditor;
-		if (input instanceof SearchEditorInput) {
-			// cast as we cannot import SearchEditor as a value b/c cyclic dependency.
-			return (this.editorService.activeControl as SearchEditor).focusPreviousResult();
-		}
-
+	run(): Promise<any> {
 		return openSearchView(this.viewsService).then(searchView => {
 			if (searchView) {
 				searchView.selectPreviousMatch();

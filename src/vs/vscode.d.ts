@@ -4675,18 +4675,7 @@ declare module 'vscode' {
 		 * A code or identifier for this diagnostic.
 		 * Should be used for later processing, e.g. when providing [code actions](#CodeActionContext).
 		 */
-		code?: string | number | {
-			/**
-			 * A code or identifier for this diagnostic.
-			 * Should be used for later processing, e.g. when providing [code actions](#CodeActionContext).
-			 */
-			value: string | number;
-
-			/**
-			 * A target URI to open with more information about the diagnostic error.
-			 */
-			target: Uri;
-		};
+		code?: string | number;
 
 		/**
 		 * An array of related diagnostic information, e.g. when symbol-names within

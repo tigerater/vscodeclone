@@ -247,30 +247,22 @@ export class ExtHostWebviewEditor extends Disposable implements vscode.WebviewPa
 
 type EditType = unknown;
 
-class WebviewEditorCustomDocument extends Disposable implements vscode.CustomDocument {
+class WebviewEditorCustomDocument extends Disposable implements vscode.WebviewEditorCustomDocument {
 	private _currentEditIndex: number = -1;
 	private _savePoint: number = -1;
 	private readonly _edits: Array<EditType> = [];
-
-	public userData: unknown;
-
-	public _capabilities?: vscode.CustomEditorCapabilities = undefined;
 
 	constructor(
 		private readonly _proxy: MainThreadWebviewsShape,
 		public readonly viewType: string,
 		public readonly uri: vscode.Uri,
+		public readonly userData: unknown,
+		public readonly _capabilities: vscode.WebviewCustomEditorCapabilities,
 	) {
 		super();
-	}
 
-	_setCapabilities(capabilities: vscode.CustomEditorCapabilities) {
-		if (this._capabilities) {
-			throw new Error('Capabilities already provided');
-		}
-
-		this._capabilities = capabilities;
-		capabilities.editing?.onDidEdit(edit => {
+		// Hook up events
+		_capabilities.editing?.onDidEdit(edit => {
 			this.pushEdit(edit, this);
 		});
 	}
@@ -364,12 +356,12 @@ class WebviewEditorCustomDocument extends Disposable implements vscode.CustomDoc
 		return this.getEditingCapability().saveAs(target);
 	}
 
-	backup(cancellation: CancellationToken) {
-		return this.getEditingCapability().backup(cancellation);
+	backup(cancellation: CancellationToken): boolean | PromiseLike<boolean> {
+		throw new Error('Method not implemented.');
 	}
 
-	private getEditingCapability(): vscode.CustomEditorEditingCapability {
-		if (!this._capabilities?.editing) {
+	private getEditingCapability(): vscode.WebviewCustomEditorEditingCapability {
+		if (!this._capabilities.editing) {
 			throw new Error('Document is not editable');
 		}
 		return this._capabilities.editing;
@@ -397,7 +389,7 @@ class WebviewDocumentStore {
 	}
 
 	private key(viewType: string, resource: vscode.Uri): string {
-		return `${viewType}@@@${resource}`;
+		return `${viewType}@@@${resource.toString}`;
 	}
 }
 
@@ -409,21 +401,21 @@ const enum WebviewEditorType {
 type ProviderEntry = {
 	readonly extension: IExtensionDescription;
 	readonly type: WebviewEditorType.Text;
-	readonly provider: vscode.CustomTextEditorProvider;
+	readonly provider: vscode.WebviewTextEditorProvider;
 } | {
 	readonly extension: IExtensionDescription;
 	readonly type: WebviewEditorType.Custom;
-	readonly provider: vscode.CustomEditorProvider;
+	readonly provider: vscode.WebviewCustomEditorProvider;
 };
 
 class EditorProviderStore {
 	private readonly _providers = new Map<string, ProviderEntry>();
 
-	public addTextProvider(viewType: string, extension: IExtensionDescription, provider: vscode.CustomTextEditorProvider): vscode.Disposable {
+	public addTextProvider(viewType: string, extension: IExtensionDescription, provider: vscode.WebviewTextEditorProvider): vscode.Disposable {
 		return this.add(WebviewEditorType.Text, viewType, extension, provider);
 	}
 
-	public addCustomProvider(viewType: string, extension: IExtensionDescription, provider: vscode.CustomEditorProvider): vscode.Disposable {
+	public addCustomProvider(viewType: string, extension: IExtensionDescription, provider: vscode.WebviewCustomEditorProvider): vscode.Disposable {
 		return this.add(WebviewEditorType.Custom, viewType, extension, provider);
 	}
 
@@ -431,7 +423,7 @@ class EditorProviderStore {
 		return this._providers.get(viewType);
 	}
 
-	private add(type: WebviewEditorType, viewType: string, extension: IExtensionDescription, provider: vscode.CustomTextEditorProvider | vscode.CustomEditorProvider): vscode.Disposable {
+	private add(type: WebviewEditorType, viewType: string, extension: IExtensionDescription, provider: vscode.WebviewTextEditorProvider | vscode.WebviewCustomEditorProvider): vscode.Disposable {
 		if (this._providers.has(viewType)) {
 			throw new Error(`Provider for viewType:${viewType} already registered`);
 		}
@@ -509,26 +501,43 @@ export class ExtHostWebviews implements ExtHostWebviewsShape {
 		});
 	}
 
-	public registerCustomEditorProvider(
+	public registerWebviewTextEditorProvider(
 		extension: IExtensionDescription,
 		viewType: string,
-		provider: vscode.CustomEditorProvider | vscode.CustomTextEditorProvider,
+		provider: vscode.WebviewTextEditorProvider,
 		options: vscode.WebviewPanelOptions | undefined = {}
 	): vscode.Disposable {
-		let disposable: vscode.Disposable;
-		if ('resolveCustomTextEditor' in provider) {
-			disposable = this._editorProviders.addTextProvider(viewType, extension, provider);
-			this._proxy.$registerTextEditorProvider(toExtensionData(extension), viewType, options);
-		} else {
-			disposable = this._editorProviders.addCustomProvider(viewType, extension, provider);
-			this._proxy.$registerCustomEditorProvider(toExtensionData(extension), viewType, options);
-		}
+		const unregisterProvider = this._editorProviders.addTextProvider(viewType, extension, provider);
+		this._proxy.$registerTextEditorProvider(toExtensionData(extension), viewType, options);
 
-		return VSCodeDisposable.from(
-			disposable,
-			new VSCodeDisposable(() => {
-				this._proxy.$unregisterEditorProvider(viewType);
-			}));
+		return new VSCodeDisposable(() => {
+			unregisterProvider.dispose();
+			this._proxy.$unregisterEditorProvider(viewType);
+		});
+	}
+
+	public registerWebviewCustomEditorProvider(
+		extension: IExtensionDescription,
+		viewType: string,
+		provider: vscode.WebviewCustomEditorProvider,
+		options: vscode.WebviewPanelOptions | undefined = {},
+	): vscode.Disposable {
+		const unregisterProvider = this._editorProviders.addCustomProvider(viewType, extension, provider);
+		this._proxy.$registerCustomEditorProvider(toExtensionData(extension), viewType, options);
+
+		return new VSCodeDisposable(() => {
+			unregisterProvider.dispose();
+			this._proxy.$unregisterEditorProvider(viewType);
+		});
+	}
+
+	public createWebviewEditorCustomDocument<UserDataType>(
+		viewType: string,
+		resource: vscode.Uri,
+		userData: UserDataType,
+		capabilities: vscode.WebviewCustomEditorCapabilities,
+	): vscode.WebviewEditorCustomDocument<UserDataType> {
+		return Object.seal(new WebviewEditorCustomDocument(this._proxy, viewType, resource, userData, capabilities) as vscode.WebviewEditorCustomDocument<UserDataType>);
 	}
 
 	public $onMessage(
@@ -622,12 +631,10 @@ export class ExtHostWebviews implements ExtHostWebviewsShape {
 		}
 
 		const revivedResource = URI.revive(resource);
-		const document = Object.seal(new WebviewEditorCustomDocument(this._proxy, viewType, revivedResource));
-		const capabilities = await entry.provider.resolveCustomDocument(document);
-		document._setCapabilities(capabilities);
+		const document = await entry.provider.provideWebviewCustomEditorDocument(revivedResource) as WebviewEditorCustomDocument;
 		this._documents.add(document);
 		return {
-			editable: !!capabilities.editing
+			editable: !!document._capabilities.editing
 		};
 	}
 
@@ -670,13 +677,13 @@ export class ExtHostWebviews implements ExtHostWebviewsShape {
 			case WebviewEditorType.Custom:
 				{
 					const document = this.getDocument(viewType, revivedResource);
-					return entry.provider.resolveCustomEditor(document, revivedPanel);
+					return entry.provider.resolveWebviewCustomEditor(document, revivedPanel);
 				}
 			case WebviewEditorType.Text:
 				{
 					await this._extHostDocuments.ensureDocumentData(revivedResource);
 					const document = this._extHostDocuments.getDocument(revivedResource);
-					return entry.provider.resolveCustomTextEditor(document, revivedPanel);
+					return entry.provider.resolveWebviewTextEditor(document, revivedPanel);
 				}
 			default:
 				{

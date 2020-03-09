@@ -122,7 +122,7 @@ export class FileWalker {
 			}
 
 			// File: Check for match on file pattern and include pattern
-			this.matchFile(onResult, { relativePath: extraFilePath.fsPath /* no workspace relative path */ });
+			this.matchFile(onResult, { relativePath: extraFilePath.fsPath /* no workspace relative path */, basename });
 		});
 
 		this.cmdSW = StopWatch.create(false);
@@ -246,7 +246,8 @@ export class FileWalker {
 
 			if (noSiblingsClauses) {
 				for (const relativePath of relativeFiles) {
-					this.matchFile(onResult, { base: rootFolder, relativePath });
+					const basename = path.basename(relativePath);
+					this.matchFile(onResult, { base: rootFolder, relativePath, basename });
 					if (this.isLimitHit) {
 						killCmd();
 						break;
@@ -392,7 +393,8 @@ export class FileWalker {
 	private addDirectoryEntries({ pathToEntries }: IDirectoryTree, base: string, relativeFiles: string[], onResult: (result: IRawFileMatch) => void) {
 		// Support relative paths to files from a root resource (ignores excludes)
 		if (relativeFiles.indexOf(this.filePattern) !== -1) {
-			this.matchFile(onResult, { base: base, relativePath: this.filePattern });
+			const basename = path.basename(this.filePattern);
+			this.matchFile(onResult, { base: base, relativePath: this.filePattern, basename });
 		}
 
 		function add(relativePath: string) {
@@ -538,7 +540,7 @@ export class FileWalker {
 							return clb(null, undefined); // ignore file if max file size is hit
 						}
 
-						this.matchFile(onResult, { base: rootFolder.fsPath, relativePath: currentRelativePath });
+						this.matchFile(onResult, { base: rootFolder.fsPath, relativePath: currentRelativePath, basename: file, size: stat.size });
 					}
 
 					// Unwind
@@ -552,7 +554,7 @@ export class FileWalker {
 	}
 
 	private matchFile(onResult: (result: IRawFileMatch) => void, candidate: IRawFileMatch): void {
-		if (this.isFilePatternMatch(candidate.relativePath) && (!this.includePattern || this.includePattern(candidate.relativePath, path.basename(candidate.relativePath)))) {
+		if (this.isFilePatternMatch(candidate.relativePath) && (!this.includePattern || this.includePattern(candidate.relativePath, candidate.basename))) {
 			this.resultCount++;
 
 			if (this.exists || (this.maxResults && this.resultCount > this.maxResults)) {
