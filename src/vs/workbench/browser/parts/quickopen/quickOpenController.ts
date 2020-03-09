@@ -175,7 +175,7 @@ export class QuickOpenController extends Component implements IQuickOpenService 
 		// Create upon first open
 		if (!this.quickOpenWidget) {
 			const quickOpenWidget: QuickOpenWidget = this.quickOpenWidget = this._register(new QuickOpenWidget(
-				this.layoutService.container,
+				this.layoutService.getWorkbenchElement(),
 				{
 					onOk: () => this.onOk(),
 					onCancel: () => { /* ignore */ },
@@ -238,8 +238,10 @@ export class QuickOpenController extends Component implements IQuickOpenService 
 	}
 
 	private positionQuickOpenWidget(): void {
+		const titlebarOffset = this.layoutService.getTitleBarOffset();
+
 		if (this.quickOpenWidget) {
-			this.quickOpenWidget.getElement().style.top = `${this.layoutService.offset?.top ?? 0}px`;
+			this.quickOpenWidget.getElement().style.top = `${titlebarOffset}px`;
 		}
 	}
 
