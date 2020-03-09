@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { Component } from 'vs/workbench/common/component';
 import { IQuickInputService, IQuickPickItem, IPickOptions, IInputOptions, IQuickNavigateConfiguration, IQuickPick, IQuickInputButton, IInputBox, QuickPickInput } from 'vs/platform/quickinput/common/quickInput';
 import { IWorkbenchLayoutService } from 'vs/workbench/services/layout/browser/layoutService';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
@@ -21,25 +22,27 @@ import { IContextKeyService, RawContextKey, IContextKey } from 'vs/platform/cont
 import { ICommandAndKeybindingRule, KeybindingWeight } from 'vs/platform/keybinding/common/keybindingsRegistry';
 import { inQuickOpenContext, InQuickOpenContextKey } from 'vs/workbench/browser/parts/quickopen/quickopen';
 import { IKeybindingService } from 'vs/platform/keybinding/common/keybinding';
+import { IStorageService } from 'vs/platform/storage/common/storage';
 import { IAccessibilityService } from 'vs/platform/accessibility/common/accessibility';
 import { registerSingleton } from 'vs/platform/instantiation/common/extensions';
 import { QuickInputController, IQuickInputStyles } from 'vs/base/parts/quickinput/browser/quickInput';
 import { WorkbenchList } from 'vs/platform/list/browser/listService';
 import { List, IListOptions } from 'vs/base/browser/ui/list/listWidget';
 import { IListVirtualDelegate, IListRenderer } from 'vs/base/browser/ui/list/list';
-import { PlatformQuickInputService } from 'vs/platform/quickinput/browser/quickInput';
 
-export class QuickInputService extends PlatformQuickInputService {
+export class QuickInputService extends Component implements IQuickInputService {
 
-	_serviceBrand: undefined;
+	public _serviceBrand: undefined;
 
-	get backButton(): IQuickInputButton { return this.controller.backButton; }
+	public backButton: IQuickInputButton;
 
-	private readonly controller: QuickInputController;
-	private readonly contexts = new Map<string, IContextKey<boolean>>();
+	private static readonly ID = 'workbench.component.quickinput';
 
-	private readonly inQuickOpenWidgets: Record<string, boolean> = Object.create(null);
-	private readonly inQuickOpenContext = InQuickOpenContextKey.bindTo(this.contextKeyService);
+
+	private inQuickOpenWidgets: Record<string, boolean> = {};
+	private inQuickOpenContext: IContextKey<boolean>;
+	private contexts: Map<string, IContextKey<boolean>> = new Map();
+	private controller: QuickInputController;
 
 	constructor(
 		@IEnvironmentService private readonly environmentService: IEnvironmentService,
@@ -50,12 +53,15 @@ export class QuickInputService extends PlatformQuickInputService {
 		@IKeybindingService private readonly keybindingService: IKeybindingService,
 		@IContextKeyService private readonly contextKeyService: IContextKeyService,
 		@IThemeService themeService: IThemeService,
+		@IStorageService storageService: IStorageService,
 		@IAccessibilityService private readonly accessibilityService: IAccessibilityService,
 		@IWorkbenchLayoutService private readonly layoutService: IWorkbenchLayoutService
 	) {
-		super(themeService);
-
-		this.controller = this._register(new QuickInputController({
+		super(QuickInputService.ID, themeService, storageService);
+		this.inQuickOpenContext = InQuickOpenContextKey.bindTo(contextKeyService);
+		this._register(this.quickOpenService.onShow(() => this.inQuickOpen('quickOpen', true)));
+		this._register(this.quickOpenService.onHide(() => this.inQuickOpen('quickOpen', false)));
+		this.controller = new QuickInputController({
 			idPrefix: 'quickInput_', // Constant since there is still only one.
 			container: this.layoutService.getWorkbenchElement(),
 			ignoreFocusOut: () => this.environmentService.args['sticky-quickopen'] || !this.configurationService.getValue(CLOSE_ON_FOCUS_LOST_CONFIG),
@@ -71,27 +77,16 @@ export class QuickInputService extends PlatformQuickInputService {
 				options: IListOptions<T>,
 			) => this.instantiationService.createInstance(WorkbenchList, user, container, delegate, renderers, options) as List<T>,
 			styles: this.computeStyles(),
-		}));
-
-		this.controller.layout(this.layoutService.dimension, this.layoutService.getTitleBarOffset());
-
-		this.registerListeners();
-	}
-
-	private registerListeners(): void {
-		this._register(this.quickOpenService.onShow(() => this.inQuickOpen('quickOpen', true)));
-		this._register(this.quickOpenService.onHide(() => this.inQuickOpen('quickOpen', false)));
-
+		});
+		this.backButton = this.controller.backButton;
 		this._register(this.layoutService.onLayout(dimension => this.controller.layout(dimension, this.layoutService.getTitleBarOffset())));
-
+		this.controller.layout(this.layoutService.dimension, this.layoutService.getTitleBarOffset());
 		this._register(this.quickOpenService.onShow(() => this.controller.hide(true)));
-
 		this._register(this.controller.onShow(() => {
 			this.quickOpenService.close();
 			this.inQuickOpen('quickInput', true);
 			this.resetContextKeys();
 		}));
-
 		this._register(this.controller.onHide(() => {
 			this.inQuickOpen('quickInput', false);
 			this.resetContextKeys();
@@ -104,7 +99,6 @@ export class QuickInputService extends PlatformQuickInputService {
 		} else {
 			delete this.inQuickOpenWidgets[widget];
 		}
-
 		if (Object.keys(this.inQuickOpenWidgets).length) {
 			if (!this.inQuickOpenContext.get()) {
 				this.inQuickOpenContext.set(true);
