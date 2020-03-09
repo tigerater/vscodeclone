@@ -34,8 +34,7 @@ export class MinimapCharRenderer {
 		color: RGBA8,
 		backgroundColor: RGBA8,
 		fontScale: number,
-		useLighterFont: boolean,
-		force1pxHeight: boolean
+		useLighterFont: boolean
 	): void {
 		const charWidth = Constants.BASE_CHAR_WIDTH * this.scale;
 		const charHeight = Constants.BASE_CHAR_HEIGHT * this.scale;
@@ -61,8 +60,7 @@ export class MinimapCharRenderer {
 		let sourceOffset = charIndex * charWidth * charHeight;
 
 		let row = dy * destWidth + dx * Constants.RGBA_CHANNELS_CNT;
-		const renderHeight = (force1pxHeight ? 1 : charHeight);
-		for (let y = 0; y < renderHeight; y++) {
+		for (let y = 0; y < charHeight; y++) {
 			let column = row;
 			for (let x = 0; x < charWidth; x++) {
 				const c = charData[sourceOffset++] / 255;
