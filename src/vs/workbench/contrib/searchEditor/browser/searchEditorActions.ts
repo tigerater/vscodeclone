@@ -136,7 +136,6 @@ const openNewSearchEditor =
 		const editorService = accessor.get(IEditorService);
 		const telemetryService = accessor.get(ITelemetryService);
 		const instantiationService = accessor.get(IInstantiationService);
-		const configurationService = accessor.get(IConfigurationService);
 
 		const activeEditor = editorService.activeTextEditorWidget;
 		let activeModel: ICodeEditor | undefined;
@@ -163,11 +162,7 @@ const openNewSearchEditor =
 		telemetryService.publicLog2('searchEditor/openNewSearchEditor');
 
 		const input = instantiationService.invokeFunction(getOrMakeSearchEditorInput, { config: { query: selected } });
-		const editor = await editorService.openEditor(input, { pinned: true }) as SearchEditor;
-
-		if (selected && configurationService.getValue<ISearchConfigurationProperties>('search').searchOnType) {
-			editor.runSearch(true, true);
-		}
+		await editorService.openEditor(input, { pinned: true });
 	};
 
 export const createEditorFromSearchResult =

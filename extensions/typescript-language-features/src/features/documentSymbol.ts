@@ -32,7 +32,6 @@ const getSymbolKind = (kind: string): vscode.SymbolKind => {
 };
 
 class TypeScriptDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
-
 	public constructor(
 		private readonly client: ITypeScriptServiceClient,
 		private cachedResponse: CachedResponse<Proto.NavTreeResponse>,
@@ -46,27 +45,23 @@ class TypeScriptDocumentSymbolProvider implements vscode.DocumentSymbolProvider 
 
 		const args: Proto.FileRequestArgs = { file };
 		const response = await this.cachedResponse.execute(document, () => this.client.execute('navtree', args, token));
-		if (response.type !== 'response' || !response.body?.childItems) {
+		if (response.type !== 'response' || !response.body) {
 			return undefined;
 		}
 
-		// The root represents the file. Ignore this when showing in the UI
-		const result: vscode.DocumentSymbol[] = [];
-		for (const item of response.body.childItems) {
-			TypeScriptDocumentSymbolProvider.convertNavTree(document.uri, result, item);
+		let tree = response.body;
+		if (tree && tree.childItems) {
+			// The root represents the file. Ignore this when showing in the UI
+			const result: vscode.DocumentSymbol[] = [];
+			tree.childItems.forEach(item => TypeScriptDocumentSymbolProvider.convertNavTree(document.uri, result, item));
+			return result;
 		}
-		return result;
+
+		return undefined;
 	}
 
-	private static convertNavTree(
-		resource: vscode.Uri,
-		output: vscode.DocumentSymbol[],
-		item: Proto.NavigationTree,
-	): boolean {
+	private static convertNavTree(resource: vscode.Uri, bucket: vscode.DocumentSymbol[], item: Proto.NavigationTree): boolean {
 		let shouldInclude = TypeScriptDocumentSymbolProvider.shouldInclueEntry(item);
-		if (!shouldInclude && !item.childItems?.length) {
-			return false;
-		}
 
 		const children = new Set(item.childItems || []);
 		for (const span of item.spans) {
@@ -88,7 +83,7 @@ class TypeScriptDocumentSymbolProvider implements vscode.DocumentSymbolProvider 
 			}
 
 			if (shouldInclude) {
-				output.push(symbolInfo);
+				bucket.push(symbolInfo);
 			}
 		}
 
@@ -102,6 +97,7 @@ class TypeScriptDocumentSymbolProvider implements vscode.DocumentSymbolProvider 
 		return !!(item.text && item.text !== '<function>' && item.text !== '<class>');
 	}
 }
+
 
 export function register(
 	selector: vscode.DocumentSelector,

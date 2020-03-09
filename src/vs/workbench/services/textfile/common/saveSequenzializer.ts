@@ -5,7 +5,6 @@
 
 interface IPendingSave {
 	versionId: number;
-	cancel: () => void;
 	promise: Promise<void>;
 }
 
@@ -36,12 +35,8 @@ export class SaveSequentializer {
 		return this._pendingSave ? this._pendingSave.promise : undefined;
 	}
 
-	cancelPending(): void {
-		this._pendingSave?.cancel();
-	}
-
-	setPending(versionId: number, promise: Promise<void>, onCancel?: () => void, ): Promise<void> {
-		this._pendingSave = { versionId, cancel: () => onCancel?.(), promise };
+	setPending(versionId: number, promise: Promise<void>): Promise<void> {
+		this._pendingSave = { versionId, promise };
 
 		promise.then(() => this.donePending(versionId), () => this.donePending(versionId));
 
