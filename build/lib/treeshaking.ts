@@ -18,7 +18,7 @@ export const enum ShakeLevel {
 }
 
 export function toStringShakeLevel(shakeLevel: ShakeLevel): string {
-	switch (shakeLevel) {
+	switch(shakeLevel) {
 		case ShakeLevel.Files:
 			return 'Files (0)';
 		case ShakeLevel.InnerFile:
@@ -42,6 +42,11 @@ export interface ITreeShakingOptions {
 	 * Inline usages.
 	 */
 	inlineEntryPoints: string[];
+	/**
+	 * TypeScript libs.
+	 * e.g. `lib.d.ts`, `lib.es2015.collection.d.ts`
+	 */
+	libs: string[];
 	/**
 	 * Other .d.ts files
 	 */
@@ -125,7 +130,11 @@ function createTypeScriptLanguageService(options: ITreeShakingOptions): ts.Langu
 	});
 
 	// Resolve libs
-	const RESOLVED_LIBS = processLibFiles(options);
+	const RESOLVED_LIBS: ILibMap = {};
+	options.libs.forEach((filename) => {
+		const filepath = path.join(TYPESCRIPT_LIB_FOLDER, filename);
+		RESOLVED_LIBS[`defaultLib:${filename}`] = fs.readFileSync(filepath).toString();
+	});
 
 	const compilerOptions = ts.convertCompilerOptionsFromJson(options.compilerOptions, options.sourcesRoot).options;
 
@@ -194,34 +203,6 @@ function discoverAndReadFiles(options: ITreeShakingOptions): IFileMap {
 	}
 
 	return FILES;
-}
-
-/**
- * Read lib files and follow lib references
- */
-function processLibFiles(options: ITreeShakingOptions): ILibMap {
-
-	const stack: string[] = [...options.compilerOptions.lib];
-	const result: ILibMap = {};
-
-	while (stack.length > 0) {
-		const filename = `lib.${stack.shift()!.toLowerCase()}.d.ts`;
-		const key = `defaultLib:${filename}`;
-		if (!result[key]) {
-			// add this file
-			const filepath = path.join(TYPESCRIPT_LIB_FOLDER, filename);
-			const sourceText = fs.readFileSync(filepath).toString();
-			result[key] = sourceText;
-
-			// precess dependencies and "recurse"
-			const info = ts.preProcessFile(sourceText);
-			for (let ref of info.libReferenceDirectives) {
-				stack.push(ref.fileName);
-			}
-		}
-	}
-
-	return result;
 }
 
 interface ILibMap { [libName: string]: string; }
@@ -494,7 +475,7 @@ function markNodes(languageService: ts.LanguageService, options: ITreeShakingOpt
 		}
 
 		if (black_queue.length === 0) {
-			for (let i = 0; i < gray_queue.length; i++) {
+			for (let i = 0; i< gray_queue.length; i++) {
 				const node = gray_queue[i];
 				const nodeParent = node.parent;
 				if ((ts.isClassDeclaration(nodeParent) || ts.isInterfaceDeclaration(nodeParent)) && nodeOrChildIsBlack(nodeParent)) {

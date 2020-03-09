@@ -12,12 +12,6 @@
 			"vs/*": [
 				"./vs/*"
 			]
-		},
-		"lib": [
-			"ES2015",
-			"DOM",
-			"DOM.Iterable",
-			"WebWorker.ImportScripts"
-		]
+		}
 	}
 }
