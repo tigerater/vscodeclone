@@ -101,7 +101,7 @@ export abstract class TogglePanelAction extends Action {
 		super(id, label, cssClass);
 	}
 
-	async run(): Promise<void> {
+	async run(): Promise<any> {
 		if (this.isPanelFocused()) {
 			this.layoutService.setPanelHidden(true);
 		} else {

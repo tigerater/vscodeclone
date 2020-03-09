@@ -364,8 +364,10 @@ export class CompositeOverflowActivityAction extends ActivityAction {
 		});
 	}
 
-	async run(): Promise<void> {
+	run(event: any): Promise<any> {
 		this.showMenu();
+
+		return Promise.resolve(true);
 	}
 }
 
@@ -440,7 +442,7 @@ class ManageExtensionAction extends Action {
 		super('activitybar.manage.extension', nls.localize('manageExtension', "Manage Extension"));
 	}
 
-	run(id: string): Promise<void> {
+	run(id: string): Promise<any> {
 		return this.commandService.executeCommand('_extensions.manage', id);
 	}
 }
@@ -731,7 +733,7 @@ export class ToggleCompositePinnedAction extends Action {
 		this.checked = !!this.activity && this.compositeBar.isPinned(this.activity.id);
 	}
 
-	async run(context: string): Promise<void> {
+	run(context: string): Promise<any> {
 		const id = this.activity ? this.activity.id : context;
 
 		if (this.compositeBar.isPinned(id)) {
@@ -739,5 +741,7 @@ export class ToggleCompositePinnedAction extends Action {
 		} else {
 			this.compositeBar.pin(id);
 		}
+
+		return Promise.resolve(true);
 	}
 }

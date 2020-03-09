@@ -303,12 +303,14 @@ class ToggleStatusbarEntryVisibilityAction extends Action {
 		this.checked = !model.isHidden(id);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 		if (this.model.isHidden(this.id)) {
 			this.model.show(this.id);
 		} else {
 			this.model.hide(this.id);
 		}
+
+		return Promise.resolve(true);
 	}
 }
 
@@ -318,8 +320,10 @@ class HideStatusbarEntryAction extends Action {
 		super(id, nls.localize('hide', "Hide '{0}'", name), undefined, true);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 		this.model.hide(this.id);
+
+		return Promise.resolve(true);
 	}
 }
 
