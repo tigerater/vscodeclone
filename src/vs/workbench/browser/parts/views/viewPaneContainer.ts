@@ -307,9 +307,7 @@ export abstract class ViewPane extends Pane implements IView {
 	}
 
 	focus(): void {
-		if (this.shouldShowWelcome()) {
-			this.viewWelcomeContainer.focus();
-		} else if (this.element) {
+		if (this.element) {
 			this.element.focus();
 			this._onDidFocus.fire();
 		}
