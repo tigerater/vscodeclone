@@ -119,11 +119,16 @@ export class CallStackView extends ViewPane {
 				this.pauseMessageLabel.title = thread.stoppedDetails.text || '';
 				dom.toggleClass(this.pauseMessageLabel, 'exception', thread.stoppedDetails.reason === 'exception');
 				this.pauseMessage.hidden = false;
-				this.updateActions();
+				if (this.toolbar) {
+					this.toolbar.setActions([])();
+				}
 
 			} else {
 				this.pauseMessage.hidden = true;
-				this.updateActions();
+				if (this.toolbar) {
+					const collapseAction = new CollapseAction(this.tree, true, 'explorer-action codicon-collapse-all');
+					this.toolbar.setActions([collapseAction])();
+				}
 			}
 
 			this.needsRefresh = false;
@@ -146,14 +151,6 @@ export class CallStackView extends ViewPane {
 		this.pauseMessage = dom.append(titleContainer, $('span.pause-message'));
 		this.pauseMessage.hidden = true;
 		this.pauseMessageLabel = dom.append(this.pauseMessage, $('span.label'));
-	}
-
-	getActions(): IAction[] {
-		if (this.pauseMessage.hidden) {
-			return [new CollapseAction(this.tree, true, 'explorer-action codicon-collapse-all')];
-		}
-
-		return [];
 	}
 
 	renderBody(container: HTMLElement): void {

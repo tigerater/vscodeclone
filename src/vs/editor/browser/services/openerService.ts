@@ -103,15 +103,7 @@ export class OpenerService implements IOpenerService {
 		// Default external opener is going through window.open()
 		this._externalOpener = {
 			openExternal: href => {
-				// ensure to open HTTP/HTTPS links into new windows
-				// to not trigger a navigation. Any other link is
-				// safe to be set as HREF to prevent a blank window
-				// from opening.
-				if (matchesScheme(href, Schemas.http) || matchesScheme(href, Schemas.https)) {
-					dom.windowOpenNoOpener(href);
-				} else {
-					window.location.href = href;
-				}
+				dom.windowOpenNoOpener(href);
 				return Promise.resolve(true);
 			}
 		};
