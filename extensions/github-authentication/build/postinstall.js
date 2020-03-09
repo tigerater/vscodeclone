@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const schemes = ['OSS', 'INSIDERS', 'STABLE', 'EXPLORATION', 'VSO', 'VSO_PPE', 'VSO_DEV'];
+const schemes = ['OSS', 'INSIDERS'];
 
 function main() {
 	let content = {};

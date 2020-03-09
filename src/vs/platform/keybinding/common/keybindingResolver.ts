@@ -11,10 +11,7 @@ import { ResolvedKeybindingItem } from 'vs/platform/keybinding/common/resolvedKe
 import { keys } from 'vs/base/common/map';
 
 export interface IResolveResult {
-	/** Whether the resolved keybinding is entering a chord */
 	enterChord: boolean;
-	/** Whether the resolved keybinding is leaving (and executing) a chord */
-	leaveChord: boolean;
 	commandId: string | null;
 	commandArgs: any;
 	bubble: boolean;
@@ -288,7 +285,6 @@ export class KeybindingResolver {
 		if (currentChord === null && result.keypressParts.length > 1 && result.keypressParts[1] !== null) {
 			return {
 				enterChord: true,
-				leaveChord: false,
 				commandId: null,
 				commandArgs: null,
 				bubble: false
@@ -297,7 +293,6 @@ export class KeybindingResolver {
 
 		return {
 			enterChord: false,
-			leaveChord: result.keypressParts.length > 1,
 			commandId: result.command,
 			commandArgs: result.commandArgs,
 			bubble: result.bubble

@@ -17,7 +17,7 @@ import { EditorViewColumn, viewColumnToEditorGroup } from 'vs/workbench/api/comm
 import { IEditorCommandsContext } from 'vs/workbench/common/editor';
 import { CustomEditorInput } from 'vs/workbench/contrib/customEditor/browser/customEditorInput';
 import { defaultEditorId } from 'vs/workbench/contrib/customEditor/browser/customEditors';
-import { CONTEXT_FOCUSED_CUSTOM_EDITOR_IS_EDITABLE, CONTEXT_CUSTOM_EDITORS, ICustomEditorService } from 'vs/workbench/contrib/customEditor/common/customEditor';
+import { CONTEXT_FOCUSED_CUSTOM_EDITOR_IS_EDITABLE, CONTEXT_HAS_CUSTOM_EDITORS, ICustomEditorService } from 'vs/workbench/contrib/customEditor/common/customEditor';
 import { IEditorGroup, IEditorGroupsService } from 'vs/workbench/services/editor/common/editorGroupsService';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
 import type { ITextEditorOptions } from 'vs/platform/editor/common/editor';
@@ -80,7 +80,7 @@ MenuRegistry.appendMenuItem(MenuId.CommandPalette, {
 		title: REOPEN_WITH_TITLE,
 		category: viewCategory,
 	},
-	when: CONTEXT_CUSTOM_EDITORS.notEqualsTo(''),
+	when: CONTEXT_HAS_CUSTOM_EDITORS,
 });
 
 MenuRegistry.appendMenuItem(MenuId.EditorTitle, {
@@ -89,9 +89,9 @@ MenuRegistry.appendMenuItem(MenuId.EditorTitle, {
 		title: REOPEN_WITH_TITLE,
 		category: viewCategory,
 	},
-	group: '6_reopen',
+	group: '3_open',
 	order: 20,
-	when: CONTEXT_CUSTOM_EDITORS.notEqualsTo(''),
+	when: CONTEXT_HAS_CUSTOM_EDITORS,
 });
 
 // #endregion
@@ -155,7 +155,7 @@ MenuRegistry.appendMenuItem(MenuId.EditorTitle, {
 	constructor() {
 		super({
 			id: ToggleCustomEditorCommand.ID,
-			precondition: CONTEXT_CUSTOM_EDITORS,
+			precondition: CONTEXT_HAS_CUSTOM_EDITORS,
 		});
 	}
 

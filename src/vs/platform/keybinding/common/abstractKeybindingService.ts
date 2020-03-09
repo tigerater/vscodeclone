@@ -35,10 +35,6 @@ export abstract class AbstractKeybindingService extends Disposable implements IK
 	private _currentChordChecker: IntervalTimer;
 	private _currentChordStatusMessage: IDisposable | null;
 
-	public get inChordMode(): boolean {
-		return !!this._currentChord;
-	}
-
 	constructor(
 		private _contextKeyService: IContextKeyService,
 		protected _commandService: ICommandService,

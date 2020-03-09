@@ -77,8 +77,8 @@ export class LinksList extends Disposable {
 			const newLinks = list.links.map(link => new Link(link, provider));
 			links = LinksList._union(links, newLinks);
 			// register disposables
-			if (isDisposable(list)) {
-				this._register(list);
+			if (isDisposable(provider)) {
+				this._register(provider);
 			}
 		}
 		this.links = links;

@@ -251,13 +251,6 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 	async load(options?: ITextFileLoadOptions): Promise<TextFileEditorModel> {
 		this.logService.trace('[text file model] load() - enter', this.resource.toString(true));
 
-		// Return early if we are disposed
-		if (this.isDisposed()) {
-			this.logService.trace('[text file model] load() - exit - without loading because model is disposed', this.resource.toString(true));
-
-			return this;
-		}
-
 		// It is very important to not reload the model when the model is dirty.
 		// We also only want to reload the model from the disk if no save is pending
 		// to avoid data loss.
@@ -366,14 +359,7 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 	}
 
 	private loadFromContent(content: ITextFileStreamContent, options?: ITextFileLoadOptions, fromBackup?: boolean): TextFileEditorModel {
-		this.logService.trace('[text file model] loadFromContent() - enter', this.resource.toString(true));
-
-		// Return early if we are disposed
-		if (this.isDisposed()) {
-			this.logService.trace('[text file model] loadFromContent() - exit - because model is disposed', this.resource.toString(true));
-
-			return this;
-		}
+		this.logService.trace('[text file model] load() - resolved content', this.resource.toString(true));
 
 		// Update our resolved disk stat model
 		this.updateLastResolvedFileStat({
@@ -419,7 +405,7 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 	}
 
 	private doCreateTextModel(resource: URI, value: ITextBufferFactory, fromBackup: boolean): void {
-		this.logService.trace('[text file model] doCreateTextModel()', this.resource.toString(true));
+		this.logService.trace('[text file model] load() - created text editor model', this.resource.toString(true));
 
 		// Create model
 		const textModel = this.createTextEditorModel(value, resource, this.preferredMode);
@@ -434,7 +420,7 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 	}
 
 	private doUpdateTextModel(value: ITextBufferFactory): void {
-		this.logService.trace('[text file model] doUpdateTextModel()', this.resource.toString(true));
+		this.logService.trace('[text file model] load() - updated text editor model', this.resource.toString(true));
 
 		// Update model value in a block that ignores content change events for dirty tracking
 		this.ignoreDirtyOnModelContentChange = true;
@@ -717,6 +703,7 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 	}
 
 	private handleSaveSuccess(stat: IFileStatWithMetadata, versionId: number, options: ITextFileSaveOptions): void {
+		this.logService.trace(`[text file model] doSave(${versionId}) - after write()`, this.resource.toString(true));
 
 		// Updated resolved stat with updated stat
 		this.updateLastResolvedFileStat(stat);

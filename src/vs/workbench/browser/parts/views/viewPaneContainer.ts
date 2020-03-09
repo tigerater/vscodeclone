@@ -255,10 +255,7 @@ export abstract class ViewPane extends Pane implements IView {
 			this._onDidFocus.fire();
 		}));
 		this._register(focusTracker.onDidBlur(() => {
-			if (this.focusedViewContextKey.get() === this.id) {
-				this.focusedViewContextKey.reset();
-			}
-
+			this.focusedViewContextKey.reset();
 			this._onDidBlur.fire();
 		}));
 	}

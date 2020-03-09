@@ -494,7 +494,7 @@ export interface CompletionItem {
 	preselect?: boolean;
 	/**
 	 * A string or snippet that should be inserted in a document when selecting
-	 * this completion.
+	 * this completion. When `falsy` the [label](#CompletionItem.label)
 	 * is used.
 	 */
 	insertText: string;
@@ -1373,7 +1373,7 @@ export interface RenameProvider {
  */
 export interface AuthenticationSession {
 	id: string;
-	getAccessToken(): Thenable<string>;
+	accessToken(): Promise<string>;
 	accountName: string;
 }
 

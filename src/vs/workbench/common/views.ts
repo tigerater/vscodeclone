@@ -53,7 +53,6 @@ export interface IViewContainerDescriptor {
 
 	readonly extensionId?: ExtensionIdentifier;
 
-	readonly rejectAddedViews?: boolean;
 }
 
 export interface IViewContainersRegistry {

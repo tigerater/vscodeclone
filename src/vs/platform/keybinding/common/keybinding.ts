@@ -50,8 +50,6 @@ export const IKeybindingService = createDecorator<IKeybindingService>('keybindin
 export interface IKeybindingService {
 	_serviceBrand: undefined;
 
-	readonly inChordMode: boolean;
-
 	onDidUpdateKeybindings: Event<IKeybindingEvent>;
 
 	/**

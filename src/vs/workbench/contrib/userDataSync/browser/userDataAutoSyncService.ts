@@ -10,7 +10,6 @@ import { IInstantiationService } from 'vs/platform/instantiation/common/instanti
 import { UserDataSyncTrigger } from 'vs/workbench/contrib/userDataSync/browser/userDataSyncTrigger';
 import { IHostService } from 'vs/workbench/services/host/browser/host';
 import { IAuthenticationTokenService } from 'vs/platform/authentication/common/authentication';
-import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 
 export class UserDataAutoSyncService extends BaseUserDataAutoSyncService {
 
@@ -21,15 +20,15 @@ export class UserDataAutoSyncService extends BaseUserDataAutoSyncService {
 		@IAuthenticationTokenService authTokenService: IAuthenticationTokenService,
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IHostService hostService: IHostService,
-		@ITelemetryService telemetryService: ITelemetryService,
 	) {
-		super(userDataSyncEnablementService, userDataSyncService, logService, authTokenService, telemetryService);
+		super(userDataSyncEnablementService, userDataSyncService, logService, authTokenService);
 
-		this._register(Event.debounce<string, string[]>(Event.any<string>(
-			Event.map(hostService.onDidChangeFocus, () => 'windowFocus'),
-			instantiationService.createInstance(UserDataSyncTrigger).onDidTriggerSync,
+		// Sync immediately if there is a local change.
+		this._register(Event.debounce(Event.any<any>(
 			userDataSyncService.onDidChangeLocal,
-		), (last, source) => last ? [...last, source] : [source], 1000)(sources => this.triggerAutoSync(sources)));
+			instantiationService.createInstance(UserDataSyncTrigger).onDidTriggerSync,
+			hostService.onDidChangeFocus
+		), () => undefined, 500)(() => this.triggerAutoSync()));
 	}
 
 }

@@ -8,7 +8,6 @@ import { Event } from 'vs/base/common/event';
 import { IElectronService } from 'vs/platform/electron/node/electron';
 import { UserDataAutoSyncService as BaseUserDataAutoSyncService } from 'vs/platform/userDataSync/common/userDataAutoSyncService';
 import { IAuthenticationTokenService } from 'vs/platform/authentication/common/authentication';
-import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 
 export class UserDataAutoSyncService extends BaseUserDataAutoSyncService {
 
@@ -18,15 +17,15 @@ export class UserDataAutoSyncService extends BaseUserDataAutoSyncService {
 		@IElectronService electronService: IElectronService,
 		@IUserDataSyncLogService logService: IUserDataSyncLogService,
 		@IAuthenticationTokenService authTokenService: IAuthenticationTokenService,
-		@ITelemetryService telemetryService: ITelemetryService,
 	) {
-		super(userDataSyncEnablementService, userDataSyncService, logService, authTokenService, telemetryService);
+		super(userDataSyncEnablementService, userDataSyncService, logService, authTokenService);
 
-		this._register(Event.debounce<string, string[]>(Event.any<string>(
-			Event.map(electronService.onWindowFocus, () => 'windowFocus'),
-			Event.map(electronService.onWindowOpen, () => 'windowOpen'),
+		// Sync immediately if there is a local change.
+		this._register(Event.debounce(Event.any<any>(
+			electronService.onWindowFocus,
+			electronService.onWindowOpen,
 			userDataSyncService.onDidChangeLocal,
-		), (last, source) => last ? [...last, source] : [source], 1000)(sources => this.triggerAutoSync(sources)));
+		), () => undefined, 500)(() => this.triggerAutoSync()));
 	}
 
 }

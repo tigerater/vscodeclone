@@ -71,8 +71,6 @@ export class MockContextKeyService implements IContextKeyService {
 export class MockKeybindingService implements IKeybindingService {
 	public _serviceBrand: undefined;
 
-	public readonly inChordMode: boolean = false;
-
 	public get onDidUpdateKeybindings(): Event<IKeybindingEvent> {
 		return Event.None;
 	}

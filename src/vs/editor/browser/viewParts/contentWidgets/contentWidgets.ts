@@ -369,7 +369,7 @@ class Widget {
 
 		return {
 			fitsAbove,
-			aboveTop: aboveTop,
+			aboveTop: Math.max(aboveTop, TOP_PADDING),
 			aboveLeft,
 			fitsBelow,
 			belowTop,

@@ -20,7 +20,7 @@ declare module 'vscode' {
 
 	export interface AuthenticationSession {
 		id: string;
-		getAccessToken(): Thenable<string>;
+		accessToken(): Promise<string>;
 		accountName: string;
 		scopes: string[]
 	}
@@ -58,13 +58,13 @@ declare module 'vscode' {
 		/**
 		 * Returns an array of current sessions.
 		 */
-		getSessions(): Thenable<ReadonlyArray<AuthenticationSession>>;
+		getSessions(): Promise<ReadonlyArray<AuthenticationSession>>;
 
 		/**
 		 * Prompts a user to login.
 		 */
-		login(scopes: string[]): Thenable<AuthenticationSession>;
-		logout(sessionId: string): Thenable<void>;
+		login(scopes: string[]): Promise<AuthenticationSession>;
+		logout(sessionId: string): Promise<void>;
 	}
 
 	export namespace authentication {
@@ -1188,21 +1188,22 @@ declare module 'vscode' {
 	//#region Custom editors: https://github.com/microsoft/vscode/issues/77131
 
 	// TODO:
+	// - Naming!
 	// - Think about where a rename would live.
-	// - Think about handling go to line? (add other editor options? reveal?)
+	// - Think about handling go to line?
 	// - Should we expose edits?
 	// - More properties from `TextDocument`?
 
 	/**
 	 * Defines the capabilities of a custom webview editor.
 	 */
-	interface CustomEditorCapabilities {
+	interface WebviewCustomEditorCapabilities {
 		/**
 		 * Defines the editing capability of a custom webview document.
 		 *
 		 * When not provided, the document is considered readonly.
 		 */
-		readonly editing?: CustomEditorEditingCapability;
+		readonly editing?: WebviewCustomEditorEditingCapability;
 	}
 
 	/**
@@ -1211,7 +1212,7 @@ declare module 'vscode' {
 	 *
 	 * @param EditType Type of edits.
 	 */
-	interface CustomEditorEditingCapability<EditType = unknown> {
+	interface WebviewCustomEditorEditingCapability<EditType = unknown> {
 		/**
 		 * Save the resource.
 		 *
@@ -1279,13 +1280,13 @@ declare module 'vscode' {
 	/**
 	 * Represents a custom document for a custom webview editor.
 	 *
-	 * Custom documents are only used within a given `CustomEditorProvider`. The lifecycle of a
-	 * `CustomDocument` is managed by VS Code. When more more references remain to a given `CustomDocument`
+	 * Custom documents are only used within a given `WebviewCustomEditorProvider`. The lifecycle of a
+	 * `WebviewEditorCustomDocument` is managed by VS Code. When more more references remain to a given `WebviewEditorCustomDocument`
 	 * then it is disposed of.
 	 *
 	 * @param UserDataType Type of custom object that extensions can store on the document.
 	 */
-	interface CustomDocument<UserDataType = unknown> {
+	interface WebviewEditorCustomDocument<UserDataType = unknown> {
 		/**
 		 * The associated viewType for this document.
 		 */
@@ -1297,14 +1298,14 @@ declare module 'vscode' {
 		readonly uri: Uri;
 
 		/**
-		 * Event fired when there are no more references to the `CustomDocument`.
+		 * Event fired when there are no more references to the `WebviewEditorCustomDocument`.
 		 */
 		readonly onDidDispose: Event<void>;
 
 		/**
 		 * Custom data that an extension can store on the document.
 		 */
-		userData?: UserDataType;
+		readonly userData: UserDataType;
 
 		// TODO: Should we expose edits here?
 		// This could be helpful for tracking the life cycle of edits
@@ -1313,34 +1314,32 @@ declare module 'vscode' {
 	/**
 	 * Provider for webview editors that use a custom data model.
 	 *
-	 * Custom webview editors use [`CustomDocument`](#CustomDocument) as their data model.
+	 * Custom webview editors use [`WebviewEditorCustomDocument`](#WebviewEditorCustomDocument) as their data model.
 	 * This gives extensions full control over actions such as edit, save, and backup.
 	 *
 	 * You should use custom text based editors when dealing with binary files or more complex scenarios. For simple text
 	 * based documents, use [`WebviewTextEditorProvider`](#WebviewTextEditorProvider) instead.
 	 */
-	export interface CustomEditorProvider {
+	export interface WebviewCustomEditorProvider {
 		/**
-		 * Resolve the model for a given resource.
+		 * Create the model for a given
 		 *
-		 * @param document Document to resolve.
-		 *
-		 * @return The capabilities of the resolved document.
+		 * @param document Resource being resolved.
 		 */
-		resolveCustomDocument(document: CustomDocument): Thenable<CustomEditorCapabilities>;
+		provideWebviewCustomEditorDocument(resource: Uri): Thenable<WebviewEditorCustomDocument>;
 
 		/**
 		 * Resolve a webview editor for a given resource.
 		 *
-		 * To resolve a webview editor, the provider must fill in its initial html content and hook up all
+		 * To resolve a webview editor, a provider must fill in its initial html content and hook up all
 		 * the event listeners it is interested it. The provider should also take ownership of the passed in `WebviewPanel`.
 		 *
-		 * @param document Document for the resource being resolved.
-		 * @param webviewPanel Webview to resolve. The provider should take ownership of this webview.
+		 * @param document Document for resource being resolved.
+		 * @param webview Webview being resolved. The provider should take ownership of this webview.
 		 *
 		 * @return Thenable indicating that the webview editor has been resolved.
 		 */
-		resolveCustomEditor(document: CustomDocument, webviewPanel: WebviewPanel): Thenable<void>;
+		resolveWebviewCustomEditor(document: WebviewEditorCustomDocument, webview: WebviewPanel): Thenable<void>;
 	}
 
 	/**
@@ -1351,9 +1350,9 @@ declare module 'vscode' {
 	 * undo and backup. The provider is responsible for synchronizing text changes between the webview and the `TextDocument`.
 	 *
 	 * You should use text based webview editors when dealing with text based file formats, such as `xml` or `json`.
-	 * For binary files or more specialized use cases, see [CustomEditorProvider](#CustomEditorProvider).
+	 * For binary files or more specialized use cases, see [WebviewCustomEditorProvider](#WebviewCustomEditorProvider).
 	 */
-	export interface CustomTextEditorProvider {
+	export interface WebviewTextEditorProvider {
 		/**
 		 * Resolve a webview editor for a given resource.
 		 *
@@ -1361,29 +1360,68 @@ declare module 'vscode' {
 		 * the event listeners it is interested it. The provider should also take ownership of the passed in `WebviewPanel`.
 		 *
 		 * @param document Resource being resolved.
-		 * @param webviewPanel Webview to resolve. The provider should take ownership of this webview.
+		 * @param webview Webview being resolved. The provider should take ownership of this webview.
 		 *
 		 * @return Thenable indicating that the webview editor has been resolved.
 		 */
-		resolveCustomTextEditor(document: TextDocument, webviewPanel: WebviewPanel): Thenable<void>;
+		resolveWebviewTextEditor(document: TextDocument, webview: WebviewPanel): Thenable<void>;
 	}
 
 	namespace window {
 		/**
-		 * Register a new provider for a custom editor.
+		 * Register a new provider for text based webview editors.
+		 *
+		 * @param viewType Type of the webview editor provider. This should match the `viewType` from the
+		 *   `package.json` contributions
+		 * @param provider Provider that resolves webview editors.
+		 * @param webviewOptions Content settings for the webview panels that provider is given.
+		 *
+		 * @return Disposable that unregisters the `WebviewTextEditorProvider`.
+		 */
+		export function registerWebviewTextEditorProvider(
+			viewType: string,
+			provider: WebviewTextEditorProvider,
+			webviewOptions?: WebviewPanelOptions,
+		): Disposable;
+
+		/**
+		 * Register a new provider for custom webview editors.
 		 *
 		 * @param viewType Type of the webview editor provider. This should match the `viewType` from the
 		 *   `package.json` contributions.
-		 * @param provider Provider that resolves editors.
-		 * @param webviewOptions Content settings for the webview panels that the provider is given.
+		 * @param provider Provider that resolves webview editors.
+		 * @param webviewOptions Content settings for the webview panels that provider is given.
 		 *
-		 * @return Disposable that unregisters the provider.
+		 * @return Disposable that unregisters the `WebviewCustomEditorProvider`.
 		 */
-		export function registerCustomEditorProvider(
+		export function registerWebviewCustomEditorProvider(
 			viewType: string,
-			provider: CustomEditorProvider | CustomTextEditorProvider,
+			provider: WebviewCustomEditorProvider,
 			webviewOptions?: WebviewPanelOptions,
 		): Disposable;
+
+		/**
+		 * Create a new `WebviewEditorCustomDocument`.
+		 *
+		 * Note that this method only creates a custom document object. To have it be registered with VS Code, you
+		 * must return the document from `WebviewCustomEditorProvider.provideWebviewCustomEditorDocument`.
+		 *
+		 * @param viewType Type of the webview editor provider. This should match the `viewType` from the
+		 *   `package.json` contributions.
+		 * @param uri The document's resource.
+		 * @param userData Custom data attached to the document.
+		 * @param capabilities Controls the editing functionality of a webview editor. This allows the webview
+		 * editor to hook into standard editor events such as `undo` or `save`.
+		 *
+		 * WebviewEditors that do not have `editingCapability` are considered to be readonly. Users can still interact
+		 * with readonly editors, but these editors will not integrate with VS Code's standard editor functionality.
+		 */
+		export function createWebviewEditorCustomDocument<UserDataType>(
+			viewType: string,
+			uri: Uri,
+			userData: UserDataType,
+			capabilities: WebviewCustomEditorCapabilities
+		): WebviewEditorCustomDocument<UserDataType>;
 	}
 
 	//#endregion
@@ -1484,6 +1522,28 @@ declare module 'vscode' {
 	//#endregion
 
 
+	//#region Diagnostic links https://github.com/microsoft/vscode/issues/11847
+
+	export interface Diagnostic {
+		/**
+		 * Will be merged into `Diagnostic#code`
+		 */
+		code2?: {
+			/**
+			 * A code or identifier for this diagnostic.
+			 * Should be used for later processing, e.g. when providing [code actions](#CodeActionContext).
+			 */
+			value: string | number;
+
+			/**
+			 * A target URI to open with more information about the diagnostic error.
+			 */
+			target: Uri;
+		}
+	}
+
+	//#endregion
+
 	//#region eamodio - timeline: https://github.com/microsoft/vscode/issues/84297
 
 	export class TimelineItem {
@@ -1498,9 +1558,12 @@ declare module 'vscode' {
 		label: string;
 
 		/**
-		 * Optional id for the timeline item. It must be unique across all the timeline items provided by this source.
+		 * Optional id for the timeline item.
+		 */
+		/**
+		 * Optional id for the timeline item that has to be unique across your timeline source.
 		 *
-		 * If not provided, an id is generated using the timeline item's timestamp.
+		 * If not provided, an id is generated using the timeline item's label.
 		 */
 		id?: string;
 
@@ -1557,50 +1620,40 @@ declare module 'vscode' {
 		 * If the [uri](#Uri) is `undefined` that signals that the timeline source for all resources changed.
 		 */
 		uri?: Uri;
-
-		/**
-		 * A flag which indicates whether the entire timeline should be reset.
-		 */
-		reset?: boolean;
 	}
 
-	export interface Timeline {
-		readonly paging?: {
-			/**
-			 * A set of provider-defined cursors specifing the range of timeline items returned.
-			 */
-			readonly cursors: {
-				readonly before: string;
-				readonly after?: string
-			};
-
-			/**
-			 * A flag which indicates whether there are more items that weren't returned.
-			 */
-			readonly more?: boolean;
-		}
-
+	export interface TimelineCursor {
 		/**
-		 * An array of [timeline items](#TimelineItem).
+		 * A provider-defined cursor specifing the range of timeline items to be returned. Must be serializable.
 		 */
-		readonly items: readonly TimelineItem[];
-	}
-
-	export interface TimelineOptions {
-		/**
-		 * A provider-defined cursor specifing the range of timeline items that should be returned.
-		 */
-		cursor?: string;
+		cursor?: any;
 
 		/**
-		 * A flag to specify whether the timeline items being requested should be before or after (default) the provided cursor.
+		 * A flag to specify whether the timeline items requested are before or after (default) the provided cursor.
 		 */
 		before?: boolean;
 
 		/**
-		 * The maximum number or the ending cursor of timeline items that should be returned.
+		 * The maximum number of timeline items that should be returned.
 		 */
-		limit?: number | string;
+		limit?: number;
+	}
+
+	export interface Timeline {
+		/**
+		 * A provider-defined cursor specifing the range of timeline items returned. Must be serializable.
+		 */
+		cursor?: any;
+
+		/**
+		 * A flag which indicates whether there are any more items that weren't returned.
+		 */
+		more?: boolean;
+
+		/**
+		 * An array of [timeline items](#TimelineItem).
+		 */
+		items: TimelineItem[];
 	}
 
 	export interface TimelineProvider {
@@ -1613,23 +1666,23 @@ declare module 'vscode' {
 		/**
 		 * An identifier of the source of the timeline items. This can be used to filter sources.
 		 */
-		readonly id: string;
+		id: string;
 
 		/**
 		 * A human-readable string describing the source of the timeline items. This can be used as the display label when filtering sources.
 		 */
-		readonly label: string;
+		label: string;
 
 		/**
 		 * Provide [timeline items](#TimelineItem) for a [Uri](#Uri).
 		 *
 		 * @param uri The [uri](#Uri) of the file to provide the timeline for.
-		 * @param options A set of options to determine how results should be returned.
 		 * @param token A cancellation token.
+		 * @param cursor TBD
 		 * @return The [timeline result](#TimelineResult) or a thenable that resolves to such. The lack of a result
 		 * can be signaled by returning `undefined`, `null`, or an empty array.
 		 */
-		provideTimeline(uri: Uri, options: TimelineOptions, token: CancellationToken): ProviderResult<Timeline>;
+		provideTimeline(uri: Uri, cursor: TimelineCursor, token: CancellationToken): ProviderResult<Timeline>;
 	}
 
 	export namespace workspace {
