@@ -107,7 +107,7 @@ declare module 'vscode' {
 	export interface TunnelDescription {
 		remoteAddress: { port: number, host: string };
 		//The complete local address(ex. localhost:1234)
-		localAddress: string;
+		localAddress: { port: number, host: string } | string;
 	}
 
 	export interface Tunnel extends TunnelDescription {
@@ -1672,6 +1672,11 @@ declare module 'vscode' {
 		 * @return The uri of the resource.
 		 */
 		asExtensionUri(relativePath: string): Uri;
+
+		/**
+		 *
+		 */
+		readonly extensionUri: Uri;
 	}
 
 	export interface Extension<T> {
@@ -1682,6 +1687,11 @@ declare module 'vscode' {
 		 * @return The uri of the resource.
 		 */
 		asExtensionUri(relativePath: string): Uri;
+
+		/**
+		 *
+		 */
+		readonly extensionUri: Uri;
 	}
 
 	//#endregion
