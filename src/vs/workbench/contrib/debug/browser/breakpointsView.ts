@@ -78,6 +78,8 @@ export class BreakpointsView extends ViewPane {
 	}
 
 	public renderBody(container: HTMLElement): void {
+		super.renderBody(container);
+
 		dom.addClass(container, 'debug-breakpoints');
 		const delegate = new BreakpointsDelegate(this.debugService);
 
