@@ -101,7 +101,6 @@ export class BulkEditPane extends ViewPane {
 	}
 
 	protected renderBody(parent: HTMLElement): void {
-		super.renderBody(parent);
 
 		const resourceLabels = this._instaService.createInstance(
 			ResourceLabels,
