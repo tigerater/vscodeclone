@@ -44,7 +44,7 @@ function main() {
 		nodeMain: __filename,
 		baseUrl: path.join(REPO_ROOT, 'src'),
 		paths: {
-			'vs/css': '../test/unit/node/css.mock',
+			'vs/css': '../test/css.mock',
 			'vs': `../${out}/vs`,
 			'lib': `../${out}/lib`,
 			'bootstrap-fork': `../${out}/bootstrap-fork`
@@ -166,7 +166,7 @@ function main() {
 }
 
 if (process.argv.some(function (a) { return /^--browser/.test(a); })) {
-	require('./browser');
+	require('../../browser');
 } else {
 	main();
 }

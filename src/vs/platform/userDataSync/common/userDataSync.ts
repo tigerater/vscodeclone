@@ -130,7 +130,6 @@ export enum UserDataSyncErrorCode {
 	Rejected = 'Rejected',
 	TooLarge = 'TooLarge',
 	NoRef = 'NoRef',
-	NewLocal = 'NewLocal',
 	Unknown = 'Unknown',
 }
 
@@ -138,18 +137,6 @@ export class UserDataSyncError extends Error {
 
 	constructor(message: string, public readonly code: UserDataSyncErrorCode, public readonly source?: SyncSource) {
 		super(message);
-		this.name = `${this.code} (UserDataSyncError) ${this.source}`;
-	}
-
-	static toUserDataSyncError(error: Error): UserDataSyncError {
-		if (error instanceof UserDataSyncStoreError) {
-			return error;
-		}
-		const match = /^(.+) \(UserDataSyncError\) (.+)?$/.exec(error.name);
-		if (match && match[1]) {
-			return new UserDataSyncError(error.message, <UserDataSyncErrorCode>match[1], <SyncSource>match[2]);
-		}
-		return new UserDataSyncError(error.message, UserDataSyncErrorCode.Unknown);
 	}
 
 }
@@ -235,7 +222,7 @@ export interface IUserDataSyncService extends ISynchroniser {
 export const IUserDataAutoSyncService = createDecorator<IUserDataAutoSyncService>('IUserDataAutoSyncService');
 export interface IUserDataAutoSyncService {
 	_serviceBrand: any;
-	readonly onError: Event<{ code: UserDataSyncErrorCode, source?: SyncSource }>;
+	onError: Event<{ code: UserDataSyncErrorCode, source?: SyncSource }>;
 	triggerAutoSync(): Promise<void>;
 }
 
