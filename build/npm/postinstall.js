@@ -13,7 +13,7 @@ const yarn = process.platform === 'win32' ? 'yarn.cmd' : 'yarn';
  * @param {*} [opts]
  */
 function yarnInstall(location, opts) {
-	opts = opts || { env: process.env };
+	opts = opts || {};
 	opts.cwd = location;
 	opts.stdio = 'inherit';
 
@@ -52,6 +52,8 @@ extensions.forEach(extension => yarnInstall(`extensions/${extension}`));
 function yarnInstallBuildDependencies() {
 	// make sure we install the deps of build/lib/watch for the system installed
 	// node, since that is the driver of gulp
+	//@ts-ignore
+	const env = Object.assign({}, process.env);
 	const watchPath = path.join(path.dirname(__dirname), 'lib', 'watch');
 	const yarnrcPath = path.join(watchPath, '.yarnrc');
 
@@ -64,7 +66,7 @@ target "${target}"
 runtime "${runtime}"`;
 
 	fs.writeFileSync(yarnrcPath, yarnrc, 'utf8');
-	yarnInstall(watchPath);
+	yarnInstall(watchPath, { env });
 }
 
 yarnInstall(`build`); // node modules required for build
