@@ -105,43 +105,38 @@ export function isUri(s: string | undefined): boolean {
 	return !!(s && s.match(_schemePattern));
 }
 
-function stringToUri(source: PathContainer): string | undefined {
-	if (typeof source.path === 'string') {
-		if (typeof source.sourceReference === 'number' && source.sourceReference > 0) {
-			// if there is a source reference, don't touch path
+function stringToUri(path: string): string {
+	if (typeof path === 'string') {
+		if (isUri(path)) {
+			return <string><unknown>uri.parse(path);
 		} else {
-			if (isUri(source.path)) {
-				return <string><unknown>uri.parse(source.path);
+			// assume path
+			if (isAbsolute(path)) {
+				return <string><unknown>uri.file(path);
 			} else {
-				// assume path
-				if (isAbsolute(source.path)) {
-					return <string><unknown>uri.file(source.path);
-				} else {
-					// leave relative path as is
-				}
+				// leave relative path as is
 			}
 		}
 	}
-	return source.path;
+	return path;
 }
 
-function uriToString(source: PathContainer): string | undefined {
-	if (typeof source.path === 'object') {
-		const u = uri.revive(source.path);
+function uriToString(path: string): string {
+	if (typeof path === 'object') {
+		const u = uri.revive(path);
 		if (u.scheme === 'file') {
 			return u.fsPath;
 		} else {
 			return u.toString();
 		}
 	}
-	return source.path;
+	return path;
 }
 
 // path hooks helpers
 
 interface PathContainer {
 	path?: string;
-	sourceReference?: number;
 }
 
 export function convertToDAPaths(message: DebugProtocol.ProtocolMessage, toUri: boolean): DebugProtocol.ProtocolMessage {
@@ -153,7 +148,7 @@ export function convertToDAPaths(message: DebugProtocol.ProtocolMessage, toUri: 
 
 	convertPaths(msg, (toDA: boolean, source: PathContainer | undefined) => {
 		if (toDA && source) {
-			source.path = fixPath(source);
+			source.path = source.path ? fixPath(source.path) : undefined;
 		}
 	});
 	return msg;
@@ -168,7 +163,7 @@ export function convertToVSCPaths(message: DebugProtocol.ProtocolMessage, toUri:
 
 	convertPaths(msg, (toDA: boolean, source: PathContainer | undefined) => {
 		if (!toDA && source) {
-			source.path = fixPath(source);
+			source.path = source.path ? fixPath(source.path) : undefined;
 		}
 	});
 	return msg;

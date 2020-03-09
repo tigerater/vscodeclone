@@ -128,14 +128,14 @@ class AsyncDataTreeRenderer<TInput, T, TFilterData, TTemplateData> implements IT
 	}
 }
 
-function asTreeEvent<TInput, T>(e: ITreeEvent<IAsyncDataTreeNode<TInput, T> | null>): ITreeEvent<T> {
+function asTreeEvent<TInput, T>(e: ITreeEvent<IAsyncDataTreeNode<TInput, T>>): ITreeEvent<T> {
 	return {
 		browserEvent: e.browserEvent,
-		elements: e.elements.map(e => e!.element as T)
+		elements: e.elements.map(e => e.element as T)
 	};
 }
 
-function asTreeMouseEvent<TInput, T>(e: ITreeMouseEvent<IAsyncDataTreeNode<TInput, T> | null>): ITreeMouseEvent<T> {
+function asTreeMouseEvent<TInput, T>(e: ITreeMouseEvent<IAsyncDataTreeNode<TInput, T>>): ITreeMouseEvent<T> {
 	return {
 		browserEvent: e.browserEvent,
 		element: e.element && e.element.element as T,
@@ -143,7 +143,7 @@ function asTreeMouseEvent<TInput, T>(e: ITreeMouseEvent<IAsyncDataTreeNode<TInpu
 	};
 }
 
-function asTreeContextMenuEvent<TInput, T>(e: ITreeContextMenuEvent<IAsyncDataTreeNode<TInput, T> | null>): ITreeContextMenuEvent<T> {
+function asTreeContextMenuEvent<TInput, T>(e: ITreeContextMenuEvent<IAsyncDataTreeNode<TInput, T>>): ITreeContextMenuEvent<T> {
 	return {
 		browserEvent: e.browserEvent,
 		element: e.element && e.element.element as T,
@@ -662,6 +662,10 @@ export class AsyncDataTree<TInput, T, TFilterData = void> implements IDisposable
 		this.tree.open(nodes, browserEvent);
 	}
 
+	isElementVisible(element: T) {
+		return this.tree.isElementVisible(this.getDataNode(element));
+	}
+
 	reveal(element: T, relativeTop?: number): void {
 		this.tree.reveal(this.getDataNode(element), relativeTop);
 	}
@@ -793,11 +797,7 @@ export class AsyncDataTree<TInput, T, TFilterData = void> implements IDisposable
 		return result.finally(() => this.refreshPromises.delete(node));
 	}
 
-	private _onDidChangeCollapseState({ node, deep }: ICollapseStateChangeEvent<IAsyncDataTreeNode<TInput, T> | null, any>): void {
-		if (node.element === null) {
-			return;
-		}
-
+	private _onDidChangeCollapseState({ node, deep }: ICollapseStateChangeEvent<IAsyncDataTreeNode<TInput, T>, any>): void {
 		if (!node.collapsed && node.element.stale) {
 			if (deep) {
 				this.collapse(node.element.element as T);

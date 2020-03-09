@@ -30,7 +30,6 @@ import { basename } from 'vs/base/common/path';
 import { IProgressService } from 'vs/platform/progress/common/progress';
 import { VIEWLET_ID } from 'vs/workbench/contrib/files/common/files';
 import { debounce } from 'vs/base/common/decorators';
-import { IOpenerService } from 'vs/platform/opener/common/opener';
 
 type TreeElement = TimelineItem;
 
@@ -63,11 +62,9 @@ export class TimelinePane extends ViewPane {
 		@IEditorService protected editorService: IEditorService,
 		@ICommandService protected commandService: ICommandService,
 		@IProgressService private readonly progressService: IProgressService,
-		@ITimelineService protected timelineService: ITimelineService,
-		@IOpenerService openerService: IOpenerService,
-		@IThemeService themeService: IThemeService,
+		@ITimelineService protected timelineService: ITimelineService
 	) {
-		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService);
+		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService);
 
 		const scopedContextKeyService = this._register(this.contextKeyService.createScoped());
 		scopedContextKeyService.createKey('view', TimelinePane.ID);
@@ -292,12 +289,12 @@ export class TimelinePane extends ViewPane {
 		container.appendChild(this._treeElement);
 
 		const renderer = this.instantiationService.createInstance(TimelineTreeRenderer);
-		this._tree = <WorkbenchObjectTree<TreeElement, FuzzyScore>>this.instantiationService.createInstance(WorkbenchObjectTree, 'TimelinePane', this._treeElement, new TimelineListVirtualDelegate(), [renderer], {
+		this._tree = this.instantiationService.createInstance<
+			typeof WorkbenchObjectTree,
+			WorkbenchObjectTree<TreeElement, FuzzyScore>
+		>(WorkbenchObjectTree, 'TimelinePane', this._treeElement, new TimelineListVirtualDelegate(), [renderer], {
 			identityProvider: new TimelineIdentityProvider(),
-			keyboardNavigationLabelProvider: new TimelineKeyboardNavigationLabelProvider(),
-			overrideStyles: {
-				listBackground: this.getBackgroundColor()
-			}
+			keyboardNavigationLabelProvider: new TimelineKeyboardNavigationLabelProvider()
 		});
 
 		const customTreeNavigator = new TreeResourceNavigator(this._tree, { openOnFocus: false, openOnSelection: false });

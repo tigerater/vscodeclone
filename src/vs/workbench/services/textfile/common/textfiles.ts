@@ -16,7 +16,6 @@ import { isUndefinedOrNull } from 'vs/base/common/types';
 import { isNative } from 'vs/base/common/platform';
 import { IWorkingCopy } from 'vs/workbench/services/workingCopy/common/workingCopyService';
 import { IUntitledTextEditorModelManager } from 'vs/workbench/services/untitled/common/untitledTextEditorService';
-import { CancellationToken } from 'vs/base/common/cancellation';
 
 export const ITextFileService = createDecorator<ITextFileService>('textFileService');
 
@@ -231,7 +230,7 @@ export interface ISaveParticipant {
 	/**
 	 * Participate in a save of a model. Allows to change the model before it is being saved to disk.
 	 */
-	participate(model: IResolvedTextFileEditorModel, context: { reason: SaveReason }, token: CancellationToken): Promise<void>;
+	participate(model: IResolvedTextFileEditorModel, env: { reason: SaveReason }): Promise<void>;
 }
 
 /**

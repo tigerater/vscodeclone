@@ -634,7 +634,7 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 	}
 
 	public getWorkspaceRootForResource(resource: vscode.Uri): string | undefined {
-		const roots = vscode.workspace.workspaceFolders ? Array.from(vscode.workspace.workspaceFolders) : undefined;
+		const roots = vscode.workspace.workspaceFolders;
 		if (!roots || !roots.length) {
 			return undefined;
 		}

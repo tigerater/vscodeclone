@@ -38,26 +38,28 @@ import { Action2 } from 'vs/platform/actions/common/actions';
 
 export const TERMINAL_PICKER_PREFIX = 'term ';
 
-async function getCwdForSplit(configHelper: ITerminalConfigHelper, instance: ITerminalInstance, folders?: IWorkspaceFolder[], commandService?: ICommandService): Promise<string | URI | undefined> {
+function getCwdForSplit(configHelper: ITerminalConfigHelper, instance: ITerminalInstance, folders?: IWorkspaceFolder[], commandService?: ICommandService): Promise<string | URI> {
 	switch (configHelper.config.splitCwd) {
 		case 'workspaceRoot':
+			let pathPromise: Promise<string | URI> = Promise.resolve('');
 			if (folders !== undefined && commandService !== undefined) {
 				if (folders.length === 1) {
-					return folders[0].uri;
+					pathPromise = Promise.resolve(folders[0].uri);
 				} else if (folders.length > 1) {
 					// Only choose a path when there's more than 1 folder
 					const options: IPickOptions<IQuickPickItem> = {
 						placeHolder: nls.localize('workbench.action.terminal.newWorkspacePlaceholder', "Select current working directory for new terminal")
 					};
-					const workspace = await commandService.executeCommand(PICK_WORKSPACE_FOLDER_COMMAND_ID, [options]);
-					if (!workspace) {
-						// Don't split the instance if the workspace picker was canceled
-						return undefined;
-					}
-					return Promise.resolve(workspace.uri);
+					pathPromise = commandService.executeCommand(PICK_WORKSPACE_FOLDER_COMMAND_ID, [options]).then(workspace => {
+						if (!workspace) {
+							// Don't split the instance if the workspace picker was canceled
+							return undefined;
+						}
+						return Promise.resolve(workspace.uri);
+					});
 				}
 			}
-			return '';
+			return pathPromise;
 		case 'initial':
 			return instance.getInitialCwd();
 		case 'inherited':
@@ -131,13 +133,12 @@ export class QuickKillTerminalAction extends Action {
 		super(id, label, 'terminal-action kill');
 	}
 
-	public async run(event?: any): Promise<any> {
+	public run(event?: any): Promise<any> {
 		const instance = this.terminalEntry.instance;
 		if (instance) {
 			instance.dispose(true);
 		}
-		await timeout(50);
-		return this.quickOpenService.show(TERMINAL_PICKER_PREFIX, undefined);
+		return Promise.resolve(timeout(50)).then(result => this.quickOpenService.show(TERMINAL_PICKER_PREFIX, undefined));
 	}
 }
 
@@ -328,35 +329,43 @@ export class CreateNewTerminalAction extends Action {
 		super(id, label, 'terminal-action codicon-add');
 	}
 
-	public async run(event?: any): Promise<any> {
+	public run(event?: any): Promise<any> {
 		const folders = this.workspaceContextService.getWorkspace().folders;
 		if (event instanceof MouseEvent && (event.altKey || event.ctrlKey)) {
 			const activeInstance = this.terminalService.getActiveInstance();
 			if (activeInstance) {
-				const cwd = await getCwdForSplit(this.terminalService.configHelper, activeInstance);
-				this.terminalService.splitInstance(activeInstance, { cwd });
-				return undefined;
+				return getCwdForSplit(this.terminalService.configHelper, activeInstance).then(cwd => {
+					this.terminalService.splitInstance(activeInstance, { cwd });
+					return Promise.resolve(null);
+				});
 			}
 		}
 
-		let instance: ITerminalInstance | undefined;
+		let instancePromise: Promise<ITerminalInstance | null>;
 		if (folders.length <= 1) {
 			// Allow terminal service to handle the path when there is only a
 			// single root
-			instance = this.terminalService.createTerminal(undefined);
+			instancePromise = Promise.resolve(this.terminalService.createTerminal(undefined));
 		} else {
 			const options: IPickOptions<IQuickPickItem> = {
 				placeHolder: nls.localize('workbench.action.terminal.newWorkspacePlaceholder', "Select current working directory for new terminal")
 			};
-			const workspace = await this.commandService.executeCommand(PICK_WORKSPACE_FOLDER_COMMAND_ID, [options]);
-			if (!workspace) {
-				// Don't create the instance if the workspace picker was canceled
-				return undefined;
-			}
-			instance = this.terminalService.createTerminal({ cwd: workspace.uri });
+			instancePromise = this.commandService.executeCommand(PICK_WORKSPACE_FOLDER_COMMAND_ID, [options]).then(workspace => {
+				if (!workspace) {
+					// Don't create the instance if the workspace picker was canceled
+					return null;
+				}
+				return this.terminalService.createTerminal({ cwd: workspace.uri });
+			});
 		}
-		this.terminalService.setActiveInstance(instance);
-		return this.terminalService.showPanel(true);
+
+		return instancePromise.then(instance => {
+			if (!instance) {
+				return Promise.resolve(undefined);
+			}
+			this.terminalService.setActiveInstance(instance);
+			return this.terminalService.showPanel(true);
+		});
 	}
 }
 
@@ -396,17 +405,19 @@ export class SplitTerminalAction extends Action {
 		super(id, label, 'terminal-action codicon-split-horizontal');
 	}
 
-	public async run(event?: any): Promise<any> {
+	public run(event?: any): Promise<any> {
 		const instance = this._terminalService.getActiveInstance();
 		if (!instance) {
 			return Promise.resolve(undefined);
 		}
-		const cwd = await getCwdForSplit(this._terminalService.configHelper, instance, this.workspaceContextService.getWorkspace().folders, this.commandService);
-		if (cwd === undefined) {
-			return undefined;
-		}
-		this._terminalService.splitInstance(instance, { cwd });
-		return this._terminalService.showPanel(true);
+		return getCwdForSplit(this._terminalService.configHelper, instance, this.workspaceContextService.getWorkspace().folders, this.commandService).then(cwd => {
+			if (cwd || (cwd === '')) {
+				this._terminalService.splitInstance(instance, { cwd });
+				return this._terminalService.showPanel(true);
+			} else {
+				return undefined;
+			}
+		});
 	}
 }
 
@@ -421,14 +432,15 @@ export class SplitInActiveWorkspaceTerminalAction extends Action {
 		super(id, label);
 	}
 
-	public async run(event?: any): Promise<any> {
+	public run(event?: any): Promise<any> {
 		const instance = this._terminalService.getActiveInstance();
 		if (!instance) {
 			return Promise.resolve(undefined);
 		}
-		const cwd = await getCwdForSplit(this._terminalService.configHelper, instance);
-		this._terminalService.splitInstance(instance, { cwd });
-		return this._terminalService.showPanel(true);
+		return getCwdForSplit(this._terminalService.configHelper, instance).then(cwd => {
+			this._terminalService.splitInstance(instance, { cwd });
+			return this._terminalService.showPanel(true);
+		});
 	}
 }
 
@@ -685,7 +697,7 @@ export class RunActiveFileInTerminalAction extends Action {
 		super(id, label);
 	}
 
-	public async run(event?: any): Promise<any> {
+	public run(event?: any): Promise<any> {
 		const instance = this.terminalService.getActiveOrCreateInstance();
 		if (!instance) {
 			return Promise.resolve(undefined);
@@ -700,9 +712,10 @@ export class RunActiveFileInTerminalAction extends Action {
 			return Promise.resolve(undefined);
 		}
 
-		const path = await this.terminalService.preparePathForTerminalAsync(uri.fsPath, instance.shellLaunchConfig.executable, instance.title, instance.shellType);
-		instance.sendText(path, true);
-		return this.terminalService.showPanel();
+		return this.terminalService.preparePathForTerminalAsync(uri.fsPath, instance.shellLaunchConfig.executable, instance.title, instance.shellType).then(path => {
+			instance.sendText(path, true);
+			return this.terminalService.showPanel();
+		});
 	}
 }
 
@@ -1027,18 +1040,19 @@ export class RenameTerminalAction extends Action {
 		super(id, label);
 	}
 
-	public async run(entry?: TerminalEntry): Promise<any> {
+	public run(entry?: TerminalEntry): Promise<any> {
 		const terminalInstance = entry ? entry.instance : this.terminalService.getActiveInstance();
 		if (!terminalInstance) {
 			return Promise.resolve(undefined);
 		}
-		const name = await this.quickInputService.input({
+		return this.quickInputService.input({
 			value: terminalInstance.title,
 			prompt: nls.localize('workbench.action.terminal.rename.prompt', "Enter terminal name"),
+		}).then(name => {
+			if (name) {
+				terminalInstance.setTitle(name, TitleEventSource.Api);
+			}
 		});
-		if (name) {
-			terminalInstance.setTitle(name, TitleEventSource.Api);
-		}
 	}
 }
 export class RenameWithArgTerminalAction extends Action2 {
@@ -1154,11 +1168,12 @@ export class RenameTerminalQuickOpenAction extends RenameTerminalAction {
 		this.class = 'codicon codicon-gear';
 	}
 
-	public async run(): Promise<any> {
-		await super.run(this.terminal);
-		// This timeout is needed to make sure the previous quickOpen has time to close before we show the next one
-		await timeout(50);
-		await this.quickOpenService.show(TERMINAL_PICKER_PREFIX, undefined);
+	public run(): Promise<any> {
+		super.run(this.terminal)
+			// This timeout is needed to make sure the previous quickOpen has time to close before we show the next one
+			.then(() => timeout(50))
+			.then(result => this.quickOpenService.show(TERMINAL_PICKER_PREFIX, undefined));
+		return Promise.resolve(null);
 	}
 }
 

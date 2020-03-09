@@ -79,47 +79,35 @@ export class ObjectTreeModel<T extends NonNullable<any>, TFilterData extends Non
 		const insertedElements = new Set<T | null>();
 		const insertedElementIds = new Set<string>();
 
-		const _onDidCreateNode = (node: ITreeNode<T | null, TFilterData>) => {
-			if (node.element === null) {
-				return;
-			}
-
-			const tnode = node as ITreeNode<T, TFilterData>;
-
-			insertedElements.add(tnode.element);
-			this.nodes.set(tnode.element, tnode);
+		const _onDidCreateNode = (node: ITreeNode<T, TFilterData>) => {
+			insertedElements.add(node.element);
+			this.nodes.set(node.element, node);
 
 			if (this.identityProvider) {
-				const id = this.identityProvider.getId(tnode.element).toString();
+				const id = this.identityProvider.getId(node.element).toString();
 				insertedElementIds.add(id);
-				this.nodesByIdentity.set(id, tnode);
+				this.nodesByIdentity.set(id, node);
 			}
 
 			if (onDidCreateNode) {
-				onDidCreateNode(tnode);
+				onDidCreateNode(node);
 			}
 		};
 
-		const _onDidDeleteNode = (node: ITreeNode<T | null, TFilterData>) => {
-			if (node.element === null) {
-				return;
-			}
-
-			const tnode = node as ITreeNode<T, TFilterData>;
-
-			if (!insertedElements.has(tnode.element)) {
-				this.nodes.delete(tnode.element);
+		const _onDidDeleteNode = (node: ITreeNode<T, TFilterData>) => {
+			if (!insertedElements.has(node.element)) {
+				this.nodes.delete(node.element);
 			}
 
 			if (this.identityProvider) {
-				const id = this.identityProvider.getId(tnode.element).toString();
+				const id = this.identityProvider.getId(node.element).toString();
 				if (!insertedElementIds.has(id)) {
 					this.nodesByIdentity.delete(id);
 				}
 			}
 
 			if (onDidDeleteNode) {
-				onDidDeleteNode(tnode);
+				onDidDeleteNode(node);
 			}
 		};
 

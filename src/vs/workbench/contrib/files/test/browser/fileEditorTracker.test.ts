@@ -23,8 +23,6 @@ import { FileEditorInput } from 'vs/workbench/contrib/files/common/editors/fileE
 import { TextFileEditorModelManager } from 'vs/workbench/services/textfile/common/textFileEditorModelManager';
 import { EditorPart } from 'vs/workbench/browser/parts/editor/editorPart';
 import { EditorService } from 'vs/workbench/services/editor/browser/editorService';
-import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
-import { UntitledTextEditorInput } from 'vs/workbench/services/untitled/common/untitledTextEditorInput';
 
 class ServiceAccessor {
 	constructor(
@@ -82,7 +80,7 @@ suite('Files - FileEditorTracker', () => {
 		(<TextFileEditorModelManager>accessor.textFileService.files).dispose();
 	});
 
-	async function createTracker(): Promise<[EditorPart, ServiceAccessor, FileEditorTracker, IInstantiationService, IEditorService]> {
+	async function createTracker(): Promise<[EditorPart, ServiceAccessor, FileEditorTracker]> {
 		const instantiationService = workbenchInstantiationService();
 
 		const part = instantiationService.createInstance(EditorPart);
@@ -100,7 +98,7 @@ suite('Files - FileEditorTracker', () => {
 
 		const tracker = instantiationService.createInstance(FileEditorTracker);
 
-		return [part, accessor, tracker, instantiationService, editorService];
+		return [part, accessor, tracker];
 	}
 
 	test('dirty text file model opens as editor', async function () {
@@ -123,9 +121,9 @@ suite('Files - FileEditorTracker', () => {
 	});
 
 	test('dirty untitled text file model opens as editor', async function () {
-		const [part, accessor, tracker, , editorService] = await createTracker();
+		const [part, accessor, tracker] = await createTracker();
 
-		const untitledEditor = editorService.createInput({ forceUntitled: true }) as UntitledTextEditorInput;
+		const untitledEditor = accessor.textFileService.untitled.create();
 		const model = await untitledEditor.resolve();
 
 		assert.ok(!accessor.editorService.isOpen(untitledEditor));

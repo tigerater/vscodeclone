@@ -847,7 +847,6 @@ export interface IListOptions<T> {
 	readonly useShadows?: boolean;
 	readonly verticalScrollMode?: ScrollbarVisibility;
 	readonly setRowLineHeight?: boolean;
-	readonly setRowHeight?: boolean;
 	readonly supportDynamicHeights?: boolean;
 	readonly mouseSupport?: boolean;
 	readonly horizontalScrolling?: boolean;
@@ -1545,6 +1544,16 @@ export class List<T> implements ISpliceable<T>, IDisposable {
 
 	getFocusedElements(): T[] {
 		return this.getFocus().map(i => this.view.element(i));
+	}
+
+	isElementVisible(index: number) {
+		const viewTop = this.view.getScrollTop();
+		const viewBottom = this.view.renderHeight + viewTop;
+
+		const elementTop = this.view.elementTop(index);
+		const elementBottom = this.view.elementHeight(index) + elementTop;
+
+		return (elementTop >= viewTop && elementBottom <= viewBottom);
 	}
 
 	reveal(index: number, relativeTop?: number): void {
