@@ -1995,10 +1995,6 @@ export interface IEditorMinimapOptions {
 	 * Relative size of the font in the minimap. Defaults to 1.
 	 */
 	scale?: number;
-	/**
-	* Minimap covers entire document.
-	*/
-	entireDocument?: boolean;
 }
 
 export type EditorMinimapOptions = Readonly<Required<IEditorMinimapOptions>>;
@@ -2013,7 +2009,6 @@ class EditorMinimap extends BaseEditorOption<EditorOption.minimap, EditorMinimap
 			renderCharacters: true,
 			maxColumn: 120,
 			scale: 1,
-			entireDocument: false,
 		};
 		super(
 			EditorOption.minimap, 'minimap', defaults,
@@ -2052,11 +2047,6 @@ class EditorMinimap extends BaseEditorOption<EditorOption.minimap, EditorMinimap
 					default: defaults.maxColumn,
 					description: nls.localize('minimap.maxColumn', "Limit the width of the minimap to render at most a certain number of columns.")
 				},
-				'editor.minimap.entireDocument': {
-					type: 'boolean',
-					default: defaults.entireDocument,
-					description: nls.localize('minimap.entireDocument', "Show entire document in the minimap.")
-				},
 			}
 		);
 	}
@@ -2073,7 +2063,6 @@ class EditorMinimap extends BaseEditorOption<EditorOption.minimap, EditorMinimap
 			renderCharacters: EditorBooleanOption.boolean(input.renderCharacters, this.defaultValue.renderCharacters),
 			scale: EditorIntOption.clampedInt(input.scale, 1, 1, 3),
 			maxColumn: EditorIntOption.clampedInt(input.maxColumn, this.defaultValue.maxColumn, 1, 10000),
-			entireDocument: EditorBooleanOption.boolean(input.entireDocument, this.defaultValue.entireDocument),
 		};
 	}
 }
