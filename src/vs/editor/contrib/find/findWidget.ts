@@ -419,9 +419,8 @@ export class FindWidget extends Widget implements IOverlayWidget, IHorizontalSas
 		}
 		if (currentMatch) {
 			const ariaLabel = nls.localize('ariaSearchNoResultWithLineNum', "{0} found for '{1}', at {2}", label, searchString, currentMatch.startLineNumber + ':' + currentMatch.startColumn);
-			const model = this._codeEditor.getModel();
-			if (model && (currentMatch.startLineNumber <= model.getLineCount()) && (currentMatch.startLineNumber >= 1)) {
-				const lineContent = model.getLineContent(currentMatch.startLineNumber);
+			const lineContent = this._codeEditor.getModel()?.getLineContent(currentMatch.startLineNumber);
+			if (lineContent) {
 				return `${lineContent}, ${ariaLabel}`;
 			}
 
