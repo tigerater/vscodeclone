@@ -615,9 +615,7 @@ export interface CodeActionProvider {
 	/**
 	 * Optional list of CodeActionKinds that this provider returns.
 	 */
-	readonly providedCodeActionKinds?: ReadonlyArray<string>;
-
-	readonly documentation?: ReadonlyArray<{ readonly kind: string, readonly command: Command }>;
+	providedCodeActionKinds?: ReadonlyArray<string>;
 
 	/**
 	 * @internal
