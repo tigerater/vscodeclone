@@ -90,10 +90,6 @@ export class OutputViewPane extends ViewPane {
 				return;
 			}
 
-			if (!this.configurationService.getValue('output.smartScroll.enabled')) {
-				return;
-			}
-
 			const model = codeEditor.getModel();
 			if (model && this.actions) {
 				const newPositionLine = e.position.lineNumber;

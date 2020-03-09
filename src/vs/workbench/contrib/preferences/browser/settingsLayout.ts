@@ -166,11 +166,6 @@ export const tocData: ITOCEntry = {
 					settings: ['problems.*']
 				},
 				{
-					id: 'features/output',
-					label: localize('output', "Output"),
-					settings: ['output.*']
-				},
-				{
 					id: 'features/comments',
 					label: localize('comments', "Comments"),
 					settings: ['comments.*']
