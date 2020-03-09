@@ -3754,14 +3754,9 @@ declare namespace monaco.editor {
 		 */
 		showSnippets?: boolean;
 		/**
-		 * Status bar related settings.
+		 * Controls the visibility of the status bar at the bottom of the suggest widget.
 		 */
-		statusBar?: {
-			/**
-			 * Controls the visibility of the status bar at the bottom of the suggest widget.
-			 */
-			visible?: boolean;
-		};
+		hideStatusBar?: boolean;
 	}
 
 	export type InternalSuggestOptions = Readonly<Required<ISuggestOptions>>;
