@@ -77,7 +77,7 @@ export class SettingsSynchroniser extends AbstractJsonFileSynchroniser implement
 	}
 
 	async pull(): Promise<void> {
-		if (!this.isEnabled()) {
+		if (!this.enabled) {
 			this.logService.info('Settings: Skipped pulling settings as it is disabled.');
 			return;
 		}
@@ -123,7 +123,7 @@ export class SettingsSynchroniser extends AbstractJsonFileSynchroniser implement
 	}
 
 	async push(): Promise<void> {
-		if (!this.isEnabled()) {
+		if (!this.enabled) {
 			this.logService.info('Settings: Skipped pushing settings as it is disabled.');
 			return;
 		}

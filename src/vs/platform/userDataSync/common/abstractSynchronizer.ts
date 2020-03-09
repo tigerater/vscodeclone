@@ -89,10 +89,10 @@ export abstract class AbstractSynchroniser extends Disposable {
 		}
 	}
 
-	protected isEnabled(): boolean { return this.userDataSyncEnablementService.isResourceEnabled(this.resourceKey); }
+	protected get enabled(): boolean { return this.userDataSyncEnablementService.isResourceEnabled(this.resourceKey); }
 
 	async sync(ref?: string): Promise<void> {
-		if (!this.isEnabled()) {
+		if (!this.enabled) {
 			this.logService.info(`${this.source}: Skipped synchronizing ${this.source.toLowerCase()} as it is disabled.`);
 			return;
 		}
@@ -348,7 +348,7 @@ export abstract class AbstractFileSynchroniser extends AbstractSynchroniser {
 			return;
 		}
 
-		if (!this.isEnabled()) {
+		if (!this.enabled) {
 			return;
 		}
 

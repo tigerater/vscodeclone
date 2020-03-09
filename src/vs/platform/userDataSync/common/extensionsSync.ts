@@ -37,7 +37,7 @@ export class ExtensionsSynchroniser extends AbstractSynchroniser implements IUse
 
 	readonly resourceKey: ResourceKey = 'extensions';
 	protected readonly version: number = 2;
-	protected isEnabled(): boolean { return super.isEnabled() && this.extensionGalleryService.isEnabled(); }
+	protected get enabled(): boolean { return super.enabled && this.extensionGalleryService.isEnabled(); }
 
 	constructor(
 		@IEnvironmentService environmentService: IEnvironmentService,
@@ -62,7 +62,7 @@ export class ExtensionsSynchroniser extends AbstractSynchroniser implements IUse
 	}
 
 	async pull(): Promise<void> {
-		if (!this.isEnabled()) {
+		if (!this.enabled) {
 			this.logService.info('Extensions: Skipped pulling extensions as it is disabled.');
 			return;
 		}
@@ -95,7 +95,7 @@ export class ExtensionsSynchroniser extends AbstractSynchroniser implements IUse
 	}
 
 	async push(): Promise<void> {
-		if (!this.isEnabled()) {
+		if (!this.enabled) {
 			this.logService.info('Extensions: Skipped pushing extensions as it is disabled.');
 			return;
 		}
