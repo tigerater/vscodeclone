@@ -448,9 +448,8 @@ export class SearchWidget extends Widget {
 	}
 
 	setValue(value: string, skipSearchOnChange: boolean) {
-		this.temporarilySkipSearchOnChange = skipSearchOnChange;
+		this.temporarilySkipSearchOnChange = skipSearchOnChange || this.temporarilySkipSearchOnChange;
 		this.searchInput.setValue(value);
-		this.temporarilySkipSearchOnChange = false;
 	}
 
 	setReplaceAllActionState(enabled: boolean): void {
@@ -492,7 +491,9 @@ export class SearchWidget extends Widget {
 		this.setReplaceAllActionState(false);
 
 		if (this.searchConfiguration.searchOnType) {
-			if (!this.temporarilySkipSearchOnChange) {
+			if (this.temporarilySkipSearchOnChange) {
+				this.temporarilySkipSearchOnChange = false;
+			} else {
 				this._onSearchCancel.fire({ focus: false });
 				if (this.searchInput.getRegex()) {
 					try {

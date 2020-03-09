@@ -18,7 +18,6 @@ import { SyncActionDescriptor } from 'vs/platform/actions/common/actions';
 import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
 import { IApplicationLink } from 'vs/workbench/workbench.web.api';
 import { IQuickInputService } from 'vs/platform/quickinput/common/quickInput';
-import { IOpenerService } from 'vs/platform/opener/common/opener';
 
 export class OpenInDesktopIndicator extends Disposable implements IWorkbenchContribution {
 
@@ -64,8 +63,7 @@ export class OpenInDesktopAction extends Action {
 		id: string,
 		label: string,
 		@IQuickInputService private readonly quickInputService: IQuickInputService,
-		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
-		@IOpenerService private readonly openerService: IOpenerService
+		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService
 	) {
 		super(id, label);
 	}
@@ -74,7 +72,7 @@ export class OpenInDesktopAction extends Action {
 		const links = this.environmentService.options?.applicationLinkProvider?.();
 		if (Array.isArray(links)) {
 			if (links.length === 1) {
-				return this.openApplicationLink(links[0]);
+				return this.runWithoutPicker(links[0]);
 			}
 
 			return this.runWithPicker(links);
@@ -93,7 +91,7 @@ export class OpenInDesktopAction extends Action {
 		quickPick.onDidAccept(() => {
 			const selectedItems = quickPick.selectedItems;
 			if (selectedItems.length === 1) {
-				this.openApplicationLink(selectedItems[0]);
+				this.runWithoutPicker(selectedItems[0]);
 			}
 			quickPick.hide();
 		});
@@ -103,8 +101,10 @@ export class OpenInDesktopAction extends Action {
 		return true;
 	}
 
-	private async openApplicationLink(link: IApplicationLink): Promise<boolean> {
-		this.openerService.open(link.uri, { openExternal: true });
+	private async runWithoutPicker(link: IApplicationLink): Promise<boolean> {
+
+		// Open directly
+		window.location.href = link.uri.toString();
 
 		return true;
 	}
