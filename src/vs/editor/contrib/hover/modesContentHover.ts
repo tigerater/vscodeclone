@@ -40,7 +40,6 @@ import { IIdentifiedSingleEditOperation } from 'vs/editor/common/model';
 import { EditorOption } from 'vs/editor/common/config/editorOptions';
 import { Constants } from 'vs/base/common/uint';
 import { textLinkForeground } from 'vs/platform/theme/common/colorRegistry';
-import { Progress } from 'vs/platform/progress/common/progress';
 
 const $ = dom.$;
 
@@ -627,7 +626,6 @@ export class ModesContentHoverWidget extends ContentHoverWidget {
 				this._editor.getModel()!,
 				new Range(marker.startLineNumber, marker.startColumn, marker.endLineNumber, marker.endColumn),
 				markerCodeActionTrigger,
-				Progress.None,
 				cancellationToken);
 		});
 	}

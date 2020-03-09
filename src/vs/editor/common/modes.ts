@@ -635,9 +635,6 @@ export interface CodeActionList extends IDisposable {
  * @internal
  */
 export interface CodeActionProvider {
-
-	displayName?: string
-
 	/**
 	 * Provide commands for the given document and range.
 	 */

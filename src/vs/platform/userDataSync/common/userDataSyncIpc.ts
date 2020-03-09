@@ -101,7 +101,6 @@ export class UserDataSycnUtilServiceChannel implements IServerChannel {
 
 	call(context: any, command: string, args?: any): Promise<any> {
 		switch (command) {
-			case 'resolveDefaultIgnoredSettings': return this.service.resolveDefaultIgnoredSettings();
 			case 'resolveUserKeybindings': return this.service.resolveUserBindings(args[0]);
 			case 'resolveFormattingOptions': return this.service.resolveFormattingOptions(URI.revive(args[0]));
 		}
@@ -114,10 +113,6 @@ export class UserDataSyncUtilServiceClient implements IUserDataSyncUtilService {
 	_serviceBrand: undefined;
 
 	constructor(private readonly channel: IChannel) {
-	}
-
-	async resolveDefaultIgnoredSettings(): Promise<string[]> {
-		return this.channel.call('resolveDefaultIgnoredSettings');
 	}
 
 	async resolveUserBindings(userbindings: string[]): Promise<IStringDictionary<string>> {
