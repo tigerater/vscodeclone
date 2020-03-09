@@ -17,11 +17,7 @@ export interface IProgressService {
 
 	_serviceBrand: undefined;
 
-	withProgress<R = any>(
-		options: IProgressOptions | IProgressNotificationOptions | IProgressWindowOptions | IProgressCompositeOptions,
-		task: (progress: IProgress<IProgressStep>) => Promise<R>,
-		onDidCancel?: (choice?: number) => void
-	): Promise<R>;
+	withProgress<R = any>(options: IProgressOptions | IProgressNotificationOptions | IProgressWindowOptions | IProgressCompositeOptions, task: (progress: IProgress<IProgressStep>) => Promise<R>, onDidCancel?: (choice?: number) => void): Promise<R>;
 }
 
 export interface IProgressIndicator {
@@ -49,19 +45,19 @@ export const enum ProgressLocation {
 }
 
 export interface IProgressOptions {
-	readonly location: ProgressLocation | string;
-	readonly title?: string;
-	readonly source?: string;
-	readonly total?: number;
-	readonly cancellable?: boolean;
-	readonly buttons?: string[];
+	location: ProgressLocation | string;
+	title?: string;
+	source?: string;
+	total?: number;
+	cancellable?: boolean;
+	buttons?: string[];
 }
 
 export interface IProgressNotificationOptions extends IProgressOptions {
 	readonly location: ProgressLocation.Notification;
 	readonly primaryActions?: ReadonlyArray<IAction>;
 	readonly secondaryActions?: ReadonlyArray<IAction>;
-	readonly delay?: number;
+	delay?: number;
 }
 
 export interface IProgressWindowOptions extends IProgressOptions {
@@ -70,8 +66,8 @@ export interface IProgressWindowOptions extends IProgressOptions {
 }
 
 export interface IProgressCompositeOptions extends IProgressOptions {
-	readonly location: ProgressLocation.Explorer | ProgressLocation.Extensions | ProgressLocation.Scm | string;
-	readonly delay?: number;
+	location: ProgressLocation.Explorer | ProgressLocation.Extensions | ProgressLocation.Scm | string;
+	delay?: number;
 }
 
 export interface IProgressStep {
@@ -100,14 +96,20 @@ export interface IProgress<T> {
 
 export class Progress<T> implements IProgress<T> {
 
+	private _callback: (data: T) => void;
 	private _value?: T;
-	get value(): T | undefined { return this._value; }
 
-	constructor(private callback: (data: T) => void) { }
+	constructor(callback: (data: T) => void) {
+		this._callback = callback;
+	}
+
+	get value(): T | undefined {
+		return this._value;
+	}
 
 	report(item: T) {
 		this._value = item;
-		this.callback(this._value);
+		this._callback(this._value);
 	}
 }
 

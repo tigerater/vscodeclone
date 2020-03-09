@@ -68,7 +68,7 @@ export abstract class Viewlet extends PaneComposite implements IViewlet {
  */
 export class ViewletDescriptor extends CompositeDescriptor<Viewlet> {
 
-	static create<Services extends BrandedService[]>(
+	public static create<Services extends BrandedService[]>(
 		ctor: { new(...services: Services): Viewlet },
 		id: string,
 		name: string,

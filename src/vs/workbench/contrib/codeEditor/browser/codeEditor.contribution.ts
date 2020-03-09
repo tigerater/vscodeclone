@@ -9,7 +9,6 @@ import './diffEditorHelper';
 import './inspectKeybindings';
 import './largeFileOptimizations';
 import './inspectEditorTokens/inspectEditorTokens';
-import './saveParticipants';
 import './toggleMinimap';
 import './toggleMultiCursorModifier';
 import './toggleRenderControlCharacter';
