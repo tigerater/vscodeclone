@@ -611,14 +611,7 @@ export class FindWidget extends Widget implements IOverlayWidget, IHorizontalSas
 
 				return;
 			} else {
-				let scrollAdjustment = this._getHeight();
-
-				// if the editor has top padding, factor that into the zone height
-				scrollAdjustment -= this._codeEditor.getOption(EditorOption.padding).top;
-				if (scrollAdjustment <= 0) {
-					return;
-				}
-
+				const scrollAdjustment = this._getHeight();
 				viewZone.heightInPx = scrollAdjustment;
 				this._viewZoneId = accessor.addZone(viewZone);
 
