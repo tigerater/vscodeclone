@@ -21,7 +21,6 @@ import { edit } from 'vs/platform/userDataSync/common/content';
 import { IFileSyncPreviewResult, AbstractJsonFileSynchroniser, IRemoteUserData } from 'vs/platform/userDataSync/common/abstractSynchronizer';
 import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 import { URI } from 'vs/base/common/uri';
-import { IExtensionManagementService } from 'vs/platform/extensionManagement/common/extensionManagement';
 
 interface ISettingsSyncContent {
 	settings: string;
@@ -55,7 +54,6 @@ export class SettingsSynchroniser extends AbstractJsonFileSynchroniser implement
 		@IConfigurationService configurationService: IConfigurationService,
 		@IUserDataSyncEnablementService userDataSyncEnablementService: IUserDataSyncEnablementService,
 		@ITelemetryService telemetryService: ITelemetryService,
-		@IExtensionManagementService private readonly extensionManagementService: IExtensionManagementService,
 	) {
 		super(environmentService.settingsResource, SyncSource.Settings, fileService, environmentService, userDataSyncStoreService, userDataSyncEnablementService, telemetryService, logService, userDataSyncUtilService, configurationService);
 	}
@@ -96,8 +94,7 @@ export class SettingsSynchroniser extends AbstractJsonFileSynchroniser implement
 				const fileContent = await this.getLocalFileContent();
 				const formatUtils = await this.getFormattingOptions();
 				// Update ignored settings from local file content
-				const ignoredSettings = await this.getIgnoredSettings();
-				const content = updateIgnoredSettings(remoteSettingsSyncContent.settings, fileContent ? fileContent.value.toString() : '{}', ignoredSettings, formatUtils);
+				const content = updateIgnoredSettings(remoteSettingsSyncContent.settings, fileContent ? fileContent.value.toString() : '{}', getIgnoredSettings(this.configurationService), formatUtils);
 				this.syncPreviewResultPromise = createCancelablePromise(() => Promise.resolve<IFileSyncPreviewResult>({
 					fileContent,
 					remoteUserData,
@@ -139,8 +136,7 @@ export class SettingsSynchroniser extends AbstractJsonFileSynchroniser implement
 			if (fileContent !== null) {
 				const formatUtils = await this.getFormattingOptions();
 				// Remove ignored settings
-				const ignoredSettings = await this.getIgnoredSettings();
-				const content = updateIgnoredSettings(fileContent.value.toString(), '{}', ignoredSettings, formatUtils);
+				const content = updateIgnoredSettings(fileContent.value.toString(), '{}', getIgnoredSettings(this.configurationService), formatUtils);
 				const lastSyncUserData = await this.getLastSyncUserData();
 				const remoteUserData = await this.getRemoteUserData(lastSyncUserData);
 
@@ -196,8 +192,7 @@ export class SettingsSynchroniser extends AbstractJsonFileSynchroniser implement
 		if (preview && content !== null) {
 			const formatUtils = await this.getFormattingOptions();
 			// remove ignored settings from the remote content for preview
-			const ignoredSettings = await this.getIgnoredSettings();
-			content = updateIgnoredSettings(content, '{}', ignoredSettings, formatUtils);
+			content = updateIgnoredSettings(content, '{}', getIgnoredSettings(this.configurationService), formatUtils);
 		}
 		return content;
 	}
@@ -208,8 +203,7 @@ export class SettingsSynchroniser extends AbstractJsonFileSynchroniser implement
 			this.cancel();
 			const formatUtils = await this.getFormattingOptions();
 			// Add ignored settings from local file content
-			const ignoredSettings = await this.getIgnoredSettings();
-			content = updateIgnoredSettings(content, preview.fileContent ? preview.fileContent.value.toString() : '{}', ignoredSettings, formatUtils);
+			content = updateIgnoredSettings(content, preview.fileContent ? preview.fileContent.value.toString() : '{}', getIgnoredSettings(this.configurationService), formatUtils);
 			this.syncPreviewResultPromise = createCancelablePromise(async () => ({ ...preview, content }));
 			await this.apply(true);
 			this.setStatus(SyncStatus.Idle);
@@ -277,8 +271,7 @@ export class SettingsSynchroniser extends AbstractJsonFileSynchroniser implement
 				const formatUtils = await this.getFormattingOptions();
 				// Update ignored settings from remote
 				const remoteSettingsSyncContent = this.getSettingsSyncContent(remoteUserData);
-				const ignoredSettings = await this.getIgnoredSettings(content);
-				content = updateIgnoredSettings(content, remoteSettingsSyncContent ? remoteSettingsSyncContent.settings : '{}', ignoredSettings, formatUtils);
+				content = updateIgnoredSettings(content, remoteSettingsSyncContent ? remoteSettingsSyncContent.settings : '{}', getIgnoredSettings(this.configurationService, content), formatUtils);
 				this.logService.trace('Settings: Updating remote settings...');
 				remoteUserData = await this.updateRemoteUserData(JSON.stringify(<ISettingsSyncContent>{ settings: content }), forcePush ? null : remoteUserData.ref);
 				this.logService.info('Settings: Updated remote settings');
@@ -324,8 +317,7 @@ export class SettingsSynchroniser extends AbstractJsonFileSynchroniser implement
 			const localContent: string = fileContent ? fileContent.value.toString() : '{}';
 			this.validateContent(localContent);
 			this.logService.trace('Settings: Merging remote settings with local settings...');
-			const ignoredSettings = await this.getIgnoredSettings();
-			const result = merge(localContent, remoteSettingsSyncContent.settings, lastSettingsSyncContent ? lastSettingsSyncContent.settings : null, ignoredSettings, resolvedConflicts, formattingOptions);
+			const result = merge(localContent, remoteSettingsSyncContent.settings, lastSettingsSyncContent ? lastSettingsSyncContent.settings : null, getIgnoredSettings(this.configurationService), resolvedConflicts, formattingOptions);
 			content = result.localContent || result.remoteContent;
 			hasLocalChanged = result.localContent !== null;
 			hasRemoteChanged = result.remoteContent !== null;
@@ -342,8 +334,7 @@ export class SettingsSynchroniser extends AbstractJsonFileSynchroniser implement
 
 		if (content && !token.isCancellationRequested) {
 			// Remove the ignored settings from the preview.
-			const ignoredSettings = await this.getIgnoredSettings();
-			const previewContent = updateIgnoredSettings(content, '{}', ignoredSettings, formattingOptions);
+			const previewContent = updateIgnoredSettings(content, '{}', getIgnoredSettings(this.configurationService), formattingOptions);
 			await this.fileService.writeFile(this.environmentService.settingsSyncPreviewResource, VSBuffer.fromString(previewContent));
 		}
 
@@ -363,21 +354,6 @@ export class SettingsSynchroniser extends AbstractJsonFileSynchroniser implement
 			this.logService.error(e);
 		}
 		return null;
-	}
-
-	private _defaultIgnoredSettings: Promise<string[]> | undefined = undefined;
-	protected async getIgnoredSettings(content?: string): Promise<string[]> {
-		if (!this._defaultIgnoredSettings) {
-			this._defaultIgnoredSettings = this.userDataSyncUtilService.resolveDefaultIgnoredSettings();
-			const disposable = Event.any<any>(
-				Event.filter(this.extensionManagementService.onDidInstallExtension, (e => !!e.gallery)),
-				Event.filter(this.extensionManagementService.onDidUninstallExtension, (e => !e.error)))(() => {
-					disposable.dispose();
-					this._defaultIgnoredSettings = undefined;
-				});
-		}
-		const defaultIgnoredSettings = await this._defaultIgnoredSettings;
-		return getIgnoredSettings(defaultIgnoredSettings, this.configurationService, content);
 	}
 
 	private validateContent(content: string): void {

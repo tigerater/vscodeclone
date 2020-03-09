@@ -50,7 +50,6 @@ import { MarkerSeverity } from 'vs/platform/markers/common/markers';
 import { IViewDescriptorService } from 'vs/workbench/common/views';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
 import { ICodeEditorService } from 'vs/editor/browser/services/codeEditorService';
-import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 
 class RequestState {
 
@@ -271,9 +270,8 @@ export class OutlinePane extends ViewPane {
 		@IContextMenuService contextMenuService: IContextMenuService,
 		@IOpenerService openerService: IOpenerService,
 		@IThemeService themeService: IThemeService,
-		@ITelemetryService telemetryService: ITelemetryService,
 	) {
-		super(options, keybindingService, contextMenuService, _configurationService, contextKeyService, viewDescriptorService, _instantiationService, openerService, themeService, telemetryService);
+		super(options, keybindingService, contextMenuService, _configurationService, contextKeyService, viewDescriptorService, _instantiationService, openerService, themeService);
 		this._outlineViewState.restore(this._storageService);
 		this._contextKeyFocused = OutlineViewFocused.bindTo(contextKeyService);
 		this._contextKeyFiltered = OutlineViewFiltered.bindTo(contextKeyService);

@@ -33,7 +33,6 @@ import { IViewDescriptor, IViewDescriptorService } from 'vs/workbench/common/vie
 import { SIDE_BAR_BACKGROUND } from 'vs/workbench/common/theme';
 import { SyncDescriptor } from 'vs/platform/instantiation/common/descriptors';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
-import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 
 export interface ISpliceEvent<T> {
 	index: number;
@@ -191,9 +190,8 @@ export class MainPane extends ViewPane {
 		@IConfigurationService configurationService: IConfigurationService,
 		@IOpenerService openerService: IOpenerService,
 		@IThemeService themeService: IThemeService,
-		@ITelemetryService telemetryService: ITelemetryService,
 	) {
-		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService);
+		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService);
 	}
 
 	protected renderBody(container: HTMLElement): void {

@@ -40,7 +40,6 @@ import { URI } from 'vs/base/common/uri';
 import { RemoteTunnel } from 'vs/platform/remote/common/tunnel';
 import { SyncDescriptor } from 'vs/platform/instantiation/common/descriptors';
 import { KeybindingsRegistry, KeybindingWeight } from 'vs/platform/keybinding/common/keybindingsRegistry';
-import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 
 export const forwardedPortsViewEnabled = new RawContextKey<boolean>('forwardedPortsViewEnabled', false);
 
@@ -458,10 +457,9 @@ export class TunnelPanel extends ViewPane {
 		@INotificationService private readonly notificationService: INotificationService,
 		@IContextViewService private readonly contextViewService: IContextViewService,
 		@IThemeService themeService: IThemeService,
-		@IRemoteExplorerService private readonly remoteExplorerService: IRemoteExplorerService,
-		@ITelemetryService telemetryService: ITelemetryService,
+		@IRemoteExplorerService private readonly remoteExplorerService: IRemoteExplorerService
 	) {
-		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService);
+		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService);
 		this.tunnelTypeContext = TunnelTypeContextKey.bindTo(contextKeyService);
 		this.tunnelCloseableContext = TunnelCloseableContextKey.bindTo(contextKeyService);
 		this.tunnelViewFocusContext = TunnelViewFocusContextKey.bindTo(contextKeyService);

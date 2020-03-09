@@ -38,7 +38,6 @@ import type { IAsyncDataTreeViewState } from 'vs/base/browser/ui/tree/asyncDataT
 import { IStorageService, StorageScope } from 'vs/platform/storage/common/storage';
 import { IViewDescriptorService } from 'vs/workbench/common/views';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
-import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 
 const enum State {
 	Data = 'data',
@@ -87,11 +86,10 @@ export class BulkEditPane extends ViewPane {
 		@IConfigurationService configurationService: IConfigurationService,
 		@IOpenerService openerService: IOpenerService,
 		@IThemeService themeService: IThemeService,
-		@ITelemetryService telemetryService: ITelemetryService,
 	) {
 		super(
 			{ ...options, titleMenuId: MenuId.BulkEditTitle },
-			keybindingService, contextMenuService, configurationService, _contextKeyService, viewDescriptorService, _instaService, openerService, themeService, telemetryService
+			keybindingService, contextMenuService, configurationService, _contextKeyService, viewDescriptorService, _instaService, openerService, themeService
 		);
 
 		this.element.classList.add('bulk-edit-panel', 'show-file-icons');

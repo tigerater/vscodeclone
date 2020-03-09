@@ -102,7 +102,7 @@ export class ExtensionsListView extends ViewPane {
 		@IExtensionsWorkbenchService protected extensionsWorkbenchService: IExtensionsWorkbenchService,
 		@IEditorService private readonly editorService: IEditorService,
 		@IExtensionTipsService protected tipsService: IExtensionTipsService,
-		@ITelemetryService telemetryService: ITelemetryService,
+		@ITelemetryService private readonly telemetryService: ITelemetryService,
 		@IConfigurationService configurationService: IConfigurationService,
 		@IWorkspaceContextService protected contextService: IWorkspaceContextService,
 		@IExperimentService private readonly experimentService: IExperimentService,
@@ -114,7 +114,7 @@ export class ExtensionsListView extends ViewPane {
 		@IMenuService private readonly menuService: IMenuService,
 		@IOpenerService openerService: IOpenerService,
 	) {
-		super({ ...(options as IViewPaneOptions), ariaHeaderLabel: options.title, showActionsAlways: true }, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService);
+		super({ ...(options as IViewPaneOptions), ariaHeaderLabel: options.title, showActionsAlways: true }, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService);
 		this.server = options.server;
 	}
 
