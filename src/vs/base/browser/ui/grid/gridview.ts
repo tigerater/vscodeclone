@@ -21,13 +21,6 @@ export interface IViewSize {
 	readonly height: number;
 }
 
-interface IBoundarySashes {
-	readonly start?: Sash;
-	readonly end?: Sash;
-	readonly orthogonalStart?: Sash;
-	readonly orthogonalEnd?: Sash;
-}
-
 export interface IView {
 	readonly element: HTMLElement;
 	readonly minimumWidth: number;
@@ -224,14 +217,10 @@ class BranchNode implements ISplitView<ILayoutContext>, IDisposable {
 	private splitviewSashResetDisposable: IDisposable = Disposable.None;
 	private childrenSashResetDisposable: IDisposable = Disposable.None;
 
-	private _boundarySashes: IBoundarySashes = {};
-	get boundarySashes(): IBoundarySashes { return this._boundarySashes; }
-	set boundarySashes(boundarySashes: IBoundarySashes) {
-		this._boundarySashes = boundarySashes;
-
-		this.splitview.orthogonalStartSash = boundarySashes.orthogonalStart;
-		this.splitview.orthogonalEndSash = boundarySashes.orthogonalEnd;
-	}
+	get orthogonalStartSash(): Sash | undefined { return this.splitview.orthogonalStartSash; }
+	set orthogonalStartSash(sash: Sash | undefined) { this.splitview.orthogonalStartSash = sash; }
+	get orthogonalEndSash(): Sash | undefined { return this.splitview.orthogonalEndSash; }
+	set orthogonalEndSash(sash: Sash | undefined) { this.splitview.orthogonalEndSash = sash; }
 
 	constructor(
 		readonly orientation: Orientation,
@@ -271,15 +260,9 @@ class BranchNode implements ISplitView<ILayoutContext>, IDisposable {
 			this.splitview = new SplitView(this.element, { ...options, descriptor });
 
 			this.children.forEach((node, index) => {
-				const first = index === 0;
-				const last = index === this.children.length;
-
-				node.boundarySashes = {
-					start: this.boundarySashes.orthogonalStart,
-					end: this.boundarySashes.orthogonalEnd,
-					orthogonalStart: first ? this.boundarySashes.start : this.splitview.sashes[index - 1],
-					orthogonalEnd: last ? this.boundarySashes.end : this.splitview.sashes[index],
-				};
+				// Set up orthogonal sashes for children
+				node.orthogonalStartSash = this.splitview.sashes[index - 1];
+				node.orthogonalEndSash = this.splitview.sashes[index];
 			});
 		}
 
@@ -352,26 +335,15 @@ class BranchNode implements ISplitView<ILayoutContext>, IDisposable {
 		const first = index === 0;
 		const last = index === this.children.length;
 		this.children.splice(index, 0, node);
-
-		node.boundarySashes = {
-			start: this.boundarySashes.orthogonalStart,
-			end: this.boundarySashes.orthogonalEnd,
-			orthogonalStart: first ? this.boundarySashes.start : this.splitview.sashes[index - 1],
-			orthogonalEnd: last ? this.boundarySashes.end : this.splitview.sashes[index],
-		};
+		node.orthogonalStartSash = this.splitview.sashes[index - 1];
+		node.orthogonalEndSash = this.splitview.sashes[index];
 
 		if (!first) {
-			this.children[index - 1].boundarySashes = {
-				...this.children[index - 1].boundarySashes,
-				orthogonalEnd: this.splitview.sashes[index - 1]
-			};
+			this.children[index - 1].orthogonalEndSash = this.splitview.sashes[index - 1];
 		}
 
 		if (!last) {
-			this.children[index + 1].boundarySashes = {
-				...this.children[index + 1].boundarySashes,
-				orthogonalStart: this.splitview.sashes[index]
-			};
+			this.children[index + 1].orthogonalStartSash = this.splitview.sashes[index];
 		}
 	}
 
@@ -391,17 +363,11 @@ class BranchNode implements ISplitView<ILayoutContext>, IDisposable {
 		const [child] = this.children.splice(index, 1);
 
 		if (!first) {
-			this.children[index - 1].boundarySashes = {
-				...this.children[index - 1].boundarySashes,
-				orthogonalEnd: this.splitview.sashes[index - 1]
-			};
+			this.children[index - 1].orthogonalEndSash = this.splitview.sashes[index - 1];
 		}
 
 		if (!last) { // [0,1,2,3] (2) => [0,1,3]
-			this.children[index].boundarySashes = {
-				...this.children[index].boundarySashes,
-				orthogonalStart: this.splitview.sashes[Math.max(index - 1, 0)]
-			};
+			this.children[index].orthogonalStartSash = this.splitview.sashes[Math.max(index - 1, 0)];
 		}
 
 		return child;
@@ -442,12 +408,7 @@ class BranchNode implements ISplitView<ILayoutContext>, IDisposable {
 		to = clamp(to, 0, this.children.length);
 
 		this.splitview.swapViews(from, to);
-
-		// swap boundary sashes
-		[this.children[from].boundarySashes, this.children[to].boundarySashes]
-			= [this.children[from].boundarySashes, this.children[to].boundarySashes];
-
-		// swap children
+		[this.children[from].orthogonalStartSash, this.children[from].orthogonalEndSash, this.children[to].orthogonalStartSash, this.children[to].orthogonalEndSash] = [this.children[to].orthogonalStartSash, this.children[to].orthogonalEndSash, this.children[from].orthogonalStartSash, this.children[from].orthogonalEndSash];
 		[this.children[from], this.children[to]] = [this.children[to], this.children[from]];
 
 		this.onDidChildrenChange();
@@ -694,9 +655,13 @@ class LeafNode implements ISplitView<ILayoutContext>, IDisposable {
 		return this.orientation === Orientation.HORIZONTAL ? this.maximumWidth : this.maximumHeight;
 	}
 
-	private _boundarySashes: IBoundarySashes = {};
-	get boundarySashes(): IBoundarySashes { return this._boundarySashes; }
-	set boundarySashes(boundarySashes: IBoundarySashes) { this._boundarySashes = boundarySashes; }
+	set orthogonalStartSash(sash: Sash) {
+		// noop
+	}
+
+	set orthogonalEndSash(sash: Sash) {
+		// noop
+	}
 
 	layout(size: number, offset: number, ctx: ILayoutContext | undefined): void {
 		if (!this.layoutController.isLayoutEnabled) {
