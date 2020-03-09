@@ -6,7 +6,7 @@
 import { Command } from 'vs/editor/common/modes';
 import { UriComponents, URI } from 'vs/base/common/uri';
 import { Event, Emitter } from 'vs/base/common/event';
-import { RawContextKey, ContextKeyExpression } from 'vs/platform/contextkey/common/contextkey';
+import { ContextKeyExpr, RawContextKey } from 'vs/platform/contextkey/common/contextkey';
 import { localize } from 'vs/nls';
 import { IViewlet } from 'vs/workbench/common/viewlet';
 import { createDecorator } from 'vs/platform/instantiation/common/instantiation';
@@ -178,7 +178,7 @@ export interface IViewDescriptor {
 
 	readonly ctorDescriptor: SyncDescriptor<IView>;
 
-	readonly when?: ContextKeyExpression;
+	readonly when?: ContextKeyExpr;
 
 	readonly order?: number;
 
@@ -220,13 +220,13 @@ export enum ViewContentPriority {
 
 export interface IViewContentDescriptor {
 	readonly content: string;
-	readonly when?: ContextKeyExpression | 'default';
+	readonly when?: ContextKeyExpr | 'default';
 	readonly priority?: ViewContentPriority;
 
 	/**
 	 * ordered preconditions for each button in the content
 	 */
-	readonly preconditions?: (ContextKeyExpression | undefined)[];
+	readonly preconditions?: (ContextKeyExpr | undefined)[];
 }
 
 export interface IViewsRegistry {
