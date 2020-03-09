@@ -59,9 +59,9 @@ export class FileEditorTracker extends Disposable implements IWorkbenchContribut
 		this._register(this.fileService.onDidFilesChange(e => this.onDidFilesChange(e)));
 
 		// Ensure dirty text file and untitled models are always opened as editors
-		this._register(this.textFileService.files.onDidChangeDirty(model => this.ensureDirtyFilesAreOpenedWorker.work(model.resource)));
-		this._register(this.textFileService.files.onDidSaveError(model => this.ensureDirtyFilesAreOpenedWorker.work(model.resource)));
-		this._register(this.textFileService.untitled.onDidChangeDirty(model => this.ensureDirtyFilesAreOpenedWorker.work(model.resource)));
+		this._register(this.textFileService.files.onDidChangeDirty(m => this.ensureDirtyFilesAreOpenedWorker.work(m.resource)));
+		this._register(this.textFileService.files.onDidSaveError(m => this.ensureDirtyFilesAreOpenedWorker.work(m.resource)));
+		this._register(this.textFileService.untitled.onDidChangeDirty(r => this.ensureDirtyFilesAreOpenedWorker.work(r)));
 
 		// Out of workspace file watchers
 		this._register(this.editorService.onDidVisibleEditorsChange(() => this.onDidVisibleEditorsChange()));
@@ -364,14 +364,18 @@ export class FileEditorTracker extends Disposable implements IWorkbenchContribut
 						}
 
 						const model = this.textFileService.files.get(resource);
-						if (!model || model.isDirty() || !model.isResolved()) {
+						if (!model) {
+							return undefined;
+						}
+
+						if (model.isDirty()) {
 							return undefined;
 						}
 
 						return model;
 					})),
 				model => model.resource.toString()
-			).forEach(model => this.textFileService.files.resolve(model.resource, { reload: { async: true } }));
+			).forEach(model => model.load());
 		}
 	}
 

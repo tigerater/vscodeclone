@@ -4,9 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { getLocation, Location, parse } from 'jsonc-parser';
+import { getLocation, Location } from 'jsonc-parser';
 import * as nls from 'vscode-nls';
-import { provideInstalledExtensionProposals } from './extensionsProposals';
 
 const localize = nls.loadMessageBundle();
 
@@ -14,7 +13,7 @@ export class SettingsDocument {
 
 	constructor(private document: vscode.TextDocument) { }
 
-	public provideCompletionItems(position: vscode.Position, _token: vscode.CancellationToken): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
+	public provideCompletionItems(position: vscode.Position, _token: vscode.CancellationToken): vscode.ProviderResult<vscode.CompletionItem[]> {
 		const location = getLocation(this.document.getText(), this.document.offsetAt(position));
 		const range = this.document.getWordRangeAtPosition(position) || new vscode.Range(position, position);
 
@@ -40,15 +39,6 @@ export class SettingsDocument {
 				// Add special item '${activeEditorLanguage}'
 				return [this.newSimpleCompletionItem(JSON.stringify('${activeEditorLanguage}'), range, localize('activeEditor', "Use the language of the currently active text editor if any")), ...items];
 			});
-		}
-
-		// sync.ignoredExtensions
-		if (location.path[0] === 'sync.ignoredExtensions') {
-			let ignoredExtensions = [];
-			try {
-				ignoredExtensions = parse(this.document.getText())['sync.ignoredExtensions'];
-			} catch (e) {/* ignore error */ }
-			return provideInstalledExtensionProposals(ignoredExtensions, range, true);
 		}
 
 		return this.provideLanguageOverridesCompletionItems(location, position);

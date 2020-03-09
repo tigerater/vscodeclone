@@ -56,19 +56,12 @@ export class FileEditorInput extends TextResourceEditorInput implements IFileEdi
 	) {
 		super(resource, editorService, editorGroupService, textFileService, labelService, fileService, filesConfigurationService);
 
-		this.model = this.textFileService.files.get(resource);
-
 		if (preferredEncoding) {
 			this.setPreferredEncoding(preferredEncoding);
 		}
 
 		if (preferredMode) {
 			this.setPreferredMode(preferredMode);
-		}
-
-		// If a file model already exists, make sure to wire it in
-		if (this.model) {
-			this.registerModelListeners(this.model);
 		}
 	}
 
@@ -105,10 +98,10 @@ export class FileEditorInput extends TextResourceEditorInput implements IFileEdi
 		this.modelListeners.add(model.onDidSaveError(() => this._onDidChangeDirty.fire()));
 
 		// remove model association once it gets disposed
-		this.modelListeners.add(Event.once(model.onDispose)(() => {
+		Event.once(model.onDispose)(() => {
 			this.modelListeners.clear();
 			this.model = undefined;
-		}));
+		});
 	}
 
 	getEncoding(): string | undefined {
