@@ -20,8 +20,6 @@ import { IElectronService } from 'vs/platform/electron/node/electron';
 import { AbstractFileDialogService } from 'vs/workbench/services/dialogs/browser/abstractFileDialogService';
 import { Schemas } from 'vs/base/common/network';
 import { IModeService } from 'vs/editor/common/services/modeService';
-import { IWorkspacesService } from 'vs/platform/workspaces/common/workspaces';
-import { ILabelService } from 'vs/platform/label/common/label';
 
 export class FileDialogService extends AbstractFileDialogService implements IFileDialogService {
 
@@ -38,11 +36,9 @@ export class FileDialogService extends AbstractFileDialogService implements IFil
 		@IOpenerService openerService: IOpenerService,
 		@IElectronService private readonly electronService: IElectronService,
 		@IDialogService dialogService: IDialogService,
-		@IModeService modeService: IModeService,
-		@IWorkspacesService workspacesService: IWorkspacesService,
-		@ILabelService labelService: ILabelService
+		@IModeService modeService: IModeService
 	) {
-		super(hostService, contextService, historyService, environmentService, instantiationService, configurationService, fileService, openerService, dialogService, modeService, workspacesService, labelService);
+		super(hostService, contextService, historyService, environmentService, instantiationService, configurationService, fileService, openerService, dialogService, modeService);
 	}
 
 	private toNativeOpenDialogOptions(options: IPickAndOpenOptions): INativeOpenDialogOptions {

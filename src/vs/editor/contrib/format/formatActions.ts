@@ -138,7 +138,7 @@ class FormatOnType implements IEditorContribution {
 			}
 
 			if (isNonEmptyArray(edits)) {
-				FormattingEdit.execute(this._editor, edits, true);
+				FormattingEdit.execute(this._editor, edits);
 				alertFormattingEdits(edits);
 			}
 

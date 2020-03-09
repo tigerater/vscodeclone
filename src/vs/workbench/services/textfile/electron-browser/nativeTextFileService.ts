@@ -38,7 +38,6 @@ import { IFilesConfigurationService } from 'vs/workbench/services/filesConfigura
 import { ITextModelService } from 'vs/editor/common/services/resolverService';
 import { ICodeEditorService } from 'vs/editor/browser/services/codeEditorService';
 import { INotificationService } from 'vs/platform/notification/common/notification';
-import { IRemotePathService } from 'vs/workbench/services/path/common/remotePathService';
 
 export class NativeTextFileService extends AbstractTextFileService {
 
@@ -56,10 +55,9 @@ export class NativeTextFileService extends AbstractTextFileService {
 		@IFilesConfigurationService filesConfigurationService: IFilesConfigurationService,
 		@ITextModelService textModelService: ITextModelService,
 		@ICodeEditorService codeEditorService: ICodeEditorService,
-		@INotificationService notificationService: INotificationService,
-		@IRemotePathService remotePathService: IRemotePathService
+		@INotificationService notificationService: INotificationService
 	) {
-		super(fileService, untitledTextEditorService, lifecycleService, instantiationService, modelService, environmentService, dialogService, fileDialogService, textResourceConfigurationService, filesConfigurationService, textModelService, codeEditorService, notificationService, remotePathService);
+		super(fileService, untitledTextEditorService, lifecycleService, instantiationService, modelService, environmentService, dialogService, fileDialogService, textResourceConfigurationService, filesConfigurationService, textModelService, codeEditorService, notificationService);
 	}
 
 	private _encoding: EncodingOracle | undefined;

@@ -6,7 +6,7 @@
 import * as assert from 'assert';
 import { Emitter } from 'vs/base/common/event';
 import { toResource } from 'vs/base/test/common/utils';
-import { TestFileService } from 'vs/workbench/test/browser/workbenchTestServices';
+import { TestFileService } from 'vs/workbench/test/workbenchTestServices';
 import { ExplorerItem } from 'vs/workbench/contrib/files/common/explorerModel';
 import { getContext } from 'vs/workbench/contrib/files/browser/views/explorerView';
 import { listInvalidItemForeground } from 'vs/platform/theme/common/colorRegistry';
@@ -18,8 +18,8 @@ const $ = dom.$;
 
 const fileService = new TestFileService();
 
-function createStat(this: any, path: string, name: string, isFolder: boolean, hasChildren: boolean, size: number, mtime: number, isSymLink = false, isUnknown = false): ExplorerItem {
-	return new ExplorerItem(toResource.call(this, path), fileService, undefined, isFolder, isSymLink, name, mtime, isUnknown);
+function createStat(this: any, path: string, name: string, isFolder: boolean, hasChildren: boolean, size: number, mtime: number, isSymLink = false): ExplorerItem {
+	return new ExplorerItem(toResource.call(this, path), fileService, undefined, isFolder, isSymLink, name, mtime);
 }
 
 suite('Files - ExplorerView', () => {
@@ -51,16 +51,11 @@ suite('Files - ExplorerView', () => {
 			letter: '\u2937'
 		});
 		assert.deepEqual(provideDecorations(s1), {
-			tooltip: 'Unable to resolve workspace folder',
+			tooltip: 'Can not resolve workspace folder',
 			letter: '!',
 			color: listInvalidItemForeground
 		});
 
-		const unknown = createStat.call(this, '/path/to/stat', 'stat', false, false, 8096, d, false, true);
-		assert.deepEqual(provideDecorations(unknown), {
-			tooltip: 'Unknown File Type',
-			letter: '?'
-		});
 	});
 
 	test('compressed navigation controller', async function () {

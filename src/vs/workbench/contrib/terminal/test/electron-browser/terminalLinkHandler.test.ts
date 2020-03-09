@@ -40,14 +40,11 @@ class MockTerminalInstanceService implements ITerminalInstanceService {
 	getXtermConstructor(): Promise<any> {
 		throw new Error('Method not implemented.');
 	}
-	getXtermSearchConstructor(): Promise<any> {
-		throw new Error('Method not implemented.');
-	}
-	getXtermUnicode11Constructor(): Promise<any> {
-		throw new Error('Method not implemented.');
-	}
 	async getXtermWebLinksConstructor(): Promise<any> {
 		return (await import('xterm-addon-web-links')).WebLinksAddon;
+	}
+	getXtermSearchConstructor(): Promise<any> {
+		throw new Error('Method not implemented.');
 	}
 	getXtermWebglConstructor(): Promise<any> {
 		throw new Error('Method not implemented.');
