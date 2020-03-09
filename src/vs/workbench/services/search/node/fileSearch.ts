@@ -20,7 +20,7 @@ import * as strings from 'vs/base/common/strings';
 import * as types from 'vs/base/common/types';
 import { URI } from 'vs/base/common/uri';
 import { readdir } from 'vs/base/node/pfs';
-import { IFileQuery, IFolderQuery, IProgressMessage, ISearchEngineStats, IRawFileMatch, ISearchEngine, ISearchEngineSuccess, isFilePatternMatch } from 'vs/workbench/services/search/common/search';
+import { IFileQuery, IFolderQuery, IProgressMessage, ISearchEngineStats, IRawFileMatch, ISearchEngine, ISearchEngineSuccess } from 'vs/workbench/services/search/common/search';
 import { spawnRipgrepCmd } from './ripgrepFileSearch';
 import { prepareQuery } from 'vs/base/parts/quickopen/common/quickOpenScorer';
 
@@ -247,7 +247,7 @@ export class FileWalker {
 			if (noSiblingsClauses) {
 				for (const relativePath of relativeFiles) {
 					const basename = path.basename(relativePath);
-					this.matchFile(onResult, { base: rootFolder, relativePath, searchPath: this.getSearchPath(folderQuery, relativePath), basename });
+					this.matchFile(onResult, { base: rootFolder, relativePath, basename });
 					if (this.isLimitHit) {
 						killCmd();
 						break;
@@ -540,13 +540,7 @@ export class FileWalker {
 							return clb(null, undefined); // ignore file if max file size is hit
 						}
 
-						this.matchFile(onResult, {
-							base: rootFolder.fsPath,
-							relativePath: currentRelativePath,
-							searchPath: this.getSearchPath(folderQuery, currentRelativePath),
-							basename: file,
-							size: stat.size,
-						});
+						this.matchFile(onResult, { base: rootFolder.fsPath, relativePath: currentRelativePath, basename: file, size: stat.size });
 					}
 
 					// Unwind
@@ -560,7 +554,7 @@ export class FileWalker {
 	}
 
 	private matchFile(onResult: (result: IRawFileMatch) => void, candidate: IRawFileMatch): void {
-		if (this.isFileMatch(candidate) && (!this.includePattern || this.includePattern(candidate.relativePath, candidate.basename))) {
+		if (this.isFilePatternMatch(candidate.relativePath) && (!this.includePattern || this.includePattern(candidate.relativePath, candidate.basename))) {
 			this.resultCount++;
 
 			if (this.exists || (this.maxResults && this.resultCount > this.maxResults)) {
@@ -573,7 +567,8 @@ export class FileWalker {
 		}
 	}
 
-	private isFileMatch(candidate: IRawFileMatch): boolean {
+	private isFilePatternMatch(path: string): boolean {
+
 		// Check for search pattern
 		if (this.filePattern) {
 			if (this.filePattern === '*') {
@@ -581,7 +576,7 @@ export class FileWalker {
 			}
 
 			if (this.normalizedFilePatternLowercase) {
-				return isFilePatternMatch(candidate, this.normalizedFilePatternLowercase);
+				return strings.fuzzyContains(path, this.normalizedFilePatternLowercase);
 			}
 		}
 
@@ -609,19 +604,6 @@ export class FileWalker {
 		}
 
 		return clb(null, path);
-	}
-
-	/**
-	 * If we're searching for files in multiple workspace folders, then better prepend the
-	 * name of the workspace folder to the path of the file. This way we'll be able to
-	 * better filter files that are all on the top of a workspace folder and have all the
-	 * same name. A typical example are `package.json` or `README.md` files.
-	 */
-	private getSearchPath(folderQuery: IFolderQuery, relativePath: string): string {
-		if (folderQuery.folderName) {
-			return path.join(folderQuery.folderName, relativePath);
-		}
-		return relativePath;
 	}
 }
 
