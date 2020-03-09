@@ -84,13 +84,7 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 		// to have a size of 2 (1 running load and 1 queued load).
 		const queue = this.modelLoadQueue.queueFor(model.resource);
 		if (queue.size <= 1) {
-			queue.queue(async () => {
-				try {
-					await model.load();
-				} catch (error) {
-					onUnexpectedError(error);
-				}
-			});
+			queue.queue(() => model.load().then(undefined, onUnexpectedError));
 		}
 	}
 
