@@ -18,7 +18,8 @@ import { FocusSessionActionViewItem } from 'vs/workbench/contrib/debug/browser/d
 import { IConfigurationService, IConfigurationChangeEvent } from 'vs/platform/configuration/common/configuration';
 import { IStorageService, StorageScope } from 'vs/platform/storage/common/storage';
 import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
-import { registerThemingParticipant, IThemeService, Themable } from 'vs/platform/theme/common/themeService';
+import { Themable } from 'vs/workbench/common/theme';
+import { registerThemingParticipant, IThemeService } from 'vs/platform/theme/common/themeService';
 import { registerColor, contrastBorder, widgetShadow } from 'vs/platform/theme/common/colorRegistry';
 import { localize } from 'vs/nls';
 import { IKeybindingService } from 'vs/platform/keybinding/common/keybinding';
@@ -66,7 +67,7 @@ export class DebugToolBar extends Themable implements IWorkbenchContribution {
 		super(themeService);
 
 		this.$el = dom.$('div.debug-toolbar');
-		this.$el.style.top = `${layoutService.offset?.top ?? 0}px`;
+		this.$el.style.top = `${layoutService.getTitleBarOffset()}px`;
 
 		this.dragArea = dom.append(this.$el, dom.$('div.drag-area.codicon.codicon-gripper'));
 
@@ -151,7 +152,7 @@ export class DebugToolBar extends Themable implements IWorkbenchContribution {
 				// Prevent default to stop editor selecting text #8524
 				mouseMoveEvent.preventDefault();
 				// Reduce x by width of drag handle to reduce jarring #16604
-				this.setCoordinates(mouseMoveEvent.posx - 14, mouseMoveEvent.posy - (this.layoutService.offset?.top ?? 0));
+				this.setCoordinates(mouseMoveEvent.posx - 14, mouseMoveEvent.posy - this.layoutService.getTitleBarOffset());
 			});
 
 			const mouseUpListener = dom.addDisposableGenericMouseUpListner(window, (e: MouseEvent) => {
@@ -197,7 +198,7 @@ export class DebugToolBar extends Themable implements IWorkbenchContribution {
 	}
 
 	private setYCoordinate(y = this.yCoordinate): void {
-		const titlebarOffset = this.layoutService.offset?.top ?? 0;
+		const titlebarOffset = this.layoutService.getTitleBarOffset();
 		this.$el.style.top = `${titlebarOffset + y}px`;
 		this.yCoordinate = y;
 	}
@@ -239,7 +240,7 @@ export class DebugToolBar extends Themable implements IWorkbenchContribution {
 		}
 		if (!this.isBuilt) {
 			this.isBuilt = true;
-			this.layoutService.container.appendChild(this.$el);
+			this.layoutService.getWorkbenchElement().appendChild(this.$el);
 		}
 
 		this.isVisible = true;
