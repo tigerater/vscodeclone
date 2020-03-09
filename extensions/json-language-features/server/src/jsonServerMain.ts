@@ -160,10 +160,7 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 	formatterMaxNumberOfEdits = params.initializationOptions?.customCapabilities?.rangeFormatting?.editLimit || Number.MAX_VALUE;
 	const capabilities: ServerCapabilities = {
 		textDocumentSync: TextDocumentSyncKind.Incremental,
-		completionProvider: clientSnippetSupport ? {
-			resolveProvider: false, // turn off resolving as the current language service doesn't do anything on resolve. Also fixes #91747
-			triggerCharacters: ['"', ':']
-		} : undefined,
+		completionProvider: clientSnippetSupport ? { resolveProvider: true, triggerCharacters: ['"', ':'] } : undefined,
 		hoverProvider: true,
 		documentSymbolProvider: true,
 		documentRangeFormattingProvider: params.initializationOptions.provideFormatter === true,
