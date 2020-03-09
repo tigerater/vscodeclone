@@ -99,15 +99,6 @@ export class BulkFileOperation {
 			this.newUri = edit.newUri;
 		}
 	}
-
-	needsConfirmation(): boolean {
-		for (let [, edit] of this.originalEdits) {
-			if (!this.parent.checked.isChecked(edit)) {
-				return true;
-			}
-		}
-		return false;
-	}
 }
 
 export class BulkCategory {
@@ -239,7 +230,7 @@ export class BulkFileOperations {
 		}
 
 		operationByResource.forEach(value => this.fileOperations.push(value));
-		operationByCategory.forEach(value => this.categories.push(value));
+		operationByCategory.forEach(value => value.metadata.needsConfirmation ? this.categories.unshift(value) : this.categories.push(value));
 
 		// "correct" invalid parent-check child states that is
 		// unchecked file edits (rename, create, delete) uncheck
