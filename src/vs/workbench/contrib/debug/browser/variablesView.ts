@@ -85,8 +85,6 @@ export class VariablesView extends ViewPane {
 	}
 
 	renderBody(container: HTMLElement): void {
-		super.renderBody(container);
-
 		dom.addClass(container, 'debug-variables');
 		const treeContainer = renderViewTree(container);
 
