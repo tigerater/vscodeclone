@@ -190,8 +190,8 @@ export async function provideNpmScripts(): Promise<Task[]> {
 	return cachedTasks;
 }
 
-export function isAutoDetectionEnabled(folder?: WorkspaceFolder): boolean {
-	return workspace.getConfiguration('npm', folder?.uri).get<AutoDetect>('autoDetect') === 'on';
+function isAutoDetectionEnabled(folder: WorkspaceFolder): boolean {
+	return workspace.getConfiguration('npm', folder.uri).get<AutoDetect>('autoDetect') === 'on';
 }
 
 function isExcluded(folder: WorkspaceFolder, packageJsonUri: Uri) {

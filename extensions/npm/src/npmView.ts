@@ -12,7 +12,7 @@ import {
 import { visit, JSONVisitor } from 'jsonc-parser';
 import {
 	NpmTaskDefinition, getPackageJsonUriFromTask, getScripts,
-	isWorkspaceFolder, getTaskName, createTask, extractDebugArgFromScript, startDebugging, isAutoDetectionEnabled
+	isWorkspaceFolder, getTaskName, createTask, extractDebugArgFromScript, startDebugging
 } from './tasks';
 import * as nls from 'vscode-nls';
 
@@ -119,8 +119,8 @@ class NpmScript extends TreeItem {
 }
 
 class NoScripts extends TreeItem {
-	constructor(message: string) {
-		super(message, TreeItemCollapsibleState.None);
+	constructor() {
+		super(localize('noScripts', 'No scripts found'), TreeItemCollapsibleState.None);
 		this.contextValue = 'noscripts';
 	}
 }
@@ -260,11 +260,7 @@ export class NpmScriptsTreeDataProvider implements TreeDataProvider<TreeItem> {
 			if (taskItems) {
 				this.taskTree = this.buildTaskTree(taskItems);
 				if (this.taskTree.length === 0) {
-					let message = localize('noScripts', 'No scripts found.');
-					if (!isAutoDetectionEnabled()) {
-						message = localize('autoDetectIsOff', 'The setting "npm.autoDetect" is "off".');
-					}
-					this.taskTree = [new NoScripts(message)];
+					this.taskTree = [new NoScripts()];
 				}
 			}
 		}
