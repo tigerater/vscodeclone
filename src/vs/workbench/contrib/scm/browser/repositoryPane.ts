@@ -663,6 +663,8 @@ export class RepositoryPane extends ViewPane {
 	}
 
 	protected renderBody(container: HTMLElement): void {
+		super.renderBody(container);
+
 		const focusTracker = trackFocus(container);
 		this._register(focusTracker.onDidFocus(() => this.repository.focus()));
 		this._register(focusTracker);
