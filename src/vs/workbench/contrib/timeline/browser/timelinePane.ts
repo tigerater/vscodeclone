@@ -909,7 +909,7 @@ class TimelinePaneCommands extends Disposable {
 			order: 99,
 			command: {
 				id: TimelinePaneCommands.RefreshCommand,
-				title: localize('refresh', "Refresh"),
+				title: localize(TimelinePaneCommands.RefreshCommand, "Refresh"),
 				icon: { id: 'codicon/refresh' }
 			}
 		})));
@@ -920,7 +920,7 @@ class TimelinePaneCommands extends Disposable {
 			order: 2,
 			command: {
 				id: TimelinePaneCommands.ToggleFollowActiveEditorCommand,
-				title: localize(`ToggleFollowActiveEditorCommand.stop`, "Stop following the Active Editor"),
+				title: localize(`${TimelinePaneCommands.ToggleFollowActiveEditorCommand}.stop`, "Stop following the Active Editor"),
 				icon: { id: 'codicon/eye' }
 			},
 			when: TimelineFollowActiveEditorContext
@@ -930,7 +930,7 @@ class TimelinePaneCommands extends Disposable {
 			order: 2,
 			command: {
 				id: TimelinePaneCommands.ToggleFollowActiveEditorCommand,
-				title: localize(`ToggleFollowActiveEditorCommand.follow`, "Follow the Active Editor"),
+				title: localize(`${TimelinePaneCommands.ToggleFollowActiveEditorCommand}.follow`, "Follow the Active Editor"),
 				icon: { id: 'codicon/eye-closed' }
 			},
 			when: TimelineFollowActiveEditorContext.toNegated()
