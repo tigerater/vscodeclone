@@ -192,9 +192,7 @@ export class AzureActiveDirectoryService {
 
 	private async resolveAccessToken(token: IToken): Promise<string> {
 		if (token.accessToken && (!token.expiresAt || token.expiresAt > Date.now())) {
-			token.expiresAt
-				? Logger.info(`Token available from cache, expires in ${token.expiresAt - Date.now()} milliseconds`)
-				: Logger.info('Token available from cache');
+			Logger.info('Token available from cache');
 			return Promise.resolve(token.accessToken);
 		}
 
