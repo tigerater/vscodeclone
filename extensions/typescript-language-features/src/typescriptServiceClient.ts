@@ -414,14 +414,15 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 	}
 
 	public onVersionStatusClicked(): Thenable<void> {
-		return this.showVersionPicker();
+		return this.showVersionPicker(false);
 	}
 
-	private showVersionPicker(): Thenable<void> {
-		return this.versionPicker.show().then(change => {
-			if (change.newVersion && change.oldVersion && change.oldVersion.eq(change.newVersion)) {
-				this.restartTsServer();
+	private showVersionPicker(firstRun: boolean): Thenable<void> {
+		return this.versionPicker.show(firstRun).then(change => {
+			if (firstRun || !change.newVersion || !change.oldVersion || change.oldVersion.path === change.newVersion.path) {
+				return;
 			}
+			this.restartTsServer();
 		});
 	}
 

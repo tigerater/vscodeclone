@@ -9,7 +9,7 @@ import { Emitter } from 'vs/base/common/event';
 import { URI } from 'vs/base/common/uri';
 import { TextFileEditorModel } from 'vs/workbench/services/textfile/common/textFileEditorModel';
 import { dispose, IDisposable, Disposable, DisposableStore } from 'vs/base/common/lifecycle';
-import { ITextFileEditorModel, ITextFileEditorModelManager, ITextFileEditorModelLoadOrCreateOptions, ITextFileLoadEvent, ITextFileSaveEvent, ITextFileSaveParticipant, IResolvedTextFileEditorModel } from 'vs/workbench/services/textfile/common/textfiles';
+import { ITextFileEditorModel, ITextFileEditorModelManager, IModelLoadOrCreateOptions, ITextFileModelLoadEvent, ITextFileModelSaveEvent, ITextFileSaveParticipant, IResolvedTextFileEditorModel } from 'vs/workbench/services/textfile/common/textfiles';
 import { ILifecycleService } from 'vs/platform/lifecycle/common/lifecycle';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { ResourceMap } from 'vs/base/common/map';
@@ -29,33 +29,26 @@ import { PLAINTEXT_MODE_ID } from 'vs/editor/common/modes/modesRegistry';
 
 export class TextFileEditorModelManager extends Disposable implements ITextFileEditorModelManager {
 
-	private readonly _onDidCreate = this._register(new Emitter<TextFileEditorModel>());
+	private readonly _onDidCreate = this._register(new Emitter<ITextFileEditorModel>());
 	readonly onDidCreate = this._onDidCreate.event;
 
-	private readonly _onDidLoad = this._register(new Emitter<ITextFileLoadEvent>());
+	private readonly _onDidLoad = this._register(new Emitter<ITextFileModelLoadEvent>());
 	readonly onDidLoad = this._onDidLoad.event;
 
-	private readonly _onDidChangeDirty = this._register(new Emitter<TextFileEditorModel>());
+	private readonly _onDidChangeDirty = this._register(new Emitter<ITextFileEditorModel>());
 	readonly onDidChangeDirty = this._onDidChangeDirty.event;
 
-	private readonly _onDidSaveError = this._register(new Emitter<TextFileEditorModel>());
+	private readonly _onDidSaveError = this._register(new Emitter<ITextFileEditorModel>());
 	readonly onDidSaveError = this._onDidSaveError.event;
 
-	private readonly _onDidSave = this._register(new Emitter<ITextFileSaveEvent>());
+	private readonly _onDidSave = this._register(new Emitter<ITextFileModelSaveEvent>());
 	readonly onDidSave = this._onDidSave.event;
 
-	private readonly _onDidRevert = this._register(new Emitter<TextFileEditorModel>());
+	private readonly _onDidRevert = this._register(new Emitter<ITextFileEditorModel>());
 	readonly onDidRevert = this._onDidRevert.event;
 
-	private readonly _onDidChangeEncoding = this._register(new Emitter<TextFileEditorModel>());
+	private readonly _onDidChangeEncoding = this._register(new Emitter<ITextFileEditorModel>());
 	readonly onDidChangeEncoding = this._onDidChangeEncoding.event;
-
-	private readonly mapResourceToModel = new ResourceMap<TextFileEditorModel>();
-	private readonly mapResourceToModelListeners = new ResourceMap<IDisposable>();
-	private readonly mapResourceToDisposeListener = new ResourceMap<IDisposable>();
-	private readonly mapResourceToPendingModelLoaders = new ResourceMap<Promise<TextFileEditorModel>>();
-
-	private readonly modelLoadQueue = this._register(new ResourceQueue());
 
 	saveErrorHandler = (() => {
 		const notificationService = this.notificationService;
@@ -67,9 +60,12 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 		};
 	})();
 
-	get models(): TextFileEditorModel[] {
-		return this.mapResourceToModel.values();
-	}
+	private readonly mapResourceToModel = new ResourceMap<ITextFileEditorModel>();
+	private readonly mapResourceToModelListeners = new ResourceMap<IDisposable>();
+	private readonly mapResourceToDisposeListener = new ResourceMap<IDisposable>();
+	private readonly mapResourceToPendingModelLoaders = new ResourceMap<Promise<ITextFileEditorModel>>();
+
+	private readonly modelLoadQueue = this._register(new ResourceQueue());
 
 	constructor(
 		@ILifecycleService private readonly lifecycleService: ILifecycleService,
@@ -103,15 +99,13 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 		//
 		// Note: we also consider the added event because it could be that a file was added
 		// and updated right after.
-		distinct(
-			coalesce(
-				[...e.getUpdated(), ...e.getAdded()].map(({ resource }) => this.get(resource))
-			).filter(model => model && model.isResolved() && !model.isDirty()),
-			model => model.resource.toString()
-		).forEach(model => this.queueModelLoad(model));
+		distinct(coalesce([...e.getUpdated(), ...e.getAdded()]
+			.map(({ resource }) => this.get(resource)))
+			.filter(model => model && !model.isDirty()), model => model.resource.toString())
+			.forEach(model => this.queueModelLoad(model));
 	}
 
-	private queueModelLoad(model: TextFileEditorModel): void {
+	private queueModelLoad(model: ITextFileEditorModel): void {
 
 		// Load model to update (use a queue to prevent accumulation of loads
 		// when the load actually takes long. At most we only want the queue
@@ -137,9 +131,9 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 		if (source && (e.operation === FileOperation.COPY || e.operation === FileOperation.MOVE)) {
 
 			// find all models that related to either source or target (can be many if resource is a folder)
-			const sourceModels: TextFileEditorModel[] = [];
-			const targetModels: TextFileEditorModel[] = [];
-			for (const model of this.models) {
+			const sourceModels: ITextFileEditorModel[] = [];
+			const targetModels: ITextFileEditorModel[] = [];
+			for (const model of this.getAll()) {
 				const resource = model.resource;
 
 				if (isEqualOrParent(resource, e.target, false /* do not ignorecase, see https://github.com/Microsoft/vscode/issues/56384 */)) {
@@ -238,11 +232,11 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 		}
 	}
 
-	get(resource: URI): TextFileEditorModel | undefined {
+	get(resource: URI): ITextFileEditorModel | undefined {
 		return this.mapResourceToModel.get(resource);
 	}
 
-	async resolve(resource: URI, options?: ITextFileEditorModelLoadOrCreateOptions): Promise<TextFileEditorModel> {
+	async resolve(resource: URI, options?: IModelLoadOrCreateOptions): Promise<ITextFileEditorModel> {
 
 		// Return early if model is currently being loaded
 		const pendingLoad = this.mapResourceToPendingModelLoaders.get(resource);
@@ -250,7 +244,7 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 			return pendingLoad;
 		}
 
-		let modelPromise: Promise<TextFileEditorModel>;
+		let modelPromise: Promise<ITextFileEditorModel>;
 		let model = this.get(resource);
 		let didCreateModel = false;
 
@@ -281,22 +275,19 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 			modelPromise = model.load(options);
 
 			// Install model listeners
-			const modelListeners = new DisposableStore();
-			modelListeners.add(model.onDidLoad(reason => this._onDidLoad.fire({ model: newModel, reason })));
-			modelListeners.add(model.onDidChangeDirty(() => this._onDidChangeDirty.fire(newModel)));
-			modelListeners.add(model.onDidSaveError(() => this._onDidSaveError.fire(newModel)));
-			modelListeners.add(model.onDidSave(reason => this._onDidSave.fire({ model: newModel, reason })));
-			modelListeners.add(model.onDidRevert(() => this._onDidRevert.fire(newModel)));
-			modelListeners.add(model.onDidChangeEncoding(() => this._onDidChangeEncoding.fire(newModel)));
+			const listeners = new DisposableStore();
+			listeners.add(model.onDidLoad(reason => this._onDidLoad.fire({ model: newModel, reason })));
+			listeners.add(model.onDidChangeDirty(() => this._onDidChangeDirty.fire(newModel)));
+			listeners.add(model.onDidSaveError(() => this._onDidSaveError.fire(newModel)));
+			listeners.add(model.onDidSave(reason => this._onDidSave.fire({ model: newModel, reason })));
+			listeners.add(model.onDidRevert(() => this._onDidRevert.fire(newModel)));
+			listeners.add(model.onDidChangeEncoding(() => this._onDidChangeEncoding.fire(newModel)));
 
-			this.mapResourceToModelListeners.set(resource, modelListeners);
+			this.mapResourceToModelListeners.set(resource, listeners);
 		}
 
 		// Store pending loads to avoid race conditions
 		this.mapResourceToPendingModelLoaders.set(resource, modelPromise);
-
-		// Make known to manager (if not already known)
-		this.add(resource, model);
 
 		// Signal as event if we created the model
 		if (didCreateModel) {
@@ -306,6 +297,9 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 		try {
 			const resolvedModel = await modelPromise;
 
+			// Make known to manager (if not already known)
+			this.add(resource, resolvedModel);
+
 			// Remove from pending loads
 			this.mapResourceToPendingModelLoaders.delete(resource);
 
@@ -314,9 +308,8 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 				resolvedModel.setMode(options.mode);
 			}
 
-			// Model can be dirty if a backup was restored, so we make sure to
-			// have this event delivered if we created the model here
-			if (didCreateModel && resolvedModel.isDirty()) {
+			// Model can be dirty if a backup was restored, so we make sure to have this event delivered
+			if (resolvedModel.isDirty()) {
 				this._onDidChangeDirty.fire(resolvedModel);
 			}
 
@@ -335,7 +328,18 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 		}
 	}
 
-	add(resource: URI, model: TextFileEditorModel): void {
+	getAll(filter?: (model: ITextFileEditorModel) => boolean): ITextFileEditorModel[] {
+		const res: ITextFileEditorModel[] = [];
+		this.mapResourceToModel.forEach(model => {
+			if (!filter || filter(model)) {
+				res.push(model);
+			}
+		});
+
+		return res;
+	}
+
+	add(resource: URI, model: ITextFileEditorModel): void {
 		const knownModel = this.mapResourceToModel.get(resource);
 		if (knownModel === model) {
 			return; // already cached

@@ -45,8 +45,8 @@ export interface ISerializedEditorGroup {
 	preview?: number;
 }
 
-export function isSerializedEditorGroup(obj?: unknown): obj is ISerializedEditorGroup {
-	const group = obj as ISerializedEditorGroup;
+export function isSerializedEditorGroup(obj?: any): obj is ISerializedEditorGroup {
+	const group: ISerializedEditorGroup = obj;
 
 	return obj && typeof obj === 'object' && Array.isArray(group.editors) && Array.isArray(group.mru);
 }

@@ -204,7 +204,11 @@ export abstract class AbstractTextFileService extends Disposable implements ITex
 		else {
 			const model = this.files.get(resource);
 			if (model) {
-				return await model.save(options) ? resource : undefined;
+
+				// Save with options
+				await model.save(options);
+
+				return !model.isDirty() ? resource : undefined;
 			}
 		}
 
@@ -378,7 +382,9 @@ export abstract class AbstractTextFileService extends Disposable implements ITex
 		}
 
 		// save model
-		return await targetModel.save(options);
+		await targetModel.save(options);
+
+		return true;
 	}
 
 	private async confirmOverwrite(resource: URI): Promise<boolean> {

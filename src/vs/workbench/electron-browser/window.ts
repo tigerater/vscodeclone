@@ -289,9 +289,10 @@ export class ElectronWindow extends Disposable {
 
 	private updateDocumentEdited(isDirty = this.workingCopyService.hasDirty): void {
 		if ((!this.isDocumentedEdited && isDirty) || (this.isDocumentedEdited && !isDirty)) {
-			this.isDocumentedEdited = isDirty;
+			const hasDirtyFiles = this.workingCopyService.hasDirty;
+			this.isDocumentedEdited = hasDirtyFiles;
 
-			this.electronService.setDocumentEdited(isDirty);
+			this.electronService.setDocumentEdited(hasDirtyFiles);
 		}
 	}
 

@@ -65,10 +65,6 @@ export default class API {
 		public readonly fullVersionString: string,
 	) { }
 
-	public eq(other: API): boolean {
-		return semver.eq(this.version, other.version);
-	}
-
 	public gte(other: API): boolean {
 		return semver.gte(this.version, other.version);
 	}

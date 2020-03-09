@@ -118,18 +118,6 @@ export interface IWorkingCopyFileService {
 	delete(resource: URI, options?: { useTrash?: boolean, recursive?: boolean }): Promise<void>;
 
 	//#endregion
-
-
-	//#region Path related
-
-	/**
-	 * Will return all working copies that are dirty matching the provided resource.
-	 * If the resource is a folder and the scheme supports file operations, a working
-	 * copy that is dirty and is a child of that folder will also be returned.
-	 */
-	getDirty(resource: URI): IWorkingCopy[];
-
-	//#endregion
 }
 
 export class WorkingCopyFileService extends Disposable implements IWorkingCopyFileService {
@@ -179,7 +167,7 @@ export class WorkingCopyFileService extends Disposable implements IWorkingCopyFi
 		// handle dirty working copies depending on the operation:
 		// - move: revert both source and target (if any)
 		// - copy: revert target (if any)
-		const dirtyWorkingCopies = (move ? [...this.getDirty(source), ...this.getDirty(target)] : this.getDirty(target));
+		const dirtyWorkingCopies = (move ? [...this.getDirtyWorkingCopies(source), ...this.getDirtyWorkingCopies(target)] : this.getDirtyWorkingCopies(target));
 		await Promise.all(dirtyWorkingCopies.map(dirtyWorkingCopy => dirtyWorkingCopy.revert({ soft: true })));
 
 		// now we can rename the source to target via file operation
@@ -214,7 +202,7 @@ export class WorkingCopyFileService extends Disposable implements IWorkingCopyFi
 		// Check for any existing dirty working copies for the resource
 		// and do a soft revert before deleting to be able to close
 		// any opened editor with these working copies
-		const dirtyWorkingCopies = this.getDirty(resource);
+		const dirtyWorkingCopies = this.getDirtyWorkingCopies(resource);
 		await Promise.all(dirtyWorkingCopies.map(dirtyWorkingCopy => dirtyWorkingCopy.revert({ soft: true })));
 
 		// Now actually delete from disk
@@ -232,10 +220,7 @@ export class WorkingCopyFileService extends Disposable implements IWorkingCopyFi
 		await this._onDidRunWorkingCopyFileOperation.fireAsync(event, CancellationToken.None);
 	}
 
-
-	//#region Path related
-
-	getDirty(resource: URI): IWorkingCopy[] {
+	private getDirtyWorkingCopies(resource: URI): IWorkingCopy[] {
 		return this.workingCopyService.dirtyWorkingCopies.filter(dirty => {
 			if (this.fileService.canHandleResource(resource)) {
 				// only check for parents if the resource can be handled
@@ -247,8 +232,6 @@ export class WorkingCopyFileService extends Disposable implements IWorkingCopyFi
 			return isEqual(dirty.resource, resource);
 		});
 	}
-
-	//#endregion
 }
 
 registerSingleton(IWorkingCopyFileService, WorkingCopyFileService, true);

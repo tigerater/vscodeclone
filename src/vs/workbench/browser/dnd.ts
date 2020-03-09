@@ -28,6 +28,7 @@ import { IWorkspaceEditingService } from 'vs/workbench/services/workspaces/commo
 import { withNullAsUndefined } from 'vs/base/common/types';
 import { IHostService } from 'vs/workbench/services/host/browser/host';
 import { isStandalone } from 'vs/base/browser/browser';
+import { IModelService } from 'vs/editor/common/services/modelService';
 import { IBackupFileService } from 'vs/workbench/services/backup/common/backup';
 
 export interface IDraggedResource {
@@ -342,6 +343,7 @@ export function fillResourceDataTransfers(accessor: ServicesAccessor, resources:
 	// Editors: enables cross window DND of tabs into the editor area
 	const textFileService = accessor.get(ITextFileService);
 	const editorService = accessor.get(IEditorService);
+	const modelService = accessor.get(IModelService);
 
 	const draggedEditors: ISerializedDraggedEditor[] = [];
 	files.forEach(file => {
@@ -372,8 +374,11 @@ export function fillResourceDataTransfers(accessor: ServicesAccessor, resources:
 		// If the resource is dirty or untitled, send over its content
 		// to restore dirty state. Get that from the text model directly
 		let content: string | undefined = undefined;
-		if (model?.isDirty()) {
-			content = model.textEditorModel.getValue();
+		if (textFileService.isDirty(file.resource)) {
+			const textModel = modelService.getModel(file.resource);
+			if (textModel) {
+				content = textModel.getValue();
+			}
 		}
 
 		// Add as dragged editor

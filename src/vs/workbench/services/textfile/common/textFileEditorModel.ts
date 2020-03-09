@@ -7,7 +7,7 @@ import * as nls from 'vs/nls';
 import { Emitter } from 'vs/base/common/event';
 import { URI } from 'vs/base/common/uri';
 import { assertIsDefined, withNullAsUndefined } from 'vs/base/common/types';
-import { ITextFileService, TextFileEditorModelState, ITextFileEditorModel, ITextFileStreamContent, ITextFileLoadOptions, IResolvedTextFileEditorModel, ITextFileSaveOptions, TextFileLoadReason } from 'vs/workbench/services/textfile/common/textfiles';
+import { ITextFileService, ModelState, ITextFileEditorModel, ITextFileStreamContent, ILoadOptions, IResolvedTextFileEditorModel, ITextFileSaveOptions, LoadReason } from 'vs/workbench/services/textfile/common/textfiles';
 import { EncodingMode, IRevertOptions, SaveReason } from 'vs/workbench/common/editor';
 import { BaseTextEditorModel } from 'vs/workbench/common/editor/textEditorModel';
 import { IBackupFileService, IResolvedBackup } from 'vs/workbench/services/backup/common/backup';
@@ -43,7 +43,7 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 	private readonly _onDidChangeContent = this._register(new Emitter<void>());
 	readonly onDidChangeContent = this._onDidChangeContent.event;
 
-	private readonly _onDidLoad = this._register(new Emitter<TextFileLoadReason>());
+	private readonly _onDidLoad = this._register(new Emitter<LoadReason>());
 	readonly onDidLoad = this._onDidLoad.event;
 
 	private readonly _onDidChangeDirty = this._register(new Emitter<void>());
@@ -248,7 +248,7 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 
 	//#region Load
 
-	async load(options?: ITextFileLoadOptions): Promise<TextFileEditorModel> {
+	async load(options?: ILoadOptions): Promise<ITextFileEditorModel> {
 		this.logService.trace('[text file model] load() - enter', this.resource.toString());
 
 		// It is very important to not reload the model when the model is dirty.
@@ -281,7 +281,7 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 		return this.loadFromFile(options);
 	}
 
-	private async loadFromBackup(backup: IResolvedBackup<IBackupMetaData>, options?: ITextFileLoadOptions): Promise<TextFileEditorModel> {
+	private async loadFromBackup(backup: IResolvedBackup<IBackupMetaData>, options?: ILoadOptions): Promise<TextFileEditorModel> {
 
 		// Load with backup
 		this.loadFromContent({
@@ -303,7 +303,7 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 		return this;
 	}
 
-	private async loadFromFile(options?: ITextFileLoadOptions): Promise<TextFileEditorModel> {
+	private async loadFromFile(options?: ILoadOptions): Promise<TextFileEditorModel> {
 		const forceReadFromDisk = options?.forceReadFromDisk;
 		const allowBinary = this.isResolved() /* always allow if we resolved previously */ || options?.allowBinary;
 
@@ -358,7 +358,7 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 		}
 	}
 
-	private loadFromContent(content: ITextFileStreamContent, options?: ITextFileLoadOptions, fromBackup?: boolean): TextFileEditorModel {
+	private loadFromContent(content: ITextFileStreamContent, options?: ILoadOptions, fromBackup?: boolean): TextFileEditorModel {
 		this.logService.trace('[text file model] load() - resolved content', this.resource.toString());
 
 		// Update our resolved disk stat model
@@ -396,7 +396,7 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 		}
 
 		// Emit as event
-		this._onDidLoad.fire(options?.reason ?? TextFileLoadReason.OTHER);
+		this._onDidLoad.fire(options?.reason ?? LoadReason.OTHER);
 
 		return this;
 	}
@@ -544,7 +544,7 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 		}
 
 		if (
-			(this.hasState(TextFileEditorModelState.CONFLICT) || this.hasState(TextFileEditorModelState.ERROR)) &&
+			(this.hasState(ModelState.CONFLICT) || this.hasState(ModelState.ERROR)) &&
 			(options.reason === SaveReason.AUTO || options.reason === SaveReason.FOCUS_CHANGE || options.reason === SaveReason.WINDOW_CHANGE)
 		) {
 			this.logService.trace('[text file model] save() - ignoring auto save request for model that is in conflict or error', this.resource.toString());
@@ -794,19 +794,19 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 
 	//#endregion
 
-	hasState(state: TextFileEditorModelState): boolean {
+	hasState(state: ModelState): boolean {
 		switch (state) {
-			case TextFileEditorModelState.CONFLICT:
+			case ModelState.CONFLICT:
 				return this.inConflictMode;
-			case TextFileEditorModelState.DIRTY:
+			case ModelState.DIRTY:
 				return this.dirty;
-			case TextFileEditorModelState.ERROR:
+			case ModelState.ERROR:
 				return this.inErrorMode;
-			case TextFileEditorModelState.ORPHAN:
+			case ModelState.ORPHAN:
 				return this.inOrphanMode;
-			case TextFileEditorModelState.PENDING_SAVE:
+			case ModelState.PENDING_SAVE:
 				return this.saveSequentializer.hasPending();
-			case TextFileEditorModelState.SAVED:
+			case ModelState.SAVED:
 				return !this.dirty;
 		}
 	}

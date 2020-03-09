@@ -37,8 +37,7 @@ export class MainThreadDialogs implements MainThreadDiaglogsShape {
 			canSelectFiles: options.canSelectFiles || (!options.canSelectFiles && !options.canSelectFolders),
 			canSelectFolders: options.canSelectFolders,
 			canSelectMany: options.canSelectMany,
-			defaultUri: options.defaultUri ? URI.revive(options.defaultUri) : undefined,
-			title: options.title || undefined
+			defaultUri: options.defaultUri ? URI.revive(options.defaultUri) : undefined
 		};
 		if (options.filters) {
 			result.filters = [];
@@ -50,8 +49,7 @@ export class MainThreadDialogs implements MainThreadDiaglogsShape {
 	private static _convertSaveOptions(options: MainThreadDialogSaveOptions): ISaveDialogOptions {
 		const result: ISaveDialogOptions = {
 			defaultUri: options.defaultUri ? URI.revive(options.defaultUri) : undefined,
-			saveLabel: options.saveLabel || undefined,
-			title: options.title || undefined
+			saveLabel: options.saveLabel || undefined
 		};
 		if (options.filters) {
 			result.filters = [];

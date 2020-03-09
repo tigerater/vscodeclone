@@ -21,16 +21,11 @@ export const enum TypeScriptVersionSource {
 }
 
 export class TypeScriptVersion {
-
-	public readonly apiVersion: API | undefined;
-
 	constructor(
 		public readonly source: TypeScriptVersionSource,
 		public readonly path: string,
 		private readonly _pathLabel?: string
-	) {
-		this.apiVersion = TypeScriptVersion.getApiVersion(this.tsServerPath);
-	}
+	) { }
 
 	public get tsServerPath(): string {
 		return path.join(this.path, 'tsserver.js');
@@ -44,28 +39,8 @@ export class TypeScriptVersion {
 		return this.apiVersion !== undefined;
 	}
 
-	public eq(other: TypeScriptVersion): boolean {
-		if (this.path !== other.path) {
-			return false;
-		}
-
-		if (this.apiVersion === other.apiVersion) {
-			return true;
-		}
-		if (!this.apiVersion || !other.apiVersion) {
-			return false;
-		}
-		return this.apiVersion.eq(other.apiVersion);
-	}
-
-	public get displayName(): string {
-		const version = this.apiVersion;
-		return version ? version.displayName : localize(
-			'couldNotLoadTsVersion', 'Could not load the TypeScript version at this path');
-	}
-
-	public static getApiVersion(serverPath: string): API | undefined {
-		const version = TypeScriptVersion.getTypeScriptVersion(serverPath);
+	public get apiVersion(): API | undefined {
+		const version = this.getTypeScriptVersion(this.tsServerPath);
 		if (version) {
 			return version;
 		}
@@ -79,7 +54,13 @@ export class TypeScriptVersion {
 		return undefined;
 	}
 
-	private static getTypeScriptVersion(serverPath: string): API | undefined {
+	public get displayName(): string {
+		const version = this.apiVersion;
+		return version ? version.displayName : localize(
+			'couldNotLoadTsVersion', 'Could not load the TypeScript version at this path');
+	}
+
+	private getTypeScriptVersion(serverPath: string): API | undefined {
 		if (!fs.existsSync(serverPath)) {
 			return undefined;
 		}

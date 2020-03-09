@@ -221,11 +221,13 @@ class DoNotShowResolveConflictLearnMoreAction extends Action {
 		super('workbench.files.action.resolveConflictLearnMoreDoNotShowAgain', nls.localize('dontShowAgain', "Don't Show Again"));
 	}
 
-	async run(notification: IDisposable): Promise<any> {
+	run(notification: IDisposable): Promise<any> {
 		this.storageService.store(LEARN_MORE_DIRTY_WRITE_IGNORE_KEY, true, StorageScope.GLOBAL);
 
 		// Hide notification
 		notification.dispose();
+
+		return Promise.resolve();
 	}
 }
 
@@ -260,6 +262,8 @@ class ResolveSaveConflictAction extends Action {
 			Event.once(handle.onDidClose)(() => dispose(actions.primary!));
 			pendingResolveSaveConflictMessages.push(handle);
 		}
+
+		return Promise.resolve(true);
 	}
 }
 
@@ -272,7 +276,7 @@ class SaveElevatedAction extends Action {
 		super('workbench.files.action.saveElevated', triedToMakeWriteable ? isWindows ? nls.localize('overwriteElevated', "Overwrite as Admin...") : nls.localize('overwriteElevatedSudo', "Overwrite as Sudo...") : isWindows ? nls.localize('saveElevated', "Retry as Admin...") : nls.localize('saveElevatedSudo', "Retry as Sudo..."));
 	}
 
-	async run(): Promise<any> {
+	run(): Promise<any> {
 		if (!this.model.isDisposed()) {
 			this.model.save({
 				writeElevated: true,
@@ -280,6 +284,8 @@ class SaveElevatedAction extends Action {
 				reason: SaveReason.EXPLICIT
 			});
 		}
+
+		return Promise.resolve(true);
 	}
 }
 
@@ -291,10 +297,12 @@ class OverwriteReadonlyAction extends Action {
 		super('workbench.files.action.overwrite', nls.localize('overwrite', "Overwrite"));
 	}
 
-	async run(): Promise<any> {
+	run(): Promise<any> {
 		if (!this.model.isDisposed()) {
 			this.model.save({ overwriteReadonly: true, reason: SaveReason.EXPLICIT });
 		}
+
+		return Promise.resolve(true);
 	}
 }
 
@@ -306,10 +314,12 @@ class SaveIgnoreModifiedSinceAction extends Action {
 		super('workbench.files.action.saveIgnoreModifiedSince', nls.localize('overwrite', "Overwrite"));
 	}
 
-	async run(): Promise<any> {
+	run(): Promise<any> {
 		if (!this.model.isDisposed()) {
 			this.model.save({ ignoreModifiedSince: true, reason: SaveReason.EXPLICIT });
 		}
+
+		return Promise.resolve(true);
 	}
 }
 
@@ -321,8 +331,10 @@ class ConfigureSaveConflictAction extends Action {
 		super('workbench.files.action.configureSaveConflict', nls.localize('configure', "Configure"));
 	}
 
-	async run(): Promise<any> {
+	run(): Promise<any> {
 		this.preferencesService.openSettings(undefined, 'files.saveConflictResolution');
+
+		return Promise.resolve(true);
 	}
 }
 

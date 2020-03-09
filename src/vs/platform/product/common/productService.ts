@@ -49,7 +49,6 @@ export interface IProductConfiguration {
 	readonly extensionTips?: { [id: string]: string; };
 	readonly extensionImportantTips?: { [id: string]: { name: string; pattern: string; isExtensionPack?: boolean }; };
 	readonly exeBasedExtensionTips?: { [id: string]: IExeBasedExtensionTip; };
-	readonly remoteExtensionTips?: { [remoteName: string]: IRemoteExtensionTip; };
 	readonly extensionKeywords?: { [extension: string]: readonly string[]; };
 	readonly keymapExtensionTips?: readonly string[];
 
@@ -111,11 +110,6 @@ export interface IExeBasedExtensionTip {
 	recommendations: readonly string[];
 	important?: boolean;
 	exeFriendlyName?: string;
-}
-
-export interface IRemoteExtensionTip {
-	friendlyName: string;
-	extensionId: string;
 }
 
 export interface ISurveyData {
