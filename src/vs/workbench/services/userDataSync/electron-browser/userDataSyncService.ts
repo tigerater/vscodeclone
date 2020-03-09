@@ -24,10 +24,8 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 
 	get onDidChangeLocal(): Event<void> { return this.channel.listen('onDidChangeLocal'); }
 
-	private _conflictsSources: SyncSource[] = [];
-	get conflictsSources(): SyncSource[] { return this._conflictsSources; }
-	private _onDidChangeConflicts: Emitter<SyncSource[]> = this._register(new Emitter<SyncSource[]>());
-	readonly onDidChangeConflicts: Event<SyncSource[]> = this._onDidChangeConflicts.event;
+	private _conflictsSource: SyncSource | null = null;
+	get conflictsSource(): SyncSource | null { return this._conflictsSource; }
 
 	constructor(
 		@ISharedProcessService sharedProcessService: ISharedProcessService
@@ -43,16 +41,18 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 				return userDataSyncChannel.listen(event, arg);
 			}
 		};
-		this.channel.call<[SyncStatus, SyncSource[]]>('_getInitialData').then(([status, conflicts]) => {
+		this.channel.call<SyncStatus>('_getInitialStatus').then(status => {
 			this.updateStatus(status);
-			this.updateConflicts(conflicts);
 			this._register(this.channel.listen<SyncStatus>('onDidChangeStatus')(status => this.updateStatus(status)));
 		});
-		this._register(this.channel.listen<SyncSource[]>('onDidChangeConflicts')(conflicts => this.updateConflicts(conflicts)));
 	}
 
 	pull(): Promise<void> {
 		return this.channel.call('pull');
+	}
+
+	push(): Promise<void> {
+		return this.channel.call('push');
 	}
 
 	sync(): Promise<void> {
@@ -75,22 +75,35 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 		return this.channel.call('stop');
 	}
 
+	async restart(): Promise<void> {
+		const status = await this.channel.call<SyncStatus>('restart');
+		await this.updateStatus(status);
+	}
+
+	hasPreviouslySynced(): Promise<boolean> {
+		return this.channel.call('hasPreviouslySynced');
+	}
+
+	hasRemoteData(): Promise<boolean> {
+		return this.channel.call('hasRemoteData');
+	}
+
+	hasLocalData(): Promise<boolean> {
+		return this.channel.call('hasLocalData');
+	}
+
 	getRemoteContent(source: SyncSource, preview: boolean): Promise<string | null> {
 		return this.channel.call('getRemoteContent', [source, preview]);
 	}
 
-	isFirstTimeSyncWithMerge(): Promise<boolean> {
-		return this.channel.call('isFirstTimeSyncWithMerge');
+	isFirstTimeSyncAndHasUserData(): Promise<boolean> {
+		return this.channel.call('isFirstTimeSyncAndHasUserData');
 	}
 
 	private async updateStatus(status: SyncStatus): Promise<void> {
+		this._conflictsSource = await this.channel.call<SyncSource>('getConflictsSource');
 		this._status = status;
 		this._onDidChangeStatus.fire(status);
-	}
-
-	private async updateConflicts(conflicts: SyncSource[]): Promise<void> {
-		this._conflictsSources = conflicts;
-		this._onDidChangeConflicts.fire(conflicts);
 	}
 
 }

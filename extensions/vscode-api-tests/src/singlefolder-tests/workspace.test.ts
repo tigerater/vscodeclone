@@ -214,12 +214,7 @@ suite('workspace-namespace', () => {
 		});
 	});
 
-	test('eol, change via onWillSave', function () {
-		if (vscode.env.uiKind === vscode.UIKind.Web && process.platform === 'win32') {
-			// TODO@Jo Test seems to fail when running in web (Windows) due to
-			// onWillSaveTextDocument not getting called
-			return this.skip();
-		}
+	test('eol, change via onWillSave', () => {
 
 		let called = false;
 		let sub = vscode.workspace.onWillSaveTextDocument(e => {

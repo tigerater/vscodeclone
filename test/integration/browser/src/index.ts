@@ -9,13 +9,11 @@ import * as  playwright from 'playwright';
 import * as  url from 'url';
 import * as  tmp from 'tmp';
 import * as  rimraf from 'rimraf';
-import { URI } from 'vscode-uri';
-import * as kill from 'tree-kill';
 
 const optimist = require('optimist')
-	.describe('workspacePath', 'path to the workspace to open in the test').string('workspacePath')
-	.describe('extensionDevelopmentPath', 'path to the extension to test').string('extensionDevelopmentPath')
-	.describe('extensionTestsPath', 'path to the extension tests').string('extensionTestsPath')
+	.describe('workspacePath', 'path to the workspace to open in the test').string()
+	.describe('extensionDevelopmentPath', 'path to the extension to test').string()
+	.describe('extensionTestsPath', 'path to the extension tests').string()
 	.describe('debug', 'do not run browsers headless').boolean('debug')
 	.describe('browser', 'browser in which integration tests should run').string('browser').default('browser', 'chromium')
 	.describe('help', 'show the help').alias('help', 'h');
@@ -28,22 +26,22 @@ if (optimist.argv.help) {
 const width = 1200;
 const height = 800;
 
-async function runTestsInBrowser(browserType: string, endpoint: url.UrlWithStringQuery, server: cp.ChildProcess): Promise<void> {
+async function runTestsInBrowser(browserType: string, endpoint: string): Promise<void> {
 	const browser = await playwright[browserType].launch({ headless: !Boolean(optimist.argv.debug) });
 	const page = (await browser.defaultContext().pages())[0];
 	await page.setViewport({ width, height });
 
-	const host = endpoint.host;
+	const host = url.parse(endpoint).host;
 	const protocol = 'vscode-remote';
 
-	const testWorkspaceUri = url.format({ pathname: URI.file(path.resolve(optimist.argv.workspacePath)).path, protocol, host, slashes: true });
-	const testExtensionUri = url.format({ pathname: URI.file(path.resolve(optimist.argv.extensionDevelopmentPath)).path, protocol, host, slashes: true });
-	const testFilesUri = url.format({ pathname: URI.file(path.resolve(optimist.argv.extensionTestsPath)).path, protocol, host, slashes: true });
+	const testWorkspaceUri = url.format({ pathname: path.resolve(optimist.argv.workspacePath), protocol, host, slashes: true });
+	const testExtensionUri = url.format({ pathname: path.resolve(optimist.argv.extensionDevelopmentPath), protocol, host, slashes: true });
+	const testFilesUri = url.format({ pathname: path.resolve(optimist.argv.extensionTestsPath), protocol, host, slashes: true });
 
 	const folderParam = testWorkspaceUri;
 	const payloadParam = `[["extensionDevelopmentPath","${testExtensionUri}"],["extensionTestsPath","${testFilesUri}"]]`;
 
-	await page.goto(`${endpoint.href}&folder=${folderParam}&payload=${payloadParam}`);
+	await page.goto(`${endpoint}&folder=${folderParam}&payload=${payloadParam}`);
 
 	await page.exposeFunction('codeAutomationLog', (type: string, args: any[]) => {
 		console[type](...args);
@@ -52,30 +50,13 @@ async function runTestsInBrowser(browserType: string, endpoint: url.UrlWithStrin
 	page.on('console', async (msg: playwright.ConsoleMessage) => {
 		const msgText = msg.text();
 		if (msgText.indexOf('vscode:exit') >= 0) {
-			try {
-				await browser.close();
-			} catch (error) {
-				console.error(`Error when closing browser: ${error}`);
-			}
-
-			try {
-				await pkill(server.pid);
-			} catch (error) {
-				console.error(`Error when killing server process tree: ${error}`);
-			}
-
+			await browser.close();
 			process.exit(msgText === 'vscode:exit 0' ? 0 : 1);
 		}
 	});
 }
 
-function pkill(pid: number): Promise<void> {
-	return new Promise((c, e) => {
-		kill(pid, error => error ? e(error) : c());
-	});
-}
-
-async function launchServer(): Promise<{ endpoint: url.UrlWithStringQuery, server: cp.ChildProcess }> {
+async function launchServer(): Promise<string> {
 
 	// Ensure a tmp user-data-dir is used for the tests
 	const tmpDir = tmp.dirSync({ prefix: 't' });
@@ -110,23 +91,26 @@ async function launchServer(): Promise<{ endpoint: url.UrlWithStringQuery, serve
 		serverProcess?.stdout?.on('data', data => console.log(`Server stdout: ${data}`));
 	}
 
-	process.on('exit', () => serverProcess.kill());
-	process.on('SIGINT', () => serverProcess.kill());
-	process.on('SIGTERM', () => serverProcess.kill());
+	function teardownServer() {
+		if (serverProcess) {
+			serverProcess.kill();
+		}
+	}
+
+	process.on('exit', teardownServer);
+	process.on('SIGINT', teardownServer);
+	process.on('SIGTERM', teardownServer);
 
 	return new Promise(c => {
 		serverProcess?.stdout?.on('data', data => {
 			const matches = data.toString('ascii').match(/Web UI available at (.+)/);
 			if (matches !== null) {
-				c({ endpoint: url.parse(matches[1]), server: serverProcess });
+				c(matches[1]);
 			}
 		});
 	});
 }
 
-launchServer().then(async ({ endpoint, server }) => {
-	return runTestsInBrowser(optimist.argv.browser, endpoint, server);
-}, error => {
-	console.error(error);
-	process.exit(1);
-});
+launchServer().then(async endpoint => {
+	return runTestsInBrowser(optimist.argv.browser, endpoint);
+}, console.error);
