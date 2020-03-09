@@ -267,22 +267,6 @@
 		};
 
 		let isHandlingScroll = false;
-
-		const handleWheel = (event) => {
-			if (isHandlingScroll) {
-				return;
-			}
-
-			host.postMessage('did-scroll-wheel', {
-				deltaMode: event.deltaMode,
-				deltaX: event.deltaX,
-				deltaY: event.deltaY,
-				deltaZ: event.deltaZ,
-				detail: event.detail,
-				type: event.type
-			});
-		};
-
 		const handleInnerScroll = (event) => {
 			if (!event.target || !event.target.body) {
 				return;
@@ -324,7 +308,6 @@
 			// apply default script
 			if (options.allowScripts) {
 				const defaultScript = newDocument.createElement('script');
-				defaultScript.id = '_vscodeApiScript';
 				defaultScript.textContent = getVsCodeApiScript(data.state);
 				newDocument.head.prepend(defaultScript);
 			}
@@ -492,7 +475,6 @@
 						}
 
 						contentWindow.addEventListener('scroll', handleInnerScroll);
-						contentWindow.addEventListener('wheel', handleWheel);
 
 						pendingMessages.forEach((data) => {
 							contentWindow.postMessage(data, '*');
