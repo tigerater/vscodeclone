@@ -29,9 +29,7 @@
 					"type": "array",
 					"description": "Ports that are forwarded from the container to the local machine.",
 					"items": {
-						"type": "integer",
-						"maximum": 65535,
-						"minimum": 0
+						"type": "integer"
 					}
 				},
 				"remoteEnv": {

@@ -161,9 +161,6 @@ import 'vs/workbench/contrib/search/browser/search.contribution';
 import 'vs/workbench/contrib/search/browser/searchView';
 import 'vs/workbench/contrib/search/browser/openAnythingHandler';
 
-// Search Editor
-import 'vs/workbench/contrib/searchEditor/browser/searchEditor.contribution';
-
 // SCM
 import 'vs/workbench/contrib/scm/browser/scm.contribution';
 import 'vs/workbench/contrib/scm/browser/scmViewlet';
@@ -195,9 +192,9 @@ import 'vs/workbench/contrib/extensions/browser/extensions.contribution';
 import 'vs/workbench/contrib/extensions/browser/extensionsQuickOpen';
 import 'vs/workbench/contrib/extensions/browser/extensionsViewlet';
 
-// Output View
+// Output Panel
 import 'vs/workbench/contrib/output/browser/output.contribution';
-import 'vs/workbench/contrib/output/browser/outputView';
+import 'vs/workbench/contrib/output/browser/outputPanel';
 
 // Terminal
 import 'vs/workbench/contrib/terminal/browser/terminal.contribution';

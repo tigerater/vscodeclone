@@ -20,6 +20,7 @@ import { IExtHostRpcService } from 'vs/workbench/api/common/extHostRpcService';
 import { ILogService } from 'vs/platform/log/common/log';
 import { Workspace } from 'vs/platform/workspace/common/workspace';
 import { URI } from 'vs/base/common/uri';
+import { checkProposedApiEnabled } from 'vs/workbench/services/extensions/common/extensions';
 
 function lookUp(tree: any, key: string) {
 	if (key) {
@@ -156,6 +157,9 @@ export class ExtHostConfigProvider {
 
 	getConfiguration(section?: string, scope?: vscode.ConfigurationScope | null, extensionDescription?: IExtensionDescription): vscode.WorkspaceConfiguration {
 		const overrides = scopeToOverrides(scope) || {};
+		if (overrides.overrideIdentifier && extensionDescription) {
+			checkProposedApiEnabled(extensionDescription);
+		}
 		const config = this._toReadonlyValue(section
 			? lookUp(this._configuration.getValue(undefined, overrides, this._extHostWorkspace.workspace), section)
 			: this._configuration.getValue(undefined, overrides, this._extHostWorkspace.workspace));

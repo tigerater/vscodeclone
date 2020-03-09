@@ -1025,7 +1025,7 @@ const downloadFileHandler = (accessor: ServicesAccessor) => {
 				triggerDownload(bufferOrUri, s.name);
 			}
 		} else {
-			let defaultUri = s.isDirectory ? fileDialogService.defaultFolderPath(Schemas.file) : fileDialogService.defaultFilePath(Schemas.file);
+			let defaultUri = s.isDirectory ? fileDialogService.defaultFolderPath() : fileDialogService.defaultFilePath();
 			if (defaultUri) {
 				defaultUri = resources.joinPath(defaultUri, s.name);
 			}

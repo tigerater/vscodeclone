@@ -89,7 +89,6 @@ export class ExplorerItem {
 		private _isSymbolicLink?: boolean,
 		private _name: string = basenameOrAuthority(resource),
 		private _mtime?: number,
-		private _unknown = false
 	) {
 		this._isDirectoryResolved = false;
 		this._isDisposed = false;
@@ -121,10 +120,6 @@ export class ExplorerItem {
 
 	get name(): string {
 		return this._name;
-	}
-
-	get isUnknown(): boolean {
-		return this._unknown;
 	}
 
 	get parent(): ExplorerItem | undefined {
@@ -163,7 +158,7 @@ export class ExplorerItem {
 	}
 
 	static create(fileService: IFileService, raw: IFileStat, parent: ExplorerItem | undefined, resolveTo?: readonly URI[]): ExplorerItem {
-		const stat = new ExplorerItem(raw.resource, fileService, parent, raw.isDirectory, raw.isSymbolicLink, raw.name, raw.mtime, !raw.isFile && !raw.isDirectory);
+		const stat = new ExplorerItem(raw.resource, fileService, parent, raw.isDirectory, raw.isSymbolicLink, raw.name, raw.mtime);
 
 		// Recursively add children if present
 		if (stat.isDirectory) {

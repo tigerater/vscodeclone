@@ -27,12 +27,9 @@ import { ITextMateService, IGrammar, IToken, StackElement } from 'vs/workbench/s
 import { IWorkbenchThemeService } from 'vs/workbench/services/themes/common/workbenchThemeService';
 import { CancellationTokenSource } from 'vs/base/common/cancellation';
 import { ColorThemeData, TokenStyleDefinitions, TokenStyleDefinition } from 'vs/workbench/services/themes/common/colorThemeData';
-import { TokenStylingRule, TokenStyleData, TokenStyle } from 'vs/platform/theme/common/tokenClassificationRegistry';
+import { TokenStylingRule, TokenStyleData } from 'vs/platform/theme/common/tokenClassificationRegistry';
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
-
-export interface IEditorSemanticHighlightingOptions {
-	enabled?: boolean;
-}
+import type { IEditorSemanticHighlightingOptions } from 'vs/editor/common/config/editorOptions';
 
 class InspectEditorTokensController extends Disposable implements IEditorContribution {
 
@@ -546,9 +543,9 @@ class InspectEditorTokensWidget extends Disposable implements IContentWidget {
 		} else if (isTokenStylingRule(definition)) {
 			const scope = theme.getTokenStylingRuleScope(definition);
 			if (scope === 'setting') {
-				return `User settings: ${definition.selector.asString()} - ${this._renderStyleProperty(definition.style, property)}`;
+				return `User settings`; // todo: print selector and style once selector is a string
 			} else if (scope === 'theme') {
-				return `Color theme: ${definition.selector.asString()} - ${this._renderStyleProperty(definition.style, property)}`;
+				return `Color theme`; // todo: print selector and style once selector is a string
 			}
 			return '';
 		} else if (typeof definition === 'string') {
@@ -560,14 +557,7 @@ class InspectEditorTokensWidget extends Disposable implements IContentWidget {
 			}
 			return '';
 		} else {
-			return this._renderStyleProperty(definition, property);
-		}
-	}
-
-	private _renderStyleProperty(style: TokenStyle, property: keyof TokenStyleData) {
-		switch (property) {
-			case 'foreground': return style.foreground ? Color.Format.CSS.formatHexA(style.foreground, true) : '';
-			default: return style[property] !== undefined ? String(style[property]) : '';
+			return String(definition[property]);
 		}
 	}
 
