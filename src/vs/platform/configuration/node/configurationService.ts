@@ -7,39 +7,54 @@ import { Registry } from 'vs/platform/registry/common/platform';
 import { IConfigurationRegistry, Extensions } from 'vs/platform/configuration/common/configurationRegistry';
 import { IDisposable, Disposable } from 'vs/base/common/lifecycle';
 import { IConfigurationService, IConfigurationChangeEvent, IConfigurationOverrides, ConfigurationTarget, isConfigurationOverrides, IConfigurationData, IConfigurationValue, IConfigurationChange } from 'vs/platform/configuration/common/configuration';
-import { DefaultConfigurationModel, Configuration, ConfigurationModel, ConfigurationChangeEvent, UserSettings } from 'vs/platform/configuration/common/configurationModels';
+import { DefaultConfigurationModel, Configuration, ConfigurationModel, ConfigurationModelParser, ConfigurationChangeEvent } from 'vs/platform/configuration/common/configurationModels';
 import { Event, Emitter } from 'vs/base/common/event';
+import { IWorkspaceFolder } from 'vs/platform/workspace/common/workspace';
+import { ConfigWatcher } from 'vs/base/node/config';
+import { onUnexpectedError } from 'vs/base/common/errors';
 import { URI } from 'vs/base/common/uri';
-import { IFileService } from 'vs/platform/files/common/files';
-import { RunOnceScheduler } from 'vs/base/common/async';
+import { Schemas } from 'vs/base/common/network';
 
 export class ConfigurationService extends Disposable implements IConfigurationService, IDisposable {
 
 	_serviceBrand: undefined;
 
 	private configuration: Configuration;
-	private userConfiguration: UserSettings;
-	private readonly reloadConfigurationScheduler: RunOnceScheduler;
+	private userConfigModelWatcher: ConfigWatcher<ConfigurationModelParser> | undefined;
 
 	private readonly _onDidChangeConfiguration: Emitter<IConfigurationChangeEvent> = this._register(new Emitter<IConfigurationChangeEvent>());
 	readonly onDidChangeConfiguration: Event<IConfigurationChangeEvent> = this._onDidChangeConfiguration.event;
 
 	constructor(
-		private readonly settingsResource: URI,
-		@IFileService fileService: IFileService
+		private readonly settingsResource: URI
 	) {
 		super();
-		this.userConfiguration = this._register(new UserSettings(this.settingsResource, undefined, fileService));
 		this.configuration = new Configuration(new DefaultConfigurationModel(), new ConfigurationModel());
-
-		this.reloadConfigurationScheduler = this._register(new RunOnceScheduler(() => this.reloadConfiguration(), 50));
 		this._register(Registry.as<IConfigurationRegistry>(Extensions.Configuration).onDidUpdateConfiguration(configurationProperties => this.onDidDefaultConfigurationChange(configurationProperties)));
-		this._register(this.userConfiguration.onDidChange(() => this.reloadConfigurationScheduler.schedule()));
 	}
 
-	async initialize(): Promise<void> {
-		const userConfiguration = await this.userConfiguration.loadConfiguration();
-		this.configuration = new Configuration(new DefaultConfigurationModel(), userConfiguration);
+	initialize(): Promise<void> {
+		if (this.userConfigModelWatcher) {
+			this.userConfigModelWatcher.dispose();
+		}
+
+		if (this.settingsResource.scheme !== Schemas.file) {
+			return Promise.resolve();
+		}
+		return new Promise<void>((c, e) => {
+			this.userConfigModelWatcher = this._register(new ConfigWatcher(this.settingsResource.fsPath, {
+				changeBufferDelay: 300, onError: error => onUnexpectedError(error), defaultConfig: new ConfigurationModelParser(this.settingsResource.fsPath), parse: (content: string, parseErrors: any[]) => {
+					const userConfigModelParser = new ConfigurationModelParser(this.settingsResource.fsPath);
+					userConfigModelParser.parseContent(content);
+					parseErrors = [...userConfigModelParser.errors];
+					return userConfigModelParser;
+				}, initCallback: () => {
+					this.configuration = new Configuration(new DefaultConfigurationModel(), this.userConfigModelWatcher!.getConfig().configurationModel);
+					this._register(this.userConfigModelWatcher!.onDidUpdateConfiguration(() => this.onDidChangeUserConfiguration(this.userConfigModelWatcher!.getConfig().configurationModel)));
+					c();
+				}
+			}));
+		});
 	}
 
 	getConfigurationData(): IConfigurationData {
@@ -77,9 +92,14 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
 		return this.configuration.keys(undefined);
 	}
 
-	async reloadConfiguration(): Promise<void> {
-		const configurationModel = await this.userConfiguration.loadConfiguration();
-		this.onDidChangeUserConfiguration(configurationModel);
+	reloadConfiguration(folder?: IWorkspaceFolder): Promise<void> {
+		if (this.userConfigModelWatcher) {
+			return new Promise<void>(c => this.userConfigModelWatcher!.reload(userConfigModelParser => {
+				this.onDidChangeUserConfiguration(userConfigModelParser.configurationModel);
+				c();
+			}));
+		}
+		return this.initialize();
 	}
 
 	private onDidChangeUserConfiguration(userConfigurationModel: ConfigurationModel): void {
