@@ -113,7 +113,7 @@ export interface IInputOptions {
 	placeHolder?: string;
 
 	/**
-	 * Controls if a password input is shown. Password input hides the typed text.
+	 * set to true to show a password prompt that will not show the typed value
 	 */
 	password?: boolean;
 
@@ -162,7 +162,7 @@ export interface IQuickPick<T extends IQuickPickItem> extends IQuickInput {
 
 	readonly onDidAccept: Event<void>;
 
-	ok: boolean | 'default';
+	ok: boolean;
 
 	readonly onDidCustom: Event<void>;
 
@@ -209,8 +209,6 @@ export interface IQuickPick<T extends IQuickPickItem> extends IQuickInput {
 	validationMessage: string | undefined;
 
 	inputHasFocus(): boolean;
-
-	focusOnInput(): void;
 }
 
 export interface IInputBox extends IQuickInput {

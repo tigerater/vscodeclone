@@ -179,8 +179,11 @@ export class NotificationsToasts extends Themable implements INotificationsToast
 		const toast: INotificationToast = { item, list: notificationList, container: notificationToastContainer, toast: notificationToast, toDispose: itemDisposables };
 		this.mapNotificationToToast.set(item, toast);
 
-		// When disposed, remove as visible
-		itemDisposables.add(toDisposable(() => this.updateToastVisibility(toast, false)));
+		itemDisposables.add(toDisposable(() => {
+			if (this.isToastVisible(toast) && notificationsToastsContainer) {
+				notificationsToastsContainer.removeChild(toast.container);
+			}
+		}));
 
 		// Make visible
 		notificationList.show();
@@ -232,9 +235,6 @@ export class NotificationsToasts extends Themable implements INotificationsToast
 			removeClass(notificationToast, 'notification-fade-in');
 			addClass(notificationToast, 'notification-fade-in-done');
 		}));
-
-		// Mark as visible
-		item.updateVisibility(true);
 
 		// Events
 		if (!this._isVisible) {
@@ -292,13 +292,12 @@ export class NotificationsToasts extends Themable implements INotificationsToast
 	}
 
 	private removeToast(item: INotificationViewItem): void {
-		let focusEditor = false;
-
 		const notificationToast = this.mapNotificationToToast.get(item);
+		let focusGroup = false;
 		if (notificationToast) {
 			const toastHasDOMFocus = isAncestor(document.activeElement, notificationToast.container);
 			if (toastHasDOMFocus) {
-				focusEditor = !(this.focusNext() || this.focusPrevious()); // focus next if any, otherwise focus editor
+				focusGroup = !(this.focusNext() || this.focusPrevious()); // focus next if any, otherwise focus editor
 			}
 
 			// Listeners
@@ -318,7 +317,7 @@ export class NotificationsToasts extends Themable implements INotificationsToast
 			this.doHide();
 
 			// Move focus back to editor group as needed
-			if (focusEditor) {
+			if (focusGroup) {
 				this.editorGroupService.activeGroup.focus();
 			}
 		}
@@ -347,11 +346,11 @@ export class NotificationsToasts extends Themable implements INotificationsToast
 	}
 
 	hide(): void {
-		const focusEditor = this.notificationsToastsContainer ? isAncestor(document.activeElement, this.notificationsToastsContainer) : false;
+		const focusGroup = this.notificationsToastsContainer ? isAncestor(document.activeElement, this.notificationsToastsContainer) : false;
 
 		this.removeToasts();
 
-		if (focusEditor) {
+		if (focusGroup) {
 			this.editorGroupService.activeGroup.focus();
 		}
 	}
@@ -460,12 +459,12 @@ export class NotificationsToasts extends Themable implements INotificationsToast
 					notificationToasts.push(toast);
 					break;
 				case ToastVisibility.HIDDEN:
-					if (!this.isToastInDOM(toast)) {
+					if (!this.isToastVisible(toast)) {
 						notificationToasts.push(toast);
 					}
 					break;
 				case ToastVisibility.VISIBLE:
-					if (this.isToastInDOM(toast)) {
+					if (this.isToastVisible(toast)) {
 						notificationToasts.push(toast);
 					}
 					break;
@@ -531,7 +530,7 @@ export class NotificationsToasts extends Themable implements INotificationsToast
 
 			// In order to measure the client height, the element cannot have display: none
 			toast.container.style.opacity = '0';
-			this.updateToastVisibility(toast, true);
+			this.setVisibility(toast, true);
 
 			heightToGive -= toast.container.offsetHeight;
 
@@ -543,7 +542,7 @@ export class NotificationsToasts extends Themable implements INotificationsToast
 			}
 
 			// Hide or show toast based on context
-			this.updateToastVisibility(toast, makeVisible);
+			this.setVisibility(toast, makeVisible);
 			toast.container.style.opacity = '';
 
 			if (makeVisible) {
@@ -552,24 +551,20 @@ export class NotificationsToasts extends Themable implements INotificationsToast
 		});
 	}
 
-	private updateToastVisibility(toast: INotificationToast, visible: boolean): void {
-		if (this.isToastInDOM(toast) === visible) {
+	private setVisibility(toast: INotificationToast, visible: boolean): void {
+		if (this.isToastVisible(toast) === visible) {
 			return;
 		}
 
-		// Update visibility in DOM
 		const notificationsToastsContainer = assertIsDefined(this.notificationsToastsContainer);
 		if (visible) {
 			notificationsToastsContainer.appendChild(toast.container);
 		} else {
 			notificationsToastsContainer.removeChild(toast.container);
 		}
-
-		// Update visibility in model
-		toast.item.updateVisibility(visible);
 	}
 
-	private isToastInDOM(toast: INotificationToast): boolean {
+	private isToastVisible(toast: INotificationToast): boolean {
 		return !!toast.container.parentElement;
 	}
 }

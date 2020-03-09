@@ -124,27 +124,28 @@ suite('Storage Library', () => {
 		changes.clear();
 
 		// Nothing happens if changing to same value
-		const changed = new Map<string, string>();
-		changed.set('foo', 'bar');
-		database.fireDidChangeItemsExternal({ changed });
+		const change = new Map<string, string>();
+		change.set('foo', 'bar');
+		database.fireDidChangeItemsExternal({ items: change });
 		equal(changes.size, 0);
 
 		// Change is accepted if valid
-		changed.set('foo', 'bar1');
-		database.fireDidChangeItemsExternal({ changed });
+		change.set('foo', 'bar1');
+		database.fireDidChangeItemsExternal({ items: change });
 		ok(changes.has('foo'));
 		equal(storage.get('foo'), 'bar1');
 		changes.clear();
 
 		// Delete is accepted
-		const deleted = new Set<string>(['foo']);
-		database.fireDidChangeItemsExternal({ deleted });
+		change.set('foo', undefined!);
+		database.fireDidChangeItemsExternal({ items: change });
 		ok(changes.has('foo'));
-		equal(storage.get('foo', undefined), undefined);
+		equal(storage.get('foo', null!), null);
 		changes.clear();
 
 		// Nothing happens if changing to same value
-		database.fireDidChangeItemsExternal({ deleted });
+		change.set('foo', undefined!);
+		database.fireDidChangeItemsExternal({ items: change });
 		equal(changes.size, 0);
 
 		await storage.close();

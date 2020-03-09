@@ -24,16 +24,15 @@ interface ISerializableUpdateRequest {
 }
 
 interface ISerializableItemsChangeEvent {
-	changed?: Item[];
-	deleted?: Key[];
+	items: Item[];
 }
 
 export class GlobalStorageDatabaseChannel extends Disposable implements IServerChannel {
 
 	private static readonly STORAGE_CHANGE_DEBOUNCE_TIME = 100;
 
-	private readonly _onDidChangeItems = this._register(new Emitter<ISerializableItemsChangeEvent>());
-	readonly onDidChangeItems = this._onDidChangeItems.event;
+	private readonly _onDidChangeItems: Emitter<ISerializableItemsChangeEvent> = this._register(new Emitter<ISerializableItemsChangeEvent>());
+	readonly onDidChangeItems: Event<ISerializableItemsChangeEvent> = this._onDidChangeItems.event;
 
 	private whenReady: Promise<void>;
 
@@ -100,18 +99,15 @@ export class GlobalStorageDatabaseChannel extends Disposable implements IServerC
 	}
 
 	private serializeEvents(events: IStorageChangeEvent[]): ISerializableItemsChangeEvent {
-		const changed = new Map<Key, Value>();
-		const deleted = new Set<Key>();
+		const items = new Map<Key, Value>();
 		events.forEach(event => {
 			const existing = this.storageMainService.get(event.key);
 			if (typeof existing === 'string') {
-				changed.set(event.key, existing);
-			} else {
-				deleted.add(event.key);
+				items.set(event.key, existing);
 			}
 		});
 
-		return { changed: mapToSerializable(changed), deleted: values(deleted) };
+		return { items: mapToSerializable(items) };
 	}
 
 	listen(_: unknown, event: string): Event<any> {
@@ -174,11 +170,8 @@ export class GlobalStorageDatabaseChannelClient extends Disposable implements IS
 	}
 
 	private onDidChangeItemsOnMain(e: ISerializableItemsChangeEvent): void {
-		if (Array.isArray(e.changed) || Array.isArray(e.deleted)) {
-			this._onDidChangeItemsExternal.fire({
-				changed: e.changed ? serializableToMap(e.changed) : undefined,
-				deleted: e.deleted ? new Set<string>(e.deleted) : undefined
-			});
+		if (Array.isArray(e.items)) {
+			this._onDidChangeItemsExternal.fire({ items: serializableToMap(e.items) });
 		}
 	}
 

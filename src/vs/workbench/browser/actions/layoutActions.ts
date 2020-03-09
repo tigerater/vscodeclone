@@ -25,10 +25,9 @@ import { ContextKeyExpr, IContextKeyService } from 'vs/platform/contextkey/commo
 import { SideBarVisibleContext } from 'vs/workbench/common/viewlet';
 import { IEnvironmentService } from 'vs/platform/environment/common/environment';
 import { IViewDescriptorService, IViewContainersRegistry, Extensions as ViewContainerExtensions, IViewsService, FocusedViewContext, ViewContainerLocation } from 'vs/workbench/common/views';
-import { IQuickInputService, IQuickPickItem, IQuickPickSeparator } from 'vs/platform/quickinput/common/quickInput';
+import { IQuickInputService } from 'vs/platform/quickinput/common/quickInput';
 import { INotificationService } from 'vs/platform/notification/common/notification';
 import { IViewletService } from 'vs/workbench/services/viewlet/browser/viewlet';
-import { IActivityBarService } from 'vs/workbench/services/activityBar/browser/activityBarService';
 
 const registry = Registry.as<IWorkbenchActionRegistry>(WorkbenchExtensions.WorkbenchActions);
 const viewCategory = nls.localize('view', "View");
@@ -535,7 +534,6 @@ export class MoveFocusedViewAction extends Action {
 		@IQuickInputService private quickInputService: IQuickInputService,
 		@IContextKeyService private contextKeyService: IContextKeyService,
 		@INotificationService private notificationService: INotificationService,
-		@IActivityBarService private activityBarService: IActivityBarService,
 		@IViewletService private viewletService: IViewletService
 	) {
 		super(id, label);
@@ -544,64 +542,58 @@ export class MoveFocusedViewAction extends Action {
 	run(): Promise<void> {
 		const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
 
-		const focusedViewId = FocusedViewContext.getValue(this.contextKeyService);
+		const focusedView = FocusedViewContext.getValue(this.contextKeyService);
 
-		if (focusedViewId === undefined || focusedViewId.trim() === '') {
+		if (focusedView === undefined || focusedView.trim() === '') {
 			this.notificationService.error(nls.localize('moveFocusedView.error.noFocusedView', "There is no view currently focused."));
 			return Promise.resolve();
 		}
 
-		const viewDescriptor = this.viewDescriptorService.getViewDescriptor(focusedViewId);
+		const viewDescriptor = this.viewDescriptorService.getViewDescriptor(focusedView);
 		if (!viewDescriptor || !viewDescriptor.canMoveView) {
-			this.notificationService.error(nls.localize('moveFocusedView.error.nonMovableView', "The currently focused view is not movable."));
+			this.notificationService.error(nls.localize('moveFocusedView.error.nonMovableView', "The currently focused view is not movable {0}.", focusedView));
 			return Promise.resolve();
 		}
 
 		const quickPick = this.quickInputService.createQuickPick();
-		quickPick.placeholder = nls.localize('moveFocusedView.selectDestination', "Select a Destination for the View");
+		quickPick.placeholder = nls.localize('moveFocusedView.selectDestination', "Select a destination area for the view...");
+		quickPick.autoFocusOnList = true;
 
-		const pinnedViewlets = this.activityBarService.getPinnedViewletIds();
-		const items: Array<IQuickPickItem | IQuickPickSeparator> = this.viewletService.getViewlets()
-			.filter(viewlet => {
-				if (viewlet.id === this.viewDescriptorService.getViewContainer(focusedViewId)!.id) {
-					return false;
-				}
-
-				return !viewContainerRegistry.get(viewlet.id)!.rejectAddedViews && pinnedViewlets.indexOf(viewlet.id) !== -1;
-			})
-			.map(viewlet => {
-				return {
-					id: viewlet.id,
-					label: viewlet.name,
-				};
-			});
-
-		if (this.viewDescriptorService.getViewLocation(focusedViewId) !== ViewContainerLocation.Panel) {
-			items.unshift({
-				type: 'separator',
-				label: nls.localize('sidebar', "Side Bar")
-			});
-			items.push({
-				type: 'separator',
+		quickPick.items = [
+			{
+				id: 'sidebar',
+				label: nls.localize('sidebar', "Sidebar")
+			},
+			{
+				id: 'panel',
 				label: nls.localize('panel', "Panel")
-			});
-			items.push({
-				id: '_.panel.newcontainer',
-				label: nls.localize('moveFocusedView.newContainerInPanel', "New Container in Panel"),
-			});
-		}
-
-		quickPick.items = items;
+			}
+		];
 
 		quickPick.onDidAccept(() => {
 			const destination = quickPick.selectedItems[0];
 
-			if (destination.id === '_.panel.newcontainer') {
+			if (destination.id === 'panel') {
+				quickPick.hide();
 				this.viewDescriptorService.moveViewToLocation(viewDescriptor!, ViewContainerLocation.Panel);
-				this.viewsService.openView(focusedViewId, true);
+				this.viewsService.openView(focusedView, true);
+
+				return;
+			} else if (destination.id === 'sidebar') {
+				quickPick.placeholder = nls.localize('moveFocusedView.selectDestinationContainer', "Select a destination view group...");
+				quickPick.items = this.viewletService.getViewlets().map(viewlet => {
+					return {
+						id: viewlet.id,
+						label: viewlet.name
+					};
+				});
+
+				return;
 			} else if (destination.id) {
+				quickPick.hide();
 				this.viewDescriptorService.moveViewsToContainer([viewDescriptor], viewContainerRegistry.get(destination.id)!);
-				this.viewsService.openView(focusedViewId, true);
+				this.viewsService.openView(focusedView, true);
+				return;
 			}
 
 			quickPick.hide();
@@ -613,7 +605,7 @@ export class MoveFocusedViewAction extends Action {
 	}
 }
 
-registry.registerWorkbenchAction(SyncActionDescriptor.create(MoveFocusedViewAction, MoveFocusedViewAction.ID, MoveFocusedViewAction.LABEL), 'View: Move Focused View', viewCategory, FocusedViewContext.notEqualsTo(''));
+registry.registerWorkbenchAction(SyncActionDescriptor.create(MoveFocusedViewAction, MoveFocusedViewAction.ID, MoveFocusedViewAction.LABEL), 'View: Move Focused View', viewCategory);
 
 
 // --- Resize View

@@ -198,7 +198,7 @@ export class FileDialogService extends AbstractFileDialogService implements IFil
 			}
 		}
 
-		return super.doShowSaveConfirm(fileNamesOrResources);
+		return super.showSaveConfirm(fileNamesOrResources);
 	}
 }
 

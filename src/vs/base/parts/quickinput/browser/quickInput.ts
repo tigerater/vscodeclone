@@ -397,7 +397,7 @@ class QuickPick<T extends IQuickPickItem> extends QuickInput implements IQuickPi
 	private _valueSelection: Readonly<[number, number]> | undefined;
 	private valueSelectionUpdated = true;
 	private _validationMessage: string | undefined;
-	private _ok: boolean | 'default' = 'default';
+	private _ok = false;
 	private _customButton = false;
 	private _customButtonLabel: string | undefined;
 	private _customButtonHover: string | undefined;
@@ -566,17 +566,13 @@ class QuickPick<T extends IQuickPickItem> extends QuickInput implements IQuickPi
 		return this._ok;
 	}
 
-	set ok(showOkButton: boolean | 'default') {
+	set ok(showOkButton: boolean) {
 		this._ok = showOkButton;
 		this.update();
 	}
 
 	public inputHasFocus(): boolean {
 		return this.visible ? this.ui.inputBox.hasFocus() : false;
-	}
-
-	public focusOnInput() {
-		this.ui.inputBox.setFocus();
 	}
 
 	onDidChangeSelection = this.onDidChangeSelectionEmitter.event;
@@ -757,8 +753,7 @@ class QuickPick<T extends IQuickPickItem> extends QuickInput implements IQuickPi
 		if (!this.visible) {
 			return;
 		}
-		const ok = this.ok === 'default' ? this.canSelectMany : this.ok;
-		this.ui.setVisibilities(this.canSelectMany ? { title: !!this.title || !!this.step, description: !!this.description, checkAll: true, inputBox: true, visibleCount: true, count: true, ok, list: true, message: !!this.validationMessage, customButton: this.customButton } : { title: !!this.title || !!this.step, description: !!this.description, inputBox: true, visibleCount: true, list: true, message: !!this.validationMessage, customButton: this.customButton, ok });
+		this.ui.setVisibilities(this.canSelectMany ? { title: !!this.title || !!this.step, description: !!this.description, checkAll: true, inputBox: true, visibleCount: true, count: true, ok: this.ok, list: true, message: !!this.validationMessage, customButton: this.customButton } : { title: !!this.title || !!this.step, description: !!this.description, inputBox: true, visibleCount: true, list: true, message: !!this.validationMessage, customButton: this.customButton, ok: this.ok });
 		super.update();
 		if (this.ui.inputBox.value !== this.value) {
 			this.ui.inputBox.value = this.value;

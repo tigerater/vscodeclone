@@ -247,160 +247,143 @@ export class ExtHostWebviewEditor extends Disposable implements vscode.WebviewPa
 
 type EditType = unknown;
 
-class CustomDocument extends Disposable implements vscode.CustomDocument {
+class WebviewEditorCustomDocument extends Disposable implements vscode.CustomDocument {
+	private _currentEditIndex: number = -1;
+	private _savePoint: number = -1;
+	private readonly _edits: Array<EditType> = [];
 
-	public static create(proxy: MainThreadWebviewsShape, viewType: string, uri: vscode.Uri) {
-		return Object.seal(new CustomDocument(proxy, viewType, uri));
-	}
+	public userData: unknown;
 
-	// Explicitly initialize all properties as we seal the object after creation!
+	public _capabilities?: vscode.CustomEditorCapabilities = undefined;
 
-	#currentEditIndex: number = -1;
-	#savePoint: number = -1;
-	readonly #edits: Array<EditType> = [];
-
-	readonly #proxy: MainThreadWebviewsShape;
-	readonly #viewType: string;
-	readonly #uri: vscode.Uri;
-
-	#capabilities: vscode.CustomEditorCapabilities | undefined = undefined;
-
-	private constructor(proxy: MainThreadWebviewsShape, viewType: string, uri: vscode.Uri) {
+	constructor(
+		private readonly _proxy: MainThreadWebviewsShape,
+		public readonly viewType: string,
+		public readonly uri: vscode.Uri,
+	) {
 		super();
-		this.#proxy = proxy;
-		this.#viewType = viewType;
-		this.#uri = uri;
 	}
 
-	dispose() {
-		this.#onDidDispose.fire();
-		super.dispose();
+	_setCapabilities(capabilities: vscode.CustomEditorCapabilities) {
+		if (this._capabilities) {
+			throw new Error('Capabilities already provided');
+		}
+
+		this._capabilities = capabilities;
+		capabilities.editing?.onDidEdit(edit => {
+			this.pushEdit(edit, this);
+		});
 	}
 
 	//#region Public API
 
-	public get viewType(): string { return this.#viewType; }
-
-	public get uri(): vscode.Uri { return this.#uri; }
-
-	#onDidDispose = this._register(new Emitter<void>());
-	public readonly onDidDispose = this.#onDidDispose.event;
-
-	public userData: unknown = undefined;
+	#_onDidDispose = this._register(new Emitter<void>());
+	public readonly onDidDispose = this.#_onDidDispose.event;
 
 	//#endregion
 
-	//#region Internal
-
-	/** @internal*/ _setCapabilities(capabilities: vscode.CustomEditorCapabilities) {
-		if (this.#capabilities) {
-			throw new Error('Capabilities already provided');
-		}
-
-		this.#capabilities = capabilities;
-		capabilities.editing?.onDidEdit(edit => {
-			this.pushEdit(edit);
-		});
+	dispose() {
+		this.#_onDidDispose.fire();
+		super.dispose();
 	}
 
-	/** @internal*/ _revert() {
+	private pushEdit(edit: EditType, trigger: any) {
+		this.spliceEdits(edit);
+
+		this._currentEditIndex = this._edits.length - 1;
+		this.updateState();
+		// this._onApplyEdit.fire({ edits: [edit], trigger });
+	}
+
+	private updateState() {
+		const dirty = this._edits.length > 0 && this._savePoint !== this._currentEditIndex;
+		this._proxy.$onDidChangeCustomDocumentState(this.uri, this.viewType, { dirty });
+	}
+
+	private spliceEdits(editToInsert?: EditType) {
+		const start = this._currentEditIndex + 1;
+		const toRemove = this._edits.length - this._currentEditIndex;
+
+		editToInsert
+			? this._edits.splice(start, toRemove, editToInsert)
+			: this._edits.splice(start, toRemove);
+	}
+
+	revert() {
 		const editing = this.getEditingCapability();
-		if (this.#currentEditIndex === this.#savePoint) {
+		if (this._currentEditIndex === this._savePoint) {
 			return true;
 		}
 
-		if (this.#currentEditIndex >= this.#savePoint) {
-			const editsToUndo = this.#edits.slice(this.#savePoint, this.#currentEditIndex);
+		if (this._currentEditIndex >= this._savePoint) {
+			const editsToUndo = this._edits.slice(this._savePoint, this._currentEditIndex);
 			editing.undoEdits(editsToUndo.reverse());
-		} else if (this.#currentEditIndex < this.#savePoint) {
-			const editsToRedo = this.#edits.slice(this.#currentEditIndex, this.#savePoint);
+		} else if (this._currentEditIndex < this._savePoint) {
+			const editsToRedo = this._edits.slice(this._currentEditIndex, this._savePoint);
 			editing.applyEdits(editsToRedo);
 		}
 
-		this.#currentEditIndex = this.#savePoint;
+		this._currentEditIndex = this._savePoint;
 		this.spliceEdits();
 
 		this.updateState();
 		return true;
 	}
 
-	/** @internal*/ _undo() {
+	undo() {
 		const editing = this.getEditingCapability();
-		if (this.#currentEditIndex < 0) {
+		if (this._currentEditIndex < 0) {
 			// nothing to undo
 			return;
 		}
 
-		const undoneEdit = this.#edits[this.#currentEditIndex];
-		--this.#currentEditIndex;
+		const undoneEdit = this._edits[this._currentEditIndex];
+		--this._currentEditIndex;
 		editing.undoEdits([undoneEdit]);
 		this.updateState();
 	}
 
-	/** @internal*/ _redo() {
+	redo() {
 		const editing = this.getEditingCapability();
-		if (this.#currentEditIndex >= this.#edits.length - 1) {
+		if (this._currentEditIndex >= this._edits.length - 1) {
 			// nothing to redo
 			return;
 		}
 
-		++this.#currentEditIndex;
-		const redoneEdit = this.#edits[this.#currentEditIndex];
+		++this._currentEditIndex;
+		const redoneEdit = this._edits[this._currentEditIndex];
 		editing.applyEdits([redoneEdit]);
 		this.updateState();
 	}
 
-	/** @internal*/ _save() {
+	save() {
 		return this.getEditingCapability().save();
 	}
 
-	/** @internal*/ _saveAs(target: vscode.Uri) {
+	saveAs(target: vscode.Uri) {
 		return this.getEditingCapability().saveAs(target);
 	}
 
-	/** @internal*/ _backup(cancellation: CancellationToken) {
+	backup(cancellation: CancellationToken) {
 		return this.getEditingCapability().backup(cancellation);
 	}
 
-	//#endregion
-
-	private pushEdit(edit: EditType) {
-		this.spliceEdits(edit);
-
-		this.#currentEditIndex = this.#edits.length - 1;
-		this.updateState();
-	}
-
-	private updateState() {
-		const dirty = this.#edits.length > 0 && this.#savePoint !== this.#currentEditIndex;
-		this.#proxy.$onDidChangeCustomDocumentState(this.uri, this.viewType, { dirty });
-	}
-
-	private spliceEdits(editToInsert?: EditType) {
-		const start = this.#currentEditIndex + 1;
-		const toRemove = this.#edits.length - this.#currentEditIndex;
-
-		editToInsert
-			? this.#edits.splice(start, toRemove, editToInsert)
-			: this.#edits.splice(start, toRemove);
-	}
-
 	private getEditingCapability(): vscode.CustomEditorEditingCapability {
-		if (!this.#capabilities?.editing) {
+		if (!this._capabilities?.editing) {
 			throw new Error('Document is not editable');
 		}
-		return this.#capabilities.editing;
+		return this._capabilities.editing;
 	}
 }
 
 class WebviewDocumentStore {
-	private readonly _documents = new Map<string, CustomDocument>();
+	private readonly _documents = new Map<string, WebviewEditorCustomDocument>();
 
-	public get(viewType: string, resource: vscode.Uri): CustomDocument | undefined {
+	public get(viewType: string, resource: vscode.Uri): WebviewEditorCustomDocument | undefined {
 		return this._documents.get(this.key(viewType, resource));
 	}
 
-	public add(document: CustomDocument) {
+	public add(document: WebviewEditorCustomDocument) {
 		const key = this.key(document.viewType, document.uri);
 		if (this._documents.has(key)) {
 			throw new Error(`Document already exists for viewType:${document.viewType} resource:${document.uri}`);
@@ -408,7 +391,7 @@ class WebviewDocumentStore {
 		this._documents.set(key, document);
 	}
 
-	public delete(document: CustomDocument) {
+	public delete(document: WebviewEditorCustomDocument) {
 		const key = this.key(document.viewType, document.uri);
 		this._documents.delete(key);
 	}
@@ -639,7 +622,7 @@ export class ExtHostWebviews implements ExtHostWebviewsShape {
 		}
 
 		const revivedResource = URI.revive(resource);
-		const document = CustomDocument.create(this._proxy, viewType, revivedResource);
+		const document = Object.seal(new WebviewEditorCustomDocument(this._proxy, viewType, revivedResource));
 		const capabilities = await entry.provider.resolveCustomDocument(document);
 		document._setCapabilities(capabilities);
 		this._documents.add(document);
@@ -704,39 +687,39 @@ export class ExtHostWebviews implements ExtHostWebviewsShape {
 
 	async $undo(resourceComponents: UriComponents, viewType: string): Promise<void> {
 		const document = this.getDocument(viewType, resourceComponents);
-		document._undo();
+		document.undo();
 	}
 
 	async $redo(resourceComponents: UriComponents, viewType: string): Promise<void> {
 		const document = this.getDocument(viewType, resourceComponents);
-		document._redo();
+		document.redo();
 	}
 
 	async $revert(resourceComponents: UriComponents, viewType: string): Promise<void> {
 		const document = this.getDocument(viewType, resourceComponents);
-		document._revert();
+		document.revert();
 	}
 
 	async $onSave(resourceComponents: UriComponents, viewType: string): Promise<void> {
 		const document = this.getDocument(viewType, resourceComponents);
-		document._save();
+		document.save();
 	}
 
 	async $onSaveAs(resourceComponents: UriComponents, viewType: string, targetResource: UriComponents): Promise<void> {
 		const document = this.getDocument(viewType, resourceComponents);
-		return document._saveAs(URI.revive(targetResource));
+		return document.saveAs(URI.revive(targetResource));
 	}
 
 	async $backup(resourceComponents: UriComponents, viewType: string, cancellation: CancellationToken): Promise<boolean> {
 		const document = this.getDocument(viewType, resourceComponents);
-		return document._backup(cancellation);
+		return document.backup(cancellation);
 	}
 
 	private getWebviewPanel(handle: WebviewPanelHandle): ExtHostWebviewEditor | undefined {
 		return this._webviewPanels.get(handle);
 	}
 
-	private getDocument(viewType: string, resource: UriComponents): CustomDocument {
+	private getDocument(viewType: string, resource: UriComponents): WebviewEditorCustomDocument {
 		const document = this._documents.get(viewType, URI.revive(resource));
 		if (!document) {
 			throw new Error('No webview editor custom document found');

@@ -199,7 +199,7 @@ export enum EditorOption {
 	folding = 31,
 	foldingStrategy = 32,
 	foldingHighlight = 33,
-	unfoldOnClickAfterEndOfLine = 34,
+	unfoldOnClickInEmptyContent = 34,
 	fontFamily = 35,
 	fontInfo = 36,
 	fontLigatures = 37,

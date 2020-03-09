@@ -33,7 +33,7 @@ interface IEditorLayoutProviderOpts {
 	readonly minimapSide: 'left' | 'right';
 	readonly minimapRenderCharacters: boolean;
 	readonly minimapMaxColumn: number;
-	minimapSize?: 'proportional' | 'fill' | 'fit';
+	minimapMode?: 'actual' | 'cover' | 'contain';
 	readonly pixelRatio: number;
 }
 
@@ -47,7 +47,7 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 		options._write(EditorOption.folding, false);
 		const minimapOptions: EditorMinimapOptions = {
 			enabled: input.minimap,
-			size: input.minimapSize || 'proportional',
+			mode: input.minimapMode || 'actual',
 			side: input.minimapSide,
 			renderCharacters: input.minimapRenderCharacters,
 			maxColumn: input.minimapMaxColumn,
@@ -978,7 +978,7 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			minimapSide: 'right',
 			minimapRenderCharacters: true,
 			minimapMaxColumn: 150,
-			minimapSize: 'fill',
+			minimapMode: 'cover',
 			pixelRatio: 2,
 		}, {
 			width: 1000,
@@ -1042,7 +1042,7 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			minimapSide: 'right',
 			minimapRenderCharacters: true,
 			minimapMaxColumn: 150,
-			minimapSize: 'fill',
+			minimapMode: 'cover',
 			pixelRatio: 2,
 		}, {
 			width: 1000,
@@ -1106,7 +1106,7 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			minimapSide: 'right',
 			minimapRenderCharacters: true,
 			minimapMaxColumn: 150,
-			minimapSize: 'fit',
+			minimapMode: 'contain',
 			pixelRatio: 2,
 		}, {
 			width: 1000,
@@ -1170,7 +1170,7 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			minimapSide: 'right',
 			minimapRenderCharacters: true,
 			minimapMaxColumn: 150,
-			minimapSize: 'fit',
+			minimapMode: 'contain',
 			pixelRatio: 2,
 		}, {
 			width: 1000,

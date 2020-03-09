@@ -16,8 +16,8 @@ import { IViewlet } from 'vs/workbench/common/viewlet';
 
 export class UserDataSyncTrigger extends Disposable {
 
-	private readonly _onDidTriggerSync: Emitter<string> = this._register(new Emitter<string>());
-	readonly onDidTriggerSync: Event<string> = this._onDidTriggerSync.event;
+	private readonly _onDidTriggerSync: Emitter<void> = this._register(new Emitter<void>());
+	readonly onDidTriggerSync: Event<void> = this._onDidTriggerSync.event;
 
 	constructor(
 		@IEditorService editorService: IEditorService,
@@ -25,44 +25,37 @@ export class UserDataSyncTrigger extends Disposable {
 		@IViewletService viewletService: IViewletService,
 	) {
 		super();
-		this._register(Event.any<string | undefined>(
-			Event.map(editorService.onDidActiveEditorChange, () => this.getUserDataEditorInputSource(editorService.activeEditor)),
-			Event.map(viewletService.onDidViewletOpen, viewlet => this.getUserDataViewletSource(viewlet))
-		)(source => {
-			if (source) {
-				this._onDidTriggerSync.fire(source);
-			}
-		}));
+		this._register(Event.debounce(Event.any<any>(
+			Event.filter(editorService.onDidActiveEditorChange, () => this.isUserDataEditorInput(editorService.activeEditor)),
+			Event.filter(viewletService.onDidViewletOpen, viewlet => this.isUserDataViewlet(viewlet))
+		), () => undefined, 500)(() => this._onDidTriggerSync.fire()));
 	}
 
-	private getUserDataViewletSource(viewlet: IViewlet): string | undefined {
-		if (viewlet.getId() === VIEWLET_ID) {
-			return 'extensionsViewlet';
-		}
-		return undefined;
+	private isUserDataViewlet(viewlet: IViewlet): boolean {
+		return viewlet.getId() === VIEWLET_ID;
 	}
 
-	private getUserDataEditorInputSource(editorInput: IEditorInput | undefined): string | undefined {
+	private isUserDataEditorInput(editorInput: IEditorInput | undefined): boolean {
 		if (!editorInput) {
-			return undefined;
+			return false;
 		}
 		if (editorInput instanceof SettingsEditor2Input) {
-			return 'settingsEditor';
+			return true;
 		}
 		if (editorInput instanceof PreferencesEditorInput) {
-			return 'settingsEditor';
+			return true;
 		}
 		if (editorInput instanceof KeybindingsEditorInput) {
-			return 'keybindingsEditor';
+			return true;
 		}
 		const resource = editorInput.resource;
 		if (isEqual(resource, this.workbenchEnvironmentService.settingsResource)) {
-			return 'settingsEditor';
+			return true;
 		}
 		if (isEqual(resource, this.workbenchEnvironmentService.keybindingsResource)) {
-			return 'keybindingsEditor';
+			return true;
 		}
-		return undefined;
+		return false;
 	}
 }
 

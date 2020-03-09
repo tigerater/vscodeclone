@@ -46,7 +46,7 @@ class MinimapOptions {
 
 	public readonly renderMinimap: RenderMinimap;
 
-	public readonly size: 'proportional' | 'fill' | 'fit';
+	public readonly mode: 'actual' | 'cover' | 'contain';
 
 	public readonly minimapHeightIsEditorHeight: boolean;
 
@@ -108,7 +108,7 @@ class MinimapOptions {
 		const minimapOpts = options.get(EditorOption.minimap);
 
 		this.renderMinimap = layoutInfo.renderMinimap | 0;
-		this.size = minimapOpts.size;
+		this.mode = minimapOpts.mode;
 		this.minimapHeightIsEditorHeight = layoutInfo.minimapHeightIsEditorHeight;
 		this.scrollBeyondLastLine = options.get(EditorOption.scrollBeyondLastLine);
 		this.showSlider = minimapOpts.showSlider;
@@ -144,7 +144,7 @@ class MinimapOptions {
 
 	public equals(other: MinimapOptions): boolean {
 		return (this.renderMinimap === other.renderMinimap
-			&& this.size === other.size
+			&& this.mode === other.mode
 			&& this.minimapHeightIsEditorHeight === other.minimapHeightIsEditorHeight
 			&& this.scrollBeyondLastLine === other.scrollBeyondLastLine
 			&& this.showSlider === other.showSlider
@@ -1111,7 +1111,7 @@ class InnerMinimap extends Disposable {
 			if (!this._lastRenderData) {
 				return;
 			}
-			if (this._model.options.size !== 'proportional') {
+			if (this._model.options.minimapHeightIsEditorHeight) {
 				if (e.leftButton && this._lastRenderData) {
 					// pretend the click occured in the center of the slider
 					const position = dom.getDomNodePagePosition(this._slider.domNode);

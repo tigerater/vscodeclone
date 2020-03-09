@@ -46,7 +46,7 @@ export class NotificationsStatus extends Disposable {
 		if (!this.isNotificationsCenterVisible) {
 			if (e.kind === NotificationChangeType.ADD) {
 				this.newNotificationsCount++;
-			} else if (e.kind === NotificationChangeType.REMOVE && this.newNotificationsCount > 0) {
+			} else if (e.kind === NotificationChangeType.REMOVE) {
 				this.newNotificationsCount--;
 			}
 		}
@@ -69,9 +69,8 @@ export class NotificationsStatus extends Disposable {
 			}
 		}
 
-		// Show the bell with a dot if there are unread or in-progress notifications
 		const statusProperties: IStatusbarEntry = {
-			text: `${notificationsInProgress > 0 || this.newNotificationsCount > 0 ? '$(bell-dot)' : '$(bell)'}`,
+			text: `${this.newNotificationsCount === 0 ? '$(bell)' : '$(bell-dot)'}${notificationsInProgress > 0 ? ' $(sync~spin)' : ''}`,
 			command: this.isNotificationsCenterVisible ? HIDE_NOTIFICATIONS_CENTER : SHOW_NOTIFICATIONS_CENTER,
 			tooltip: this.getTooltip(notificationsInProgress),
 			showBeak: this.isNotificationsCenterVisible

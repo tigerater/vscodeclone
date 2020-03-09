@@ -71,7 +71,7 @@ export class GitHubAuthenticationProvider {
 						id: session.id,
 						accountName: session.accountName,
 						scopes: session.scopes,
-						getAccessToken: () => Promise.resolve(session.accessToken)
+						accessToken: () => Promise.resolve(session.accessToken)
 					};
 				});
 			} catch (e) {
@@ -84,7 +84,7 @@ export class GitHubAuthenticationProvider {
 
 	private async storeSessions(): Promise<void> {
 		const sessionData: SessionData[] = await Promise.all(this._sessions.map(async session => {
-			const resolvedAccessToken = await session.getAccessToken();
+			const resolvedAccessToken = await session.accessToken();
 			return {
 				id: session.id,
 				accountName: session.accountName,
@@ -111,7 +111,7 @@ export class GitHubAuthenticationProvider {
 		const userInfo = await this._githubServer.getUserInfo(token);
 		return {
 			id: userInfo.id,
-			getAccessToken: () => Promise.resolve(token),
+			accessToken: () => Promise.resolve(token),
 			accountName: userInfo.accountName,
 			scopes: scopes
 		};

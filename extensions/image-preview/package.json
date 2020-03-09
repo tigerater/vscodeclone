@@ -17,7 +17,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onCustomEditor:imagePreview.previewEditor",
+    "onWebviewEditor:imagePreview.previewEditor",
     "onCommand:imagePreview.zoomIn",
     "onCommand:imagePreview.zoomOut"
   ],

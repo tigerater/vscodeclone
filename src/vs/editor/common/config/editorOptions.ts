@@ -510,7 +510,7 @@ export interface IEditorOptions {
 	 * Controls whether clicking on the empty content after a folded line will unfold the line.
 	 * Defaults to false.
 	 */
-	unfoldOnClickAfterEndOfLine?: boolean;
+	unfoldOnClickInEmptyContent?: boolean;
 	/**
 	 * Enable highlighting of matching brackets.
 	 * Defaults to 'always'.
@@ -1802,7 +1802,7 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 		const minimapRenderCharacters = minimap.renderCharacters;
 		let minimapScale = (pixelRatio >= 2 ? Math.round(minimap.scale * 2) : minimap.scale);
 		const minimapMaxColumn = minimap.maxColumn | 0;
-		const minimapSize = minimap.size;
+		const minimapMode = minimap.mode;
 
 		const scrollbar = options.get(EditorOption.scrollbar);
 		const verticalScrollbarWidth = scrollbar.verticalScrollbarSize | 0;
@@ -1866,7 +1866,7 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 			let minimapCharWidth = minimapScale / pixelRatio;
 			let minimapWidthMultiplier: number = 1;
 
-			if (minimapSize === 'fill' || minimapSize === 'fit') {
+			if (minimapMode === 'cover' || minimapMode === 'contain') {
 				const viewLineCount = env.viewLineCount;
 				const { typicalViewportLineCount, extraLinesBeyondLastLine, desiredRatio, minimapLineCount } = EditorLayoutInfoComputer.computeContainedMinimapLineCount({
 					viewLineCount: viewLineCount,
@@ -1887,7 +1887,7 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 					minimapCharWidth = minimapScale / pixelRatio;
 				} else {
 					const effectiveMinimapHeight = Math.ceil((viewLineCount + extraLinesBeyondLastLine) * minimapLineHeight);
-					if (minimapSize === 'fill' || effectiveMinimapHeight > minimapCanvasInnerHeight) {
+					if (minimapMode === 'cover' || effectiveMinimapHeight > minimapCanvasInnerHeight) {
 						minimapHeightIsEditorHeight = true;
 						const configuredFontScale = minimapScale;
 						minimapLineHeight = Math.min(lineHeight * pixelRatio, Math.max(1, Math.floor(1 / desiredRatio)));
@@ -2074,7 +2074,7 @@ export interface IEditorMinimapOptions {
 	 * Control the minimap rendering mode.
 	 * Defaults to 'actual'.
 	 */
-	size?: 'proportional' | 'fill' | 'fit';
+	mode?: 'actual' | 'cover' | 'contain';
 	/**
 	 * Control the rendering of the minimap slider.
 	 * Defaults to 'mouseover'.
@@ -2103,7 +2103,7 @@ class EditorMinimap extends BaseEditorOption<EditorOption.minimap, EditorMinimap
 	constructor() {
 		const defaults: EditorMinimapOptions = {
 			enabled: true,
-			size: 'proportional',
+			mode: 'actual',
 			side: 'right',
 			showSlider: 'mouseover',
 			renderCharacters: true,
@@ -2118,16 +2118,16 @@ class EditorMinimap extends BaseEditorOption<EditorOption.minimap, EditorMinimap
 					default: defaults.enabled,
 					description: nls.localize('minimap.enabled', "Controls whether the minimap is shown.")
 				},
-				'editor.minimap.size': {
+				'editor.minimap.mode': {
 					type: 'string',
-					enum: ['proportional', 'fill', 'fit'],
+					enum: ['actual', 'cover', 'contain'],
 					enumDescriptions: [
-						nls.localize('minimap.size.proportional', "The minimap has the same size as the editor contents (and might scroll)."),
-						nls.localize('minimap.size.fill', "The minimap will stretch or shrink as necessary to fill the height of the editor (no scrolling)."),
-						nls.localize('minimap.size.fit', "The minimap will shrink as necessary to never be larger than the editor (no scrolling)."),
+						nls.localize('minimap.mode.actual', "The minimap will be displayed in its original size, so it might be higher than the editor."),
+						nls.localize('minimap.mode.cover', "The minimap will always have the height of the editor and will stretch or shrink as necessary."),
+						nls.localize('minimap.mode.contain', "The minimap will shrink as necessary to never be higher than the editor."),
 					],
-					default: defaults.size,
-					description: nls.localize('minimap.size', "Controls the size of the minimap.")
+					default: defaults.mode,
+					description: nls.localize('minimap.mode', "Controls the rendering mode of the minimap.")
 				},
 				'editor.minimap.side': {
 					type: 'string',
@@ -2146,8 +2146,7 @@ class EditorMinimap extends BaseEditorOption<EditorOption.minimap, EditorMinimap
 					default: defaults.scale,
 					minimum: 1,
 					maximum: 3,
-					enum: [1, 2, 3],
-					description: nls.localize('minimap.scale', "Scale of content drawn in the minimap: 1, 2 or 3.")
+					description: nls.localize('minimap.scale', "Scale of content drawn in the minimap.")
 				},
 				'editor.minimap.renderCharacters': {
 					type: 'boolean',
@@ -2170,7 +2169,7 @@ class EditorMinimap extends BaseEditorOption<EditorOption.minimap, EditorMinimap
 		const input = _input as IEditorMinimapOptions;
 		return {
 			enabled: EditorBooleanOption.boolean(input.enabled, this.defaultValue.enabled),
-			size: EditorStringEnumOption.stringSet<'proportional' | 'fill' | 'fit'>(input.size, this.defaultValue.size, ['proportional', 'fill', 'fit']),
+			mode: EditorStringEnumOption.stringSet<'actual' | 'cover' | 'contain'>(input.mode, this.defaultValue.mode, ['actual', 'cover', 'contain']),
 			side: EditorStringEnumOption.stringSet<'right' | 'left'>(input.side, this.defaultValue.side, ['right', 'left']),
 			showSlider: EditorStringEnumOption.stringSet<'always' | 'mouseover'>(input.showSlider, this.defaultValue.showSlider, ['always', 'mouseover']),
 			renderCharacters: EditorBooleanOption.boolean(input.renderCharacters, this.defaultValue.renderCharacters),
@@ -3326,7 +3325,7 @@ export const enum EditorOption {
 	folding,
 	foldingStrategy,
 	foldingHighlight,
-	unfoldOnClickAfterEndOfLine,
+	unfoldOnClickInEmptyContent,
 	fontFamily,
 	fontInfo,
 	fontLigatures,
@@ -3626,9 +3625,9 @@ export const EditorOptions = {
 		EditorOption.foldingHighlight, 'foldingHighlight', true,
 		{ description: nls.localize('foldingHighlight', "Controls whether the editor should highlight folded ranges.") }
 	)),
-	unfoldOnClickAfterEndOfLine: register(new EditorBooleanOption(
-		EditorOption.unfoldOnClickAfterEndOfLine, 'unfoldOnClickAfterEndOfLine', false,
-		{ description: nls.localize('unfoldOnClickAfterEndOfLine', "Controls whether clicking on the empty content after a folded line will unfold the line.") }
+	unfoldOnClickInEmptyContent: register(new EditorBooleanOption(
+		EditorOption.unfoldOnClickInEmptyContent, 'unfoldOnClickInEmptyContent', false,
+		{ description: nls.localize('unfoldOnClickInEmptyContent', "Controls whether clicking on the empty content after a folded line will unfold the line.") }
 	)),
 	fontFamily: register(new EditorStringOption(
 		EditorOption.fontFamily, 'fontFamily', EDITOR_FONT_DEFAULTS.fontFamily,
@@ -3770,7 +3769,7 @@ export const EditorOptions = {
 	)),
 	definitionLinkOpensInPeek: register(new EditorBooleanOption(
 		EditorOption.definitionLinkOpensInPeek, 'definitionLinkOpensInPeek', false,
-		{ description: nls.localize('definitionLinkOpensInPeek', "Controls whether the Go to Definition mouse gesture always opens the peek widget.") }
+		{ description: nls.localize('definitionLinkOpensInPeek', "Controls whether the definition link opens element in the peek widget.") }
 	)),
 	quickSuggestions: register(new EditorQuickSuggestions()),
 	quickSuggestionsDelay: register(new EditorIntOption(

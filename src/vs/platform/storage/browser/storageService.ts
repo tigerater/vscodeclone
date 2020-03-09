@@ -240,36 +240,9 @@ export class FileStorageDatabase extends Disposable implements IStorageDatabase 
 	private async onDidStorageChangeExternal(): Promise<void> {
 		const items = await this.doGetItemsFromFile();
 
-		// pervious cache, diff for changes
-		let changed = new Map<string, string>();
-		let deleted = new Set<string>();
-		if (this.cache) {
-			items.forEach((value, key) => {
-				const existingValue = this.cache?.get(key);
-				if (existingValue !== value) {
-					changed.set(key, value);
-				}
-			});
-
-			this.cache.forEach((_, key) => {
-				if (!items.has(key)) {
-					deleted.add(key);
-				}
-			});
-		}
-
-		// no previous cache, consider all as changed
-		else {
-			changed = items;
-		}
-
-		// Update cache
 		this.cache = items;
 
-		// Emit as event as needed
-		if (changed.size > 0 || deleted.size > 0) {
-			this._onDidChangeItemsExternal.fire({ changed, deleted });
-		}
+		this._onDidChangeItemsExternal.fire({ items });
 	}
 
 	async getItems(): Promise<Map<string, string>> {

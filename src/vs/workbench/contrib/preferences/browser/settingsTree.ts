@@ -1238,10 +1238,7 @@ export class SettingTreeRenderers {
 	private getActionsForSetting(setting: ISetting): IAction[] {
 		const enableSync = this._userDataSyncEnablementService.isEnabled();
 		return enableSync && !setting.disallowSyncIgnore ?
-			[
-				new Separator(),
-				this._instantiationService.createInstance(SyncSettingAction, setting)
-			] :
+			[this._instantiationService.createInstance(SyncSettingAction, setting)] :
 			[];
 	}
 

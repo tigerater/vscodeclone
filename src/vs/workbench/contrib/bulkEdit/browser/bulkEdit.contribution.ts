@@ -111,7 +111,6 @@ class BulkEditPreviewContribution {
 	private async _previewEdit(edit: WorkspaceEdit) {
 		this._ctxEnabled.set(true);
 
-		const uxState = this._activeSession?.uxState ?? new UXState(this._panelService, this._editorGroupsService);
 		const view = await getBulkEditPane(this._viewsService);
 		if (!view) {
 			this._ctxEnabled.set(false);
@@ -137,9 +136,9 @@ class BulkEditPreviewContribution {
 		let session: PreviewSession;
 		if (this._activeSession) {
 			this._activeSession.cts.dispose(true);
-			session = new PreviewSession(uxState);
+			session = new PreviewSession(this._activeSession.uxState);
 		} else {
-			session = new PreviewSession(uxState);
+			session = new PreviewSession(new UXState(this._panelService, this._editorGroupsService));
 		}
 		this._activeSession = session;
 
