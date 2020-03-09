@@ -28,7 +28,6 @@ import { ViewPane, IViewPaneOptions } from 'vs/workbench/browser/parts/views/vie
 import { IKeybindingService } from 'vs/platform/keybinding/common/keybinding';
 import { IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 import { IViewDescriptorService } from 'vs/workbench/common/views';
-import { IOpenerService } from 'vs/platform/opener/common/opener';
 
 const FIND_FOCUS_CLASS = 'find-focused';
 
@@ -54,10 +53,9 @@ export class TerminalViewPane extends ViewPane {
 		@IThemeService protected readonly themeService: IThemeService,
 		@ITelemetryService telemetryService: ITelemetryService,
 		@INotificationService private readonly _notificationService: INotificationService,
-		@IStorageService storageService: IStorageService,
-		@IOpenerService openerService: IOpenerService,
+		@IStorageService storageService: IStorageService
 	) {
-		super(options, keybindingService, _contextMenuService, configurationService, contextKeyService, viewDescriptorService, _instantiationService, openerService, themeService);
+		super(options, keybindingService, _contextMenuService, configurationService, contextKeyService, viewDescriptorService, _instantiationService);
 	}
 
 	protected renderBody(container: HTMLElement): void {

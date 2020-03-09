@@ -41,7 +41,7 @@ import { URI } from 'vs/base/common/uri';
 import { FileKind } from 'vs/platform/files/common/files';
 import { compareFileNames } from 'vs/base/common/comparers';
 import { FuzzyScore, createMatches } from 'vs/base/common/filters';
-import { IViewDescriptor, IViewDescriptorService, IViewsRegistry, Extensions } from 'vs/workbench/common/views';
+import { IViewDescriptor, IViewDescriptorService } from 'vs/workbench/common/views';
 import { localize } from 'vs/nls';
 import { flatten, find } from 'vs/base/common/arrays';
 import { memoize } from 'vs/base/common/decorators';
@@ -63,10 +63,10 @@ import { SyncDescriptor } from 'vs/platform/instantiation/common/descriptors';
 import * as platform from 'vs/base/common/platform';
 import { format } from 'vs/base/common/strings';
 import { inputPlaceholderForeground, inputValidationInfoBorder, inputValidationWarningBorder, inputValidationErrorBorder, inputValidationInfoBackground, inputValidationInfoForeground, inputValidationWarningBackground, inputValidationWarningForeground, inputValidationErrorBackground, inputValidationErrorForeground, inputBackground, inputForeground, inputBorder, focusBorder } from 'vs/platform/theme/common/colorRegistry';
+import { SuggestController } from 'vs/editor/contrib/suggest/suggestController';
+import { SnippetController2 } from 'vs/editor/contrib/snippet/snippetController2';
 import { Schemas } from 'vs/base/common/network';
 import { ServiceCollection } from 'vs/platform/instantiation/common/serviceCollection';
-import { Registry } from 'vs/platform/registry/common/platform';
-import { IOpenerService } from 'vs/platform/opener/common/opener';
 
 type TreeElement = ISCMResourceGroup | IResourceNode<ISCMResource, ISCMResourceGroup> | ISCMResource;
 
@@ -614,8 +614,6 @@ export class RepositoryPane extends ViewPane {
 	protected contextKeyService: IContextKeyService;
 	private commitTemplate = '';
 
-	isEmpty() { return true; }
-
 	constructor(
 		readonly repository: ISCMRepository,
 		options: IViewPaneOptions,
@@ -633,9 +631,8 @@ export class RepositoryPane extends ViewPane {
 		@IMenuService protected menuService: IMenuService,
 		@IStorageService private storageService: IStorageService,
 		@IModelService private modelService: IModelService,
-		@IOpenerService openerService: IOpenerService,
 	) {
-		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService);
+		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService);
 
 		this.menus = instantiationService.createInstance(SCMMenus, this.repository.provider);
 		this._register(this.menus);
@@ -643,18 +640,6 @@ export class RepositoryPane extends ViewPane {
 
 		this.contextKeyService = contextKeyService.createScoped(this.element);
 		this.contextKeyService.createKey('scmRepository', this.repository);
-
-		Registry.as<IViewsRegistry>(Extensions.ViewsRegistry).registerEmptyViewContent(this.id, {
-			content: `hello there dasoi dasoijoi asjoijioasdjiojdasoij oijd oijasodij oi asjoidjasoij doasijoidasj oijaoi
-			this is [another](https://google.com)
-			line
-			[git clone](command:git.clone "dude...")
-			goodbye`
-		});
-
-		Registry.as<IViewsRegistry>(Extensions.ViewsRegistry).registerEmptyViewContent(this.id, {
-			content: `another view yeah`
-		});
 	}
 
 	render(): void {
@@ -680,8 +665,6 @@ export class RepositoryPane extends ViewPane {
 	}
 
 	protected renderBody(container: HTMLElement): void {
-		super.renderBody(container);
-
 		const focusTracker = trackFocus(container);
 		this._register(focusTracker.onDidFocus(() => this.repository.focus()));
 		this._register(focusTracker);
@@ -740,16 +723,16 @@ export class RepositoryPane extends ViewPane {
 			fontFamily: ' -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif',
 			wrappingStrategy: 'advanced',
 			wrappingIndent: 'none',
-			// suggest: {
-			// 	showWords: false
-			// }
+			suggest: {
+				showWords: false
+			}
 		};
 
 		const codeEditorWidgetOptions: ICodeEditorWidgetOptions = {
 			isSimpleWidget: true,
 			contributions: EditorExtensionsRegistry.getSomeEditorContributions([
-				// SuggestController.ID,
-				// SnippetController2.ID,
+				SuggestController.ID,
+				SnippetController2.ID,
 				MenuPreventer.ID,
 				SelectionClipboardContributionID,
 				ContextMenuController.ID,

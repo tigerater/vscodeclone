@@ -56,7 +56,6 @@ import { ColorValue, listDropBackground } from 'vs/platform/theme/common/colorRe
 import { Color } from 'vs/base/common/color';
 import { SIDE_BAR_BACKGROUND } from 'vs/workbench/common/theme';
 import { IViewDescriptorService } from 'vs/workbench/common/views';
-import { IOpenerService } from 'vs/platform/opener/common/opener';
 
 interface IExplorerViewColors extends IColorMapping {
 	listDropBackground?: ColorValue | undefined;
@@ -163,16 +162,15 @@ export class ExplorerView extends ViewPane {
 		@IConfigurationService configurationService: IConfigurationService,
 		@IDecorationsService private readonly decorationService: IDecorationsService,
 		@ILabelService private readonly labelService: ILabelService,
-		@IThemeService protected themeService: IWorkbenchThemeService,
+		@IThemeService private readonly themeService: IWorkbenchThemeService,
 		@IMenuService private readonly menuService: IMenuService,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 		@IExplorerService private readonly explorerService: IExplorerService,
 		@IStorageService private readonly storageService: IStorageService,
 		@IClipboardService private clipboardService: IClipboardService,
-		@IFileService private readonly fileService: IFileService,
-		@IOpenerService openerService: IOpenerService,
+		@IFileService private readonly fileService: IFileService
 	) {
-		super({ ...(options as IViewPaneOptions), id: ExplorerView.ID, ariaHeaderLabel: nls.localize('explorerSection', "Files Explorer Section") }, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService);
+		super({ ...(options as IViewPaneOptions), id: ExplorerView.ID, ariaHeaderLabel: nls.localize('explorerSection', "Files Explorer Section") }, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService);
 
 		this.resourceContext = instantiationService.createInstance(ResourceContextKey);
 		this._register(this.resourceContext);
@@ -241,8 +239,6 @@ export class ExplorerView extends ViewPane {
 	}
 
 	renderBody(container: HTMLElement): void {
-		super.renderBody(container);
-
 		const treeContainer = DOM.append(container, DOM.$('.explorer-folders-view'));
 
 		this.styleElement = DOM.createStyleSheet(treeContainer);
