@@ -93,7 +93,7 @@ interface IExperimentStorageState {
  * be incremented when adding a condition, otherwise experiments might activate
  * on older versions of VS Code where not intended.
  */
-export const currentSchemaVersion = 3;
+export const currentSchemaVersion = 2;
 
 interface IRawExperiment {
 	id: string;
@@ -128,7 +128,6 @@ interface IRawExperiment {
 		userProbability?: number;
 	};
 	action?: IExperimentAction;
-	action2?: IExperimentAction;
 }
 
 interface IActivationEventRecord {
@@ -311,11 +310,10 @@ export class ExperimentService extends Disposable implements IExperimentService 
 			state: !!experiment.enabled ? ExperimentState.Evaluating : ExperimentState.NoRun
 		};
 
-		const action = experiment.action2 || experiment.action;
-		if (action) {
+		if (experiment.action) {
 			processedExperiment.action = {
-				type: ExperimentActionType[action.type] || ExperimentActionType.Custom,
-				properties: action.properties
+				type: ExperimentActionType[experiment.action.type] || ExperimentActionType.Custom,
+				properties: experiment.action.properties
 			};
 			if (processedExperiment.action.type === ExperimentActionType.Prompt) {
 				((<IExperimentActionPromptProperties>processedExperiment.action.properties).commands || []).forEach(x => {
@@ -559,7 +557,7 @@ export class ExperimentService extends Disposable implements IExperimentService 
 				if (typeof latestExperimentState.editCount === 'number' && latestExperimentState.editCount >= fileEdits.minEditCount) {
 					processedExperiment.state = latestExperimentState.state = (typeof condition.userProbability === 'number' && Math.random() < condition.userProbability && this.checkExperimentDependencies(experiment)) ? ExperimentState.Run : ExperimentState.NoRun;
 					this.storageService.store(storageKey, JSON.stringify(latestExperimentState), StorageScope.GLOBAL);
-					if (latestExperimentState.state === ExperimentState.Run && processedExperiment.action && ExperimentActionType[processedExperiment.action.type] === ExperimentActionType.Prompt) {
+					if (latestExperimentState.state === ExperimentState.Run && experiment.action && ExperimentActionType[experiment.action.type] === ExperimentActionType.Prompt) {
 						this.fireRunExperiment(processedExperiment);
 					}
 				}

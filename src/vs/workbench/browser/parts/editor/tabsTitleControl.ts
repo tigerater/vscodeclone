@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import 'vs/css!./media/tabstitlecontrol';
-import { isMacintosh, isWindows } from 'vs/base/common/platform';
+import { isMacintosh } from 'vs/base/common/platform';
 import { shorten } from 'vs/base/common/labels';
 import { toResource, GroupIdentifier, IEditorInput, Verbosity, EditorCommandsContextActionRunner, IEditorPartOptions, SideBySideEditor } from 'vs/workbench/common/editor';
 import { StandardKeyboardEvent } from 'vs/base/browser/keyboardEvent';
@@ -43,8 +43,6 @@ import { withNullAsUndefined, assertAllDefined, assertIsDefined } from 'vs/base/
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
 import { basenameOrAuthority } from 'vs/base/common/resources';
 import { RunOnceScheduler } from 'vs/base/common/async';
-import { IRemotePathService } from 'vs/workbench/services/path/common/remotePathService';
-import { IPath, win32, posix } from 'vs/base/common/path';
 
 interface IEditorInputLabel {
 	name?: string;
@@ -71,8 +69,6 @@ export class TabsTitleControl extends TitleControl {
 	private readonly layoutScheduled = this._register(new MutableDisposable());
 	private blockRevealActiveTab: boolean | undefined;
 
-	private path: IPath = isWindows ? win32 : posix;
-
 	constructor(
 		parent: HTMLElement,
 		accessor: IEditorGroupsAccessor,
@@ -89,18 +85,12 @@ export class TabsTitleControl extends TitleControl {
 		@IExtensionService extensionService: IExtensionService,
 		@IConfigurationService configurationService: IConfigurationService,
 		@IFileService fileService: IFileService,
-		@IEditorService private readonly editorService: EditorServiceImpl,
-		@IRemotePathService private readonly remotePathService: IRemotePathService
+		@IEditorService private readonly editorService: EditorServiceImpl
 	) {
 		super(parent, accessor, group, contextMenuService, instantiationService, contextKeyService, keybindingService, telemetryService, notificationService, menuService, quickOpenService, themeService, extensionService, configurationService, fileService);
 
 		this.tabResourceLabels = this._register(this.instantiationService.createInstance(ResourceLabels, DEFAULT_LABELS_CONTAINER));
 		this.closeOneEditorAction = this._register(this.instantiationService.createInstance(CloseOneEditorAction, CloseOneEditorAction.ID, CloseOneEditorAction.LABEL));
-
-		// Resolve the correct path library for the OS we are on
-		// If we are connected to remote, this accounts for the
-		// remote OS.
-		(async () => this.path = await this.remotePathService.path)();
 	}
 
 	protected create(parent: HTMLElement): void {
@@ -884,7 +874,7 @@ export class TabsTitleControl extends TitleControl {
 			}
 
 			// Shorten descriptions
-			const shortenedDescriptions = shorten(descriptions, this.path.sep);
+			const shortenedDescriptions = shorten(descriptions);
 			descriptions.forEach((description, i) => {
 				for (const label of mapDescriptionToDuplicates.get(description) || []) {
 					label.description = shortenedDescriptions[i];

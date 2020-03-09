@@ -23,8 +23,8 @@ class ExtensionTunnel implements vscode.Tunnel {
 	onDidDispose: Event<void> = this._onDispose.event;
 
 	constructor(
-		public readonly remoteAddress: { port: number, host: string },
-		public readonly localAddress: { port: number, host: string } | string,
+		public readonly remoteAddress: { port: number; host: string; },
+		public readonly localAddress: string,
 		private readonly _dispose: () => void) { }
 
 	dispose(): void {
@@ -52,7 +52,6 @@ export class ExtHostTunnelService extends Disposable implements IExtHostTunnelSe
 			this.registerCandidateFinder();
 		}
 	}
-
 	async openTunnel(forward: TunnelOptions): Promise<vscode.Tunnel | undefined> {
 		const tunnel = await this._proxy.$openTunnel(forward);
 		if (tunnel) {
@@ -92,7 +91,6 @@ export class ExtHostTunnelService extends Disposable implements IExtHostTunnelSe
 		} else {
 			this._forwardPortProvider = undefined;
 		}
-		await this._proxy.$tunnelServiceReady();
 		return toDisposable(() => {
 			this._forwardPortProvider = undefined;
 		});

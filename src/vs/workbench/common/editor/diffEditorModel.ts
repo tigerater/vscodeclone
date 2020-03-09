@@ -23,10 +23,18 @@ export class DiffEditorModel extends EditorModel {
 	}
 
 	get originalModel(): IEditorModel | null {
+		if (!this._originalModel) {
+			return null;
+		}
+
 		return this._originalModel;
 	}
 
 	get modifiedModel(): IEditorModel | null {
+		if (!this._modifiedModel) {
+			return null;
+		}
+
 		return this._modifiedModel;
 	}
 

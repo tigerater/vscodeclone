@@ -302,8 +302,13 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 		return this.synchronisers.filter(s => s.status === SyncStatus.HasConflicts).map(s => s.source);
 	}
 
-	getSynchroniser(source: SyncSource): IUserDataSynchroniser {
-		return this.synchronisers.filter(s => s.source === source)[0];
+	private getSynchroniser(source: SyncSource): IUserDataSynchroniser {
+		switch (source) {
+			case SyncSource.Settings: return this.settingsSynchroniser;
+			case SyncSource.Keybindings: return this.keybindingsSynchroniser;
+			case SyncSource.Extensions: return this.extensionsSynchroniser;
+			case SyncSource.GlobalState: return this.globalStateSynchroniser;
+		}
 	}
 
 	private async checkEnablement(): Promise<void> {

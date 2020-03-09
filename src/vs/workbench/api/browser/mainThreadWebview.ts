@@ -286,7 +286,7 @@ export class MainThreadWebviews extends Disposable implements extHostProtocol.Ma
 		return this.registerEditorProvider(ModelType.Custom, extensionData, viewType, options);
 	}
 
-	private registerEditorProvider(
+	public registerEditorProvider(
 		modelType: ModelType,
 		extensionData: extHostProtocol.WebviewExtensionDescription,
 		viewType: string,
@@ -313,7 +313,7 @@ export class MainThreadWebviews extends Disposable implements extHostProtocol.Ma
 				const resource = webviewInput.resource;
 
 				const modelRef = await this.getOrCreateCustomEditorModel(modelType, webviewInput, resource, viewType);
-				webviewInput.webview.onDispose(() => {
+				webviewInput.onDisposeWebview(() => {
 					modelRef.dispose();
 				});
 
@@ -383,7 +383,7 @@ export class MainThreadWebviews extends Disposable implements extHostProtocol.Ma
 		input.onDispose(() => {
 			disposables.dispose();
 		});
-		input.webview.onDispose(() => {
+		input.onDisposeWebview(() => {
 			this._proxy.$onDidDisposeWebviewPanel(handle).finally(() => {
 				this._webviewInputs.delete(handle);
 			});
@@ -604,28 +604,19 @@ class MainThreadCustomEditorModel extends Disposable implements ICustomEditorMod
 	}
 
 	public async revert(_options?: IRevertOptions) {
-		if (this._editable) {
-			this._proxy.$revert(this.resource, this.viewType);
-		}
+		this._proxy.$revert(this.resource, this.viewType);
 	}
 
 	public undo() {
-		if (this._editable) {
-			this._proxy.$undo(this.resource, this.viewType);
-		}
+		this._proxy.$undo(this.resource, this.viewType);
 	}
 
 	public redo() {
-		if (this._editable) {
-			this._proxy.$redo(this.resource, this.viewType);
-		}
+		this._proxy.$redo(this.resource, this.viewType);
 	}
 
 	public async save(_options?: ISaveOptions): Promise<boolean> {
-		if (!this._editable) {
-			return false;
-		}
-		await createCancelablePromise(token => this._proxy.$onSave(this.resource, this.viewType, token));
+		await this._proxy.$onSave(this.resource, this.viewType);
 		this.setDirty(false);
 		return true;
 	}
@@ -643,16 +634,6 @@ class MainThreadCustomEditorModel extends Disposable implements ICustomEditorMod
 	}
 
 	public async backup(): Promise<IWorkingCopyBackup> {
-		const backupData: IWorkingCopyBackup = {
-			meta: {
-				viewType: this.viewType,
-			}
-		};
-
-		if (!this._editable) {
-			return backupData;
-		}
-
 		if (this._hotExitState.type === HotExitState.Type.Pending) {
 			this._hotExitState.operation.cancel();
 		}
@@ -676,7 +657,11 @@ class MainThreadCustomEditorModel extends Disposable implements ICustomEditorMod
 		}
 
 		if (this._hotExitState === HotExitState.Allowed) {
-			return backupData;
+			return {
+				meta: {
+					viewType: this.viewType,
+				}
+			};
 		}
 
 		throw new Error('Cannot back up in this state');

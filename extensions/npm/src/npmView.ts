@@ -73,7 +73,7 @@ class NpmScript extends TreeItem {
 	task: Task;
 	package: PackageJSON;
 
-	constructor(_context: ExtensionContext, packageJson: PackageJSON, task: Task) {
+	constructor(context: ExtensionContext, packageJson: PackageJSON, task: Task) {
 		super(task.name, TreeItemCollapsibleState.None);
 		const command: ExplorerCommands = workspace.getConfiguration('npm').get<ExplorerCommands>('scriptExplorerAction') || 'open';
 
@@ -98,9 +98,15 @@ class NpmScript extends TreeItem {
 		this.command = commandList[command];
 
 		if (task.group && task.group === TaskGroup.Clean) {
-			this.iconPath = new ThemeIcon('wrench-subaction');
+			this.iconPath = {
+				light: context.asAbsolutePath(path.join('resources', 'light', 'prepostscript.svg')),
+				dark: context.asAbsolutePath(path.join('resources', 'dark', 'prepostscript.svg'))
+			};
 		} else {
-			this.iconPath = new ThemeIcon('wrench');
+			this.iconPath = {
+				light: context.asAbsolutePath(path.join('resources', 'light', 'script.svg')),
+				dark: context.asAbsolutePath(path.join('resources', 'dark', 'script.svg'))
+			};
 		}
 		if (task.detail) {
 			this.tooltip = task.detail;
