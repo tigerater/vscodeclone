@@ -1378,6 +1378,14 @@ declare namespace monaco.editor {
 		 */
 		linesDecorationsClassName?: string | null;
 		/**
+		 * If set, the decoration will be rendered for first line of the range in the lines decorations with this CSS class name.
+		 */
+		firstLineDecorationClassName?: string | null;
+		/**
+		 * If set, the decoration will be rendered for last line of the range in the lines decorations for last line with this CSS class name.
+		 */
+		lastLineDecorationClassName?: string | null;
+		/**
 		 * If set, the decoration will be rendered in the margin (covering its full width) with this CSS class name.
 		 */
 		marginClassName?: string | null;
