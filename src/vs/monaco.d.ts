@@ -175,6 +175,14 @@ declare namespace monaco {
 			fragment?: string;
 		}): Uri;
 		/**
+		 * Join a Uri path with path fragments and normalizes the resulting path.
+		 *
+		 * @param resource The input Uri.
+		 * @param pathFragment The path fragment to add to the Uri path.
+		 * @returns The resulting Uri.
+		 */
+		static joinPaths(resource: Uri, ...pathFragment: string[]): Uri;
+		/**
 		 * Creates a string representation for this Uri. It's guaranteed that calling
 		 * `Uri.parse` with the result of this function creates an Uri which is equal
 		 * to this Uri.
@@ -1369,14 +1377,6 @@ declare namespace monaco.editor {
 		 * If set, the decoration will be rendered in the lines decorations with this CSS class name.
 		 */
 		linesDecorationsClassName?: string | null;
-		/**
-		 * If set, the decoration will be rendered for first line of the range in the lines decorations with this CSS class name.
-		 */
-		firstLineDecorationClassName?: string | null;
-		/**
-		 * If set, the decoration will be rendered for last line of the range in the lines decorations for last line with this CSS class name.
-		 */
-		lastLineDecorationClassName?: string | null;
 		/**
 		 * If set, the decoration will be rendered in the margin (covering its full width) with this CSS class name.
 		 */
