@@ -3330,8 +3330,6 @@ declare namespace monaco.editor {
 		 * The width of the minimap
 		 */
 		readonly minimapWidth: number;
-		readonly minimapLineHeight: number;
-		readonly minimapWidthMultiplier: number;
 		/**
 		 * Minimap render type
 		 */
@@ -3400,10 +3398,6 @@ declare namespace monaco.editor {
 		 * Relative size of the font in the minimap. Defaults to 1.
 		 */
 		scale?: number;
-		/**
-		* Minimap covers entire document.
-		*/
-		entireDocument?: boolean;
 	}
 
 	export type EditorMinimapOptions = Readonly<Required<IEditorMinimapOptions>>;
@@ -5242,6 +5236,31 @@ declare namespace monaco.languages {
 		 * to the word range at the position when omitted.
 		 */
 		provideHover(model: editor.ITextModel, position: Position, token: CancellationToken): ProviderResult<Hover>;
+	}
+
+	/**
+	 * An evaluatable expression represents additional information for an expression in a document. Evaluatable expression are
+	 * evaluated by a debugger or runtime and their result is rendered in a tooltip-like widget.
+	 */
+	export interface EvaluatableExpression {
+		/**
+		 * The range to which this expression applies.
+		 */
+		range: IRange;
+		expression?: string;
+	}
+
+	/**
+	 * The hover provider interface defines the contract between extensions and
+	 * the [hover](https://code.visualstudio.com/docs/editor/intellisense)-feature.
+	 */
+	export interface EvaluatableExpressionProvider {
+		/**
+		 * Provide a hover for the given position and document. Multiple hovers at the same
+		 * position will be merged by the editor. A hover can have a range which defaults
+		 * to the word range at the position when omitted.
+		 */
+		provideEvaluatableExpression(model: editor.ITextModel, position: Position, token: CancellationToken): ProviderResult<EvaluatableExpression>;
 	}
 
 	export enum CompletionItemKind {
