@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { UserDataSyncError, UserDataSyncErrorCode, SyncStatus, IUserDataSyncStoreService, IUserDataSyncLogService, IGlobalState, SyncSource, IUserDataSynchroniser, ResourceKey, IUserDataSyncEnablementService } from 'vs/platform/userDataSync/common/userDataSync';
+import { IUserData, UserDataSyncError, UserDataSyncErrorCode, SyncStatus, IUserDataSyncStoreService, IUserDataSyncLogService, IGlobalState, SyncSource, IUserDataSynchroniser, ResourceKey, IUserDataSyncEnablementService } from 'vs/platform/userDataSync/common/userDataSync';
 import { VSBuffer } from 'vs/base/common/buffer';
 import { Event } from 'vs/base/common/event';
 import { IEnvironmentService } from 'vs/platform/environment/common/environment';
@@ -13,7 +13,7 @@ import { IStringDictionary } from 'vs/base/common/collections';
 import { edit } from 'vs/platform/userDataSync/common/content';
 import { merge } from 'vs/platform/userDataSync/common/globalStateMerge';
 import { parse } from 'vs/base/common/json';
-import { AbstractSynchroniser, IRemoteUserData } from 'vs/platform/userDataSync/common/abstractSynchronizer';
+import { AbstractSynchroniser } from 'vs/platform/userDataSync/common/abstractSynchronizer';
 import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 
 const argvProperties: string[] = ['locale'];
@@ -21,14 +21,13 @@ const argvProperties: string[] = ['locale'];
 interface ISyncPreviewResult {
 	readonly local: IGlobalState | undefined;
 	readonly remote: IGlobalState | undefined;
-	readonly remoteUserData: IRemoteUserData;
-	readonly lastSyncUserData: IRemoteUserData | null;
+	readonly remoteUserData: IUserData;
+	readonly lastSyncUserData: IUserData | null;
 }
 
 export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUserDataSynchroniser {
 
 	readonly resourceKey: ResourceKey = 'globalState';
-	protected readonly version: number = 1;
 
 	constructor(
 		@IFileService fileService: IFileService,
@@ -58,8 +57,8 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 			const lastSyncUserData = await this.getLastSyncUserData();
 			const remoteUserData = await this.getRemoteUserData(lastSyncUserData);
 
-			if (remoteUserData.syncData !== null) {
-				const local: IGlobalState = JSON.parse(remoteUserData.syncData.content);
+			if (remoteUserData.content !== null) {
+				const local: IGlobalState = JSON.parse(remoteUserData.content);
 				await this.apply({ local, remote: undefined, remoteUserData, lastSyncUserData });
 			}
 
@@ -120,7 +119,7 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 		return null;
 	}
 
-	protected async doSync(remoteUserData: IRemoteUserData, lastSyncUserData: IRemoteUserData | null): Promise<void> {
+	protected async doSync(remoteUserData: IUserData, lastSyncUserData: IUserData | null): Promise<void> {
 		try {
 			const result = await this.getPreview(remoteUserData, lastSyncUserData);
 			await this.apply(result);
@@ -138,9 +137,9 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 		}
 	}
 
-	private async getPreview(remoteUserData: IRemoteUserData, lastSyncUserData: IRemoteUserData | null, ): Promise<ISyncPreviewResult> {
-		const remoteGlobalState: IGlobalState = remoteUserData.syncData ? JSON.parse(remoteUserData.syncData.content) : null;
-		const lastSyncGlobalState = lastSyncUserData && lastSyncUserData.syncData ? JSON.parse(lastSyncUserData.syncData.content) : null;
+	private async getPreview(remoteUserData: IUserData, lastSyncUserData: IUserData | null, ): Promise<ISyncPreviewResult> {
+		const remoteGlobalState: IGlobalState = remoteUserData.content ? JSON.parse(remoteUserData.content) : null;
+		const lastSyncGlobalState = lastSyncUserData && lastSyncUserData.content ? JSON.parse(lastSyncUserData.content) : null;
 
 		const localGloablState = await this.getLocalGlobalState();
 
@@ -174,8 +173,9 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 			// update remote
 			this.logService.trace('UI State: Updating remote ui state...');
 			const content = JSON.stringify(remote);
-			remoteUserData = await this.updateRemoteUserData(content, forcePush ? null : remoteUserData.ref);
+			const ref = await this.updateRemoteUserData(content, forcePush ? null : remoteUserData.ref);
 			this.logService.info('UI State: Updated remote ui state');
+			remoteUserData = { ref, content };
 		}
 
 		if (lastSyncUserData?.ref !== remoteUserData.ref) {

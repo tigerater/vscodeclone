@@ -21,7 +21,7 @@ import { IModelService } from 'vs/editor/common/services/modelService';
 import { IModeService } from 'vs/editor/common/services/modeService';
 import { ITextModelContentProvider, ITextModelService } from 'vs/editor/common/services/resolverService';
 import { localize } from 'vs/nls';
-import { MenuId, MenuRegistry } from 'vs/platform/actions/common/actions';
+import { IMenuItem, MenuId, MenuRegistry } from 'vs/platform/actions/common/actions';
 import { CommandsRegistry } from 'vs/platform/commands/common/commands';
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { ContextKeyExpr, IContextKey, IContextKeyService, RawContextKey, ContextKeyRegexExpr } from 'vs/platform/contextkey/common/contextkey';
@@ -547,6 +547,7 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 			} else {
 				await this.userDataSyncService.resetLocal();
 			}
+			await this.signOut();
 			this.disableSync();
 		}
 	}
@@ -570,6 +571,13 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 		} catch (e) {
 			this.notificationService.error(localize('loginFailed', "Logging in failed: {0}", e));
 			throw e;
+		}
+	}
+
+	private async signOut(): Promise<void> {
+		if (this.activeAccount) {
+			await this.authenticationService.logout(this.userDataSyncStore!.authenticationProviderId, this.activeAccount.id);
+			await this.setActiveAccount(undefined);
 		}
 	}
 
@@ -644,14 +652,6 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 			},
 			when: turnOnSyncWhenContext,
 		});
-		MenuRegistry.appendMenuItem(MenuId.MenubarPreferencesMenu, {
-			group: '5_sync',
-			command: {
-				id: turnOnSyncCommandId,
-				title: localize('global activity turn on sync', "Turn on Sync...")
-			},
-			when: turnOnSyncWhenContext,
-		});
 
 		const signInCommandId = 'workbench.userData.actions.signin';
 		const signInWhenContext = ContextKeyExpr.and(CONTEXT_SYNC_STATE.notEqualsTo(SyncStatus.Uninitialized), CONTEXT_SYNC_ENABLEMENT, CONTEXT_AUTH_TOKEN_STATE.isEqualTo(AuthStatus.SignedOut));
@@ -697,14 +697,6 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 			},
 			when: ContextKeyExpr.and(CONTEXT_SYNC_STATE.notEqualsTo(SyncStatus.Uninitialized), CONTEXT_SYNC_ENABLEMENT),
 		});
-		MenuRegistry.appendMenuItem(MenuId.MenubarPreferencesMenu, {
-			group: '5_sync',
-			command: {
-				id: stopSyncCommandId,
-				title: localize('global activity stop sync', "Turn off Sync")
-			},
-			when: ContextKeyExpr.and(CONTEXT_SYNC_STATE.notEqualsTo(SyncStatus.Uninitialized), CONTEXT_SYNC_ENABLEMENT),
-		});
 
 		const resolveSettingsConflictsCommandId = 'workbench.userData.actions.resolveSettingsConflicts';
 		const resolveSettingsConflictsWhenContext = ContextKeyRegexExpr.create(CONTEXT_CONFLICTS_SOURCES.keys()[0], /.*settings.*/i);
@@ -744,6 +736,17 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 			when: resolveKeybindingsConflictsWhenContext,
 		});
 
+		const signOutMenuItem: IMenuItem = {
+			group: '5_sync',
+			command: {
+				id: 'workbench.userData.actions.signout',
+				title: localize('sign out', "Sync: Sign out")
+			},
+			when: ContextKeyExpr.and(CONTEXT_AUTH_TOKEN_STATE.isEqualTo(AuthStatus.SignedIn)),
+		};
+		CommandsRegistry.registerCommand(signOutMenuItem.command.id, () => this.signOut());
+		MenuRegistry.appendMenuItem(MenuId.CommandPalette, signOutMenuItem);
+
 		const configureSyncCommandId = 'workbench.userData.actions.configureSync';
 		CommandsRegistry.registerCommand(configureSyncCommandId, () => this.configureSyncOptions());
 		MenuRegistry.appendMenuItem(MenuId.CommandPalette, {
@@ -764,6 +767,15 @@ export class UserDataSyncWorkbenchContribution extends Disposable implements IWo
 			when: ContextKeyExpr.and(CONTEXT_SYNC_STATE.notEqualsTo(SyncStatus.Uninitialized)),
 		});
 
+		const resetLocalCommandId = 'workbench.userData.actions.resetLocal';
+		CommandsRegistry.registerCommand(resetLocalCommandId, () => this.userDataSyncService.resetLocal());
+		MenuRegistry.appendMenuItem(MenuId.CommandPalette, {
+			command: {
+				id: resetLocalCommandId,
+				title: localize('reset local', "Developer: Reset Local (Sync)")
+			},
+			when: ContextKeyExpr.and(CONTEXT_SYNC_STATE.notEqualsTo(SyncStatus.Uninitialized)),
+		});
 	}
 }
 

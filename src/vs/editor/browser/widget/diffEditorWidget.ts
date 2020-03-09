@@ -84,7 +84,7 @@ class VisualEditorState {
 
 	constructor(
 		private _contextMenuService: IContextMenuService,
-		private _clipboardService: IClipboardService
+		private _clipboardService: IClipboardService | null
 	) {
 		this._zones = [];
 		this.inlineDiffMargins = [];
@@ -134,7 +134,7 @@ class VisualEditorState {
 				this._zones.push(zoneId);
 				this._zonesMap[String(zoneId)] = true;
 
-				if (newDecorations.zones[i].diff && viewZone.marginDomNode) {
+				if (newDecorations.zones[i].diff && viewZone.marginDomNode && this._clipboardService) {
 					viewZone.suppressMouseDown = false;
 					this.inlineDiffMargins.push(new InlineDiffMargin(zoneId, viewZone.marginDomNode, editor, newDecorations.zones[i].diff!, this._contextMenuService, this._clipboardService));
 				}
@@ -220,7 +220,7 @@ export class DiffEditorWidget extends Disposable implements editorBrowser.IDiffE
 	constructor(
 		domElement: HTMLElement,
 		options: IDiffEditorOptions,
-		@IClipboardService clipboardService: IClipboardService,
+		clipboardService: IClipboardService | null,
 		@IEditorWorkerService editorWorkerService: IEditorWorkerService,
 		@IContextKeyService contextKeyService: IContextKeyService,
 		@IInstantiationService instantiationService: IInstantiationService,
