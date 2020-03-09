@@ -3330,6 +3330,13 @@ declare namespace monaco.editor {
 		 * The width of the minimap
 		 */
 		readonly minimapWidth: number;
+		readonly minimapIsSampling: boolean;
+		readonly minimapScale: number;
+		readonly minimapLineHeight: number;
+		readonly minimapCanvasInnerWidth: number;
+		readonly minimapCanvasInnerHeight: number;
+		readonly minimapCanvasOuterWidth: number;
+		readonly minimapCanvasOuterHeight: number;
 		/**
 		 * Minimap render type
 		 */
@@ -3398,6 +3405,10 @@ declare namespace monaco.editor {
 		 * Relative size of the font in the minimap. Defaults to 1.
 		 */
 		scale?: number;
+		/**
+		* Minimap covers entire document.
+		*/
+		entireDocument?: boolean;
 	}
 
 	export type EditorMinimapOptions = Readonly<Required<IEditorMinimapOptions>>;
