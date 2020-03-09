@@ -50,6 +50,13 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 	private readonly _onDidChangeEncoding = this._register(new Emitter<ITextFileEditorModel>());
 	readonly onDidChangeEncoding = this._onDidChangeEncoding.event;
 
+	private readonly mapResourceToModel = new ResourceMap<ITextFileEditorModel>();
+	private readonly mapResourceToModelListeners = new ResourceMap<IDisposable>();
+	private readonly mapResourceToDisposeListener = new ResourceMap<IDisposable>();
+	private readonly mapResourceToPendingModelLoaders = new ResourceMap<Promise<ITextFileEditorModel>>();
+
+	private readonly modelLoadQueue = this._register(new ResourceQueue());
+
 	saveErrorHandler = (() => {
 		const notificationService = this.notificationService;
 
@@ -60,12 +67,9 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 		};
 	})();
 
-	private readonly mapResourceToModel = new ResourceMap<ITextFileEditorModel>();
-	private readonly mapResourceToModelListeners = new ResourceMap<IDisposable>();
-	private readonly mapResourceToDisposeListener = new ResourceMap<IDisposable>();
-	private readonly mapResourceToPendingModelLoaders = new ResourceMap<Promise<ITextFileEditorModel>>();
-
-	private readonly modelLoadQueue = this._register(new ResourceQueue());
+	get models(): ITextFileEditorModel[] {
+		return this.mapResourceToModel.values();
+	}
 
 	constructor(
 		@ILifecycleService private readonly lifecycleService: ILifecycleService,
@@ -99,10 +103,12 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 		//
 		// Note: we also consider the added event because it could be that a file was added
 		// and updated right after.
-		distinct(coalesce([...e.getUpdated(), ...e.getAdded()]
-			.map(({ resource }) => this.get(resource)))
-			.filter(model => model && !model.isDirty()), model => model.resource.toString())
-			.forEach(model => this.queueModelLoad(model));
+		distinct(
+			coalesce(
+				[...e.getUpdated(), ...e.getAdded()].map(({ resource }) => this.get(resource))
+			).filter(model => model && model.isResolved() && !model.isDirty()),
+			model => model.resource.toString()
+		).forEach(model => this.queueModelLoad(model));
 	}
 
 	private queueModelLoad(model: ITextFileEditorModel): void {
@@ -133,7 +139,7 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 			// find all models that related to either source or target (can be many if resource is a folder)
 			const sourceModels: ITextFileEditorModel[] = [];
 			const targetModels: ITextFileEditorModel[] = [];
-			for (const model of this.getAll()) {
+			for (const model of this.models) {
 				const resource = model.resource;
 
 				if (isEqualOrParent(resource, e.target, false /* do not ignorecase, see https://github.com/Microsoft/vscode/issues/56384 */)) {
@@ -289,6 +295,9 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 		// Store pending loads to avoid race conditions
 		this.mapResourceToPendingModelLoaders.set(resource, modelPromise);
 
+		// Make known to manager (if not already known)
+		this.add(resource, model);
+
 		// Signal as event if we created the model
 		if (didCreateModel) {
 			this._onDidCreate.fire(model);
@@ -296,9 +305,6 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 
 		try {
 			const resolvedModel = await modelPromise;
-
-			// Make known to manager (if not already known)
-			this.add(resource, resolvedModel);
 
 			// Remove from pending loads
 			this.mapResourceToPendingModelLoaders.delete(resource);
@@ -308,8 +314,9 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 				resolvedModel.setMode(options.mode);
 			}
 
-			// Model can be dirty if a backup was restored, so we make sure to have this event delivered
-			if (resolvedModel.isDirty()) {
+			// Model can be dirty if a backup was restored, so we make sure to
+			// have this event delivered if we created the model here
+			if (didCreateModel && resolvedModel.isDirty()) {
 				this._onDidChangeDirty.fire(resolvedModel);
 			}
 
@@ -326,17 +333,6 @@ export class TextFileEditorModelManager extends Disposable implements ITextFileE
 
 			throw error;
 		}
-	}
-
-	getAll(filter?: (model: ITextFileEditorModel) => boolean): ITextFileEditorModel[] {
-		const res: ITextFileEditorModel[] = [];
-		this.mapResourceToModel.forEach(model => {
-			if (!filter || filter(model)) {
-				res.push(model);
-			}
-		});
-
-		return res;
 	}
 
 	add(resource: URI, model: ITextFileEditorModel): void {
