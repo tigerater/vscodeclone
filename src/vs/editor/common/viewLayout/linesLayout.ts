@@ -111,10 +111,8 @@ export class LinesLayout {
 	private _minWidth: number;
 	private _lineCount: number;
 	private _lineHeight: number;
-	private _paddingTop: number;
-	private _paddingBottom: number;
 
-	constructor(lineCount: number, lineHeight: number, paddingTop: number, paddingBottom: number) {
+	constructor(lineCount: number, lineHeight: number) {
 		this._instanceId = strings.singleLetterHash(++LinesLayout.INSTANCE_COUNT);
 		this._pendingChanges = new PendingChanges();
 		this._lastWhitespaceId = 0;
@@ -123,8 +121,6 @@ export class LinesLayout {
 		this._minWidth = -1; /* marker for not being computed */
 		this._lineCount = lineCount;
 		this._lineHeight = lineHeight;
-		this._paddingTop = paddingTop;
-		this._paddingBottom = paddingBottom;
 	}
 
 	/**
@@ -160,14 +156,6 @@ export class LinesLayout {
 	public setLineHeight(lineHeight: number): void {
 		this._checkPendingChanges();
 		this._lineHeight = lineHeight;
-	}
-
-	/**
-	 * Changes the padding used to calculate vertical offsets.
-	 */
-	public setPadding(paddingTop: number, paddingBottom: number): void {
-		this._paddingTop = paddingTop;
-		this._paddingBottom = paddingBottom;
 	}
 
 	/**
@@ -416,8 +404,7 @@ export class LinesLayout {
 		this._checkPendingChanges();
 		const linesHeight = this._lineHeight * this._lineCount;
 		const whitespacesHeight = this.getWhitespacesTotalHeight();
-
-		return linesHeight + whitespacesHeight + this._paddingTop + this._paddingBottom;
+		return linesHeight + whitespacesHeight;
 	}
 
 	/**
@@ -508,7 +495,7 @@ export class LinesLayout {
 
 		const previousWhitespacesHeight = this.getWhitespaceAccumulatedHeightBeforeLineNumber(lineNumber);
 
-		return previousLinesHeight + previousWhitespacesHeight + this._paddingTop;
+		return previousLinesHeight + previousWhitespacesHeight;
 	}
 
 	/**
@@ -732,7 +719,7 @@ export class LinesLayout {
 		} else {
 			previousWhitespacesHeight = 0;
 		}
-		return previousLinesHeight + previousWhitespacesHeight + this._paddingTop;
+		return previousLinesHeight + previousWhitespacesHeight;
 	}
 
 	public getWhitespaceIndexAtOrAfterVerticallOffset(verticalOffset: number): number {
