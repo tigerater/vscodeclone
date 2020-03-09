@@ -124,13 +124,12 @@ export interface IUserData {
 }
 
 export enum UserDataSyncErrorCode {
-	Unauthorized = 'Unauthorized',
+	Unauthroized = 'Unauthroized',
 	Forbidden = 'Forbidden',
 	ConnectionRefused = 'ConnectionRefused',
 	Rejected = 'Rejected',
 	TooLarge = 'TooLarge',
 	TooManyFailures = 'TooManyFailures',
-	NoRef = 'NoRef',
 	Unknown = 'Unknown',
 }
 
@@ -205,8 +204,8 @@ export interface ISynchroniser {
 
 export interface IUserDataSynchroniser extends ISynchroniser {
 	readonly source: SyncSource;
-	getRemoteContent(preivew?: boolean): Promise<string | null>;
-	accept(content: string): Promise<void>;
+	getRemoteContent(): Promise<string | null>;
+	resolveConflicts(content: string, remote: boolean): Promise<void>;
 }
 
 export const IUserDataSyncService = createDecorator<IUserDataSyncService>('IUserDataSyncService');
@@ -216,8 +215,8 @@ export interface IUserDataSyncService extends ISynchroniser {
 	isFirstTimeSyncAndHasUserData(): Promise<boolean>;
 	reset(): Promise<void>;
 	resetLocal(): Promise<void>;
-	getRemoteContent(source: SyncSource, preview: boolean): Promise<string | null>;
-	accept(source: SyncSource, content: string): Promise<void>;
+	getRemoteContent(source: SyncSource): Promise<string | null>;
+	resolveConflictsAndContinueSync(content: string, remote: boolean): Promise<void>;
 }
 
 export const IUserDataAutoSyncService = createDecorator<IUserDataAutoSyncService>('IUserDataAutoSyncService');

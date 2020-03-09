@@ -34,7 +34,6 @@ import { IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 import { SIDE_BAR_BACKGROUND } from 'vs/workbench/common/theme';
 import { Gesture } from 'vs/base/browser/touch';
 import { IViewDescriptorService } from 'vs/workbench/common/views';
-import { TextEditorSelectionRevealType } from 'vs/platform/editor/common/editor';
 
 const $ = dom.$;
 
@@ -634,7 +633,7 @@ export function openBreakpointSource(breakpoint: IBreakpoint, sideBySide: boolea
 			preserveFocus,
 			selection,
 			revealIfOpened: true,
-			selectionRevealType: TextEditorSelectionRevealType.CenterIfOutsideViewport,
+			revealInCenterIfOutsideViewport: true,
 			pinned: !preserveFocus
 		}
 	}, sideBySide ? SIDE_GROUP : ACTIVE_GROUP);

@@ -40,7 +40,7 @@ export interface IWorkspacesService {
 	// History
 	readonly onRecentlyOpenedChange: CommonEvent<void>;
 	addRecentlyOpened(recents: IRecent[]): Promise<void>;
-	removeRecentlyOpened(workspaces: URI[]): Promise<void>;
+	removeFromRecentlyOpened(workspaces: URI[]): Promise<void>;
 	clearRecentlyOpened(): Promise<void>;
 	getRecentlyOpened(): Promise<IRecentlyOpened>;
 }

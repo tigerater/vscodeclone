@@ -123,9 +123,12 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 		this.logService.trace(`Finished Syncing. Took ${new Date().getTime() - startTime}ms`);
 	}
 
-	async accept(source: SyncSource, content: string): Promise<void> {
-		const synchroniser = this.getSynchroniser(source);
-		await synchroniser.accept(content);
+	async resolveConflictsAndContinueSync(content: string, remote: boolean): Promise<void> {
+		const synchroniser = this.getSynchroniserInConflicts();
+		if (!synchroniser) {
+			throw new Error(localize('no synchroniser with conflicts', "No conflicts detected."));
+		}
+		await synchroniser.resolveConflicts(content, remote);
 		if (synchroniser.status !== SyncStatus.HasConflicts) {
 			await this.sync();
 		}
@@ -196,10 +199,10 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 		return false;
 	}
 
-	async getRemoteContent(source: SyncSource, preview: boolean): Promise<string | null> {
+	async getRemoteContent(source: SyncSource): Promise<string | null> {
 		for (const synchroniser of this.synchronisers) {
 			if (synchroniser.source === source) {
-				return synchroniser.getRemoteContent(preview);
+				return synchroniser.getRemoteContent();
 			}
 		}
 		return null;
@@ -308,15 +311,6 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 			return SyncSource.Extensions;
 		}
 		return SyncSource.GlobalState;
-	}
-
-	private getSynchroniser(source: SyncSource): IUserDataSynchroniser {
-		switch (source) {
-			case SyncSource.Settings: return this.settingsSynchroniser;
-			case SyncSource.Keybindings: return this.keybindingsSynchroniser;
-			case SyncSource.Extensions: return this.extensionsSynchroniser;
-			case SyncSource.GlobalState: return this.globalStateSynchroniser;
-		}
 	}
 
 	private onDidChangeAuthTokenStatus(token: string | undefined): void {

@@ -4,18 +4,17 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as assert from 'assert';
-import { renderExpressionValue, renderVariable, renderViewTree } from 'vs/workbench/contrib/debug/browser/baseDebugView';
+import { replaceWhitespace, renderExpressionValue, renderVariable, renderViewTree } from 'vs/workbench/contrib/debug/browser/baseDebugView';
 import * as dom from 'vs/base/browser/dom';
 import { Expression, Variable, Scope, StackFrame, Thread, DebugModel } from 'vs/workbench/contrib/debug/common/debugModel';
 import { MockSession } from 'vs/workbench/contrib/debug/test/common/mockDebug';
 import { HighlightedLabel } from 'vs/base/browser/ui/highlightedlabel/highlightedLabel';
 import { LinkDetector } from 'vs/workbench/contrib/debug/browser/linkDetector';
 import { TestInstantiationService } from 'vs/platform/instantiation/test/common/instantiationServiceMock';
-import { workbenchInstantiationService } from 'vs/workbench/test/browser/workbenchTestServices';
+import { workbenchInstantiationService } from 'vs/workbench/test/workbenchTestServices';
 import { createMockSession } from 'vs/workbench/contrib/debug/test/browser/callStack.test';
 import { isStatusbarInDebugMode } from 'vs/workbench/contrib/debug/browser/statusbarColorProvider';
 import { State } from 'vs/workbench/contrib/debug/common/debug';
-import { isWindows } from 'vs/base/common/platform';
 const $ = dom.$;
 
 suite('Debug - Base Debug View', () => {
@@ -27,6 +26,13 @@ suite('Debug - Base Debug View', () => {
 	setup(() => {
 		const instantiationService: TestInstantiationService = <TestInstantiationService>workbenchInstantiationService();
 		linkDetector = instantiationService.createInstance(LinkDetector);
+	});
+
+	test('replace whitespace', () => {
+		assert.equal(replaceWhitespace('hey there'), 'hey there');
+		assert.equal(replaceWhitespace('hey there\n'), 'hey there\\n');
+		assert.equal(replaceWhitespace('hey \r there\n\t'), 'hey \\r there\\n\\t');
+		assert.equal(replaceWhitespace('hey \r\t\n\t\t\n there'), 'hey \\r\\t\\n\\t\\t\\n there');
 	});
 
 	test('render view tree', () => {
@@ -41,7 +47,7 @@ suite('Debug - Base Debug View', () => {
 
 	test('render expression value', () => {
 		let container = $('.container');
-		renderExpressionValue('render \n me', container, { showHover: true });
+		renderExpressionValue('render \n me', container, { showHover: true, preserveWhitespace: true });
 		assert.equal(container.className, 'value');
 		assert.equal(container.title, 'render \n me');
 		assert.equal(container.textContent, 'render \n me');
@@ -70,7 +76,7 @@ suite('Debug - Base Debug View', () => {
 		renderExpressionValue(expression, container, { colorize: true, maxValueLength: 4, linkDetector });
 		assert.equal(container.textContent, 'this...');
 
-		expression.value = isWindows ? 'C:\\foo.js:5' : '/foo.js:5';
+		expression.value = process.platform === 'win32' ? 'C:\\foo.js:5' : '/foo.js:5';
 		container = $('.container');
 		renderExpressionValue(expression, container, { colorize: true, linkDetector });
 		assert.ok(container.querySelector('a'));
@@ -103,7 +109,7 @@ suite('Debug - Base Debug View', () => {
 		assert.equal(label.element.textContent, 'foo:');
 		assert.equal(label.element.title, 'string');
 
-		variable.value = isWindows ? 'C:\\foo.js:5' : '/foo.js:5';
+		variable.value = process.platform === 'win32' ? 'C:\\foo.js:5' : '/foo.js:5';
 		expression = $('.');
 		name = $('.');
 		value = $('.');

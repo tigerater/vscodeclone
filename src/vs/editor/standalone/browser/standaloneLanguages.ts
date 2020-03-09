@@ -497,20 +497,6 @@ export function registerSelectionRangeProvider(languageId: string, provider: mod
 }
 
 /**
- * Register a document semantic tokens provider
- */
-export function registerDocumentSemanticTokensProvider(languageId: string, provider: modes.DocumentSemanticTokensProvider): IDisposable {
-	return modes.DocumentSemanticTokensProviderRegistry.register(languageId, provider);
-}
-
-/**
- * Register a document range semantic tokens provider
- */
-export function registerDocumentRangeSemanticTokensProvider(languageId: string, provider: modes.DocumentRangeSemanticTokensProvider): IDisposable {
-	return modes.DocumentRangeSemanticTokensProviderRegistry.register(languageId, provider);
-}
-
-/**
  * Contains additional diagnostic information about the context in which
  * a [code action](#CodeActionProvider.provideCodeActions) is run.
  */
@@ -572,8 +558,6 @@ export function createMonacoLanguagesAPI(): typeof monaco.languages {
 		registerFoldingRangeProvider: <any>registerFoldingRangeProvider,
 		registerDeclarationProvider: <any>registerDeclarationProvider,
 		registerSelectionRangeProvider: <any>registerSelectionRangeProvider,
-		registerDocumentSemanticTokensProvider: <any>registerDocumentSemanticTokensProvider,
-		registerDocumentRangeSemanticTokensProvider: <any>registerDocumentRangeSemanticTokensProvider,
 
 		// enums
 		DocumentHighlightKind: standaloneEnums.DocumentHighlightKind,
