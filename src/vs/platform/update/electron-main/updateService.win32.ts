@@ -69,10 +69,6 @@ export class Win32UpdateService extends AbstractUpdateService {
 		@IFileService private readonly fileService: IFileService
 	) {
 		super(lifecycleMainService, configurationService, environmentService, requestService, logService);
-	}
-
-	initialize(): void {
-		super.initialize();
 
 		if (getUpdateType() === UpdateType.Setup) {
 			/* __GDPR__
@@ -85,7 +81,7 @@ export class Win32UpdateService extends AbstractUpdateService {
 					"target" : { "classification": "SystemMetaData", "purpose": "FeatureInsight" }
 				}
 			*/
-			this.telemetryService.publicLog('update:win32SetupTarget', { target: product.target });
+			telemetryService.publicLog('update:win32SetupTarget', { target: product.target });
 		}
 	}
 
