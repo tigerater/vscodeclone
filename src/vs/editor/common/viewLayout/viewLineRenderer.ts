@@ -68,8 +68,7 @@ export class RenderLineInput {
 	public readonly tabSize: number;
 	public readonly startVisibleColumn: number;
 	public readonly spaceWidth: number;
-	public readonly renderSpaceWidth: number;
-	public readonly renderSpaceCharCode: number;
+	public readonly middotWidth: number;
 	public readonly stopRenderingLineAfter: number;
 	public readonly renderWhitespace: RenderWhitespace;
 	public readonly renderControlCharacters: boolean;
@@ -95,7 +94,6 @@ export class RenderLineInput {
 		startVisibleColumn: number,
 		spaceWidth: number,
 		middotWidth: number,
-		wsmiddotWidth: number,
 		stopRenderingLineAfter: number,
 		renderWhitespace: 'none' | 'boundary' | 'selection' | 'all',
 		renderControlCharacters: boolean,
@@ -114,6 +112,7 @@ export class RenderLineInput {
 		this.tabSize = tabSize;
 		this.startVisibleColumn = startVisibleColumn;
 		this.spaceWidth = spaceWidth;
+		this.middotWidth = middotWidth;
 		this.stopRenderingLineAfter = stopRenderingLineAfter;
 		this.renderWhitespace = (
 			renderWhitespace === 'all'
@@ -127,16 +126,6 @@ export class RenderLineInput {
 		this.renderControlCharacters = renderControlCharacters;
 		this.fontLigatures = fontLigatures;
 		this.selectionsOnLine = selectionsOnLine && selectionsOnLine.sort((a, b) => a.startOffset < b.startOffset ? -1 : 1);
-
-		const wsmiddotDiff = Math.abs(wsmiddotWidth - spaceWidth);
-		const middotDiff = Math.abs(middotWidth - spaceWidth);
-		if (wsmiddotDiff < middotDiff) {
-			this.renderSpaceWidth = wsmiddotWidth;
-			this.renderSpaceCharCode = 0x2E31; // U+2E31 - WORD SEPARATOR MIDDLE DOT
-		} else {
-			this.renderSpaceWidth = middotWidth;
-			this.renderSpaceCharCode = 0xB7; // U+00B7 - MIDDLE DOT
-		}
 	}
 
 	private sameSelection(otherSelections: LineRange[] | null): boolean {
@@ -173,8 +162,6 @@ export class RenderLineInput {
 			&& this.tabSize === other.tabSize
 			&& this.startVisibleColumn === other.startVisibleColumn
 			&& this.spaceWidth === other.spaceWidth
-			&& this.renderSpaceWidth === other.renderSpaceWidth
-			&& this.renderSpaceCharCode === other.renderSpaceCharCode
 			&& this.stopRenderingLineAfter === other.stopRenderingLineAfter
 			&& this.renderWhitespace === other.renderWhitespace
 			&& this.renderControlCharacters === other.renderControlCharacters
@@ -396,7 +383,7 @@ class ResolvedRenderLineInput {
 		public readonly startVisibleColumn: number,
 		public readonly containsRTL: boolean,
 		public readonly spaceWidth: number,
-		public readonly renderSpaceCharCode: number,
+		public readonly middotWidth: number,
 		public readonly renderWhitespace: RenderWhitespace,
 		public readonly renderControlCharacters: boolean,
 	) {
@@ -405,6 +392,7 @@ class ResolvedRenderLineInput {
 }
 
 function resolveRenderLineInput(input: RenderLineInput): ResolvedRenderLineInput {
+	const useMonospaceOptimizations = input.useMonospaceOptimizations;
 	const lineContent = input.lineContent;
 
 	let isOverflowing: boolean;
@@ -420,7 +408,7 @@ function resolveRenderLineInput(input: RenderLineInput): ResolvedRenderLineInput
 
 	let tokens = transformAndRemoveOverflowing(input.lineTokens, input.fauxIndentLength, len);
 	if (input.renderWhitespace === RenderWhitespace.All || input.renderWhitespace === RenderWhitespace.Boundary || (input.renderWhitespace === RenderWhitespace.Selection && !!input.selectionsOnLine)) {
-		tokens = _applyRenderWhitespace(input, lineContent, len, tokens);
+		tokens = _applyRenderWhitespace(lineContent, len, input.continuesWithWrappedLine, tokens, input.fauxIndentLength, input.tabSize, input.startVisibleColumn, useMonospaceOptimizations, input.selectionsOnLine, input.renderWhitespace === RenderWhitespace.Boundary);
 	}
 	let containsForeignElements = ForeignElementType.None;
 	if (input.lineDecorations.length > 0) {
@@ -443,7 +431,7 @@ function resolveRenderLineInput(input: RenderLineInput): ResolvedRenderLineInput
 	}
 
 	return new ResolvedRenderLineInput(
-		input.useMonospaceOptimizations,
+		useMonospaceOptimizations,
 		input.canUseHalfwidthRightwardsArrow,
 		lineContent,
 		len,
@@ -455,7 +443,7 @@ function resolveRenderLineInput(input: RenderLineInput): ResolvedRenderLineInput
 		input.startVisibleColumn,
 		input.containsRTL,
 		input.spaceWidth,
-		input.renderSpaceCharCode,
+		input.middotWidth,
 		input.renderWhitespace,
 		input.renderControlCharacters
 	);
@@ -565,16 +553,7 @@ function splitLargeTokens(lineContent: string, tokens: LinePart[], onlyAtSpaces:
  * Moreover, a token is created for every visual indent because on some fonts the glyphs used for rendering whitespace (&rarr; or &middot;) do not have the same width as &nbsp;.
  * The rendering phase will generate `style="width:..."` for these tokens.
  */
-function _applyRenderWhitespace(input: RenderLineInput, lineContent: string, len: number, tokens: LinePart[]): LinePart[] {
-
-	const continuesWithWrappedLine = input.continuesWithWrappedLine;
-	const fauxIndentLength = input.fauxIndentLength;
-	const tabSize = input.tabSize;
-	const startVisibleColumn = input.startVisibleColumn;
-	const useMonospaceOptimizations = input.useMonospaceOptimizations;
-	const selections = input.selectionsOnLine;
-	const onlyBoundary = (input.renderWhitespace === RenderWhitespace.Boundary);
-	const generateLinePartForEachWhitespace = (input.renderSpaceWidth !== input.spaceWidth);
+function _applyRenderWhitespace(lineContent: string, len: number, continuesWithWrappedLine: boolean, tokens: LinePart[], fauxIndentLength: number, tabSize: number, startVisibleColumn: number, useMonospaceOptimizations: boolean, selections: LineRange[] | null, onlyBoundary: boolean): LinePart[] {
 
 	let result: LinePart[] = [], resultLen = 0;
 	let tokenIndex = 0;
@@ -637,14 +616,7 @@ function _applyRenderWhitespace(input: RenderLineInput, lineContent: string, len
 			// was in whitespace token
 			if (!isInWhitespace || (!useMonospaceOptimizations && tmpIndent >= tabSize)) {
 				// leaving whitespace token or entering a new indent
-				if (generateLinePartForEachWhitespace) {
-					const lastEndIndex = (resultLen > 0 ? result[resultLen - 1].endIndex : fauxIndentLength);
-					for (let i = lastEndIndex + 1; i <= charIndex; i++) {
-						result[resultLen++] = new LinePart(i, 'mtkw');
-					}
-				} else {
-					result[resultLen++] = new LinePart(charIndex, 'mtkw');
-				}
+				result[resultLen++] = new LinePart(charIndex, 'mtkw');
 				tmpIndent = tmpIndent % tabSize;
 			}
 		} else {
@@ -689,18 +661,7 @@ function _applyRenderWhitespace(input: RenderLineInput, lineContent: string, len
 		}
 	}
 
-	if (generateWhitespace) {
-		if (generateLinePartForEachWhitespace) {
-			const lastEndIndex = (resultLen > 0 ? result[resultLen - 1].endIndex : fauxIndentLength);
-			for (let i = lastEndIndex + 1; i <= len; i++) {
-				result[resultLen++] = new LinePart(i, 'mtkw');
-			}
-		} else {
-			result[resultLen++] = new LinePart(len, 'mtkw');
-		}
-	} else {
-		result[resultLen++] = new LinePart(len, tokenType);
-	}
+	result[resultLen++] = new LinePart(len, generateWhitespace ? 'mtkw' : tokenType);
 
 	return result;
 }
@@ -778,9 +739,12 @@ function _renderLine(input: ResolvedRenderLineInput, sb: IStringBuilder): Render
 	const startVisibleColumn = input.startVisibleColumn;
 	const containsRTL = input.containsRTL;
 	const spaceWidth = input.spaceWidth;
-	const renderSpaceCharCode = input.renderSpaceCharCode;
+	const middotWidth = input.middotWidth;
 	const renderWhitespace = input.renderWhitespace;
 	const renderControlCharacters = input.renderControlCharacters;
+
+	// use U+2E31 - WORD SEPARATOR MIDDLE DOT or U+00B7 - MIDDLE DOT
+	const spaceRenderWhitespaceCharacter = (middotWidth > spaceWidth ? 0x2E31 : 0xB7);
 
 	const characterMapping = new CharacterMapping(len + 1, parts.length);
 
@@ -851,7 +815,7 @@ function _renderLine(input: ResolvedRenderLineInput, sb: IStringBuilder): Render
 				} else { // must be CharCode.Space
 					charWidth = 1;
 
-					sb.write1(renderSpaceCharCode); // &middot; or word separator middle dot
+					sb.write1(spaceRenderWhitespaceCharacter); // &middot; or word separator middle dot
 				}
 
 				charOffsetInPart += charWidth;
