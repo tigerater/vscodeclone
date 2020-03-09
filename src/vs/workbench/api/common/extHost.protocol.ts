@@ -49,7 +49,7 @@ import { SaveReason } from 'vs/workbench/common/editor';
 import { ExtensionActivationReason } from 'vs/workbench/api/common/extHostExtensionActivator';
 import { TunnelDto } from 'vs/workbench/api/common/extHostTunnelService';
 import { TunnelOptions } from 'vs/platform/remote/common/tunnel';
-import { TimelineItem, TimelineProviderDescriptor, TimelineChangeEvent, TimelineItemWithSource } from 'vs/workbench/contrib/timeline/common/timeline';
+import { TimelineItem, TimelineProviderDescriptor } from 'vs/workbench/contrib/timeline/common/timeline';
 
 export interface IEnvironment {
 	isExtensionDevelopmentDebug: boolean;
@@ -801,7 +801,7 @@ export interface MainThreadTunnelServiceShape extends IDisposable {
 export interface MainThreadTimelineShape extends IDisposable {
 	$registerTimelineProvider(provider: TimelineProviderDescriptor): void;
 	$unregisterTimelineProvider(source: string): void;
-	$emitTimelineChangeEvent(e: TimelineChangeEvent): void;
+	$emitTimelineChangeEvent(source: string, uri: UriComponents | undefined): void;
 
 	$getTimeline(uri: UriComponents, token: CancellationToken): Promise<TimelineItem[]>;
 }
@@ -919,7 +919,6 @@ export interface ExtHostLabelServiceShape {
 
 export interface ExtHostAuthenticationShape {
 	$getSessions(id: string): Promise<ReadonlyArray<modes.AuthenticationSession>>;
-	$getSessionAccessToken(id: string, sessionId: string): Promise<string>;
 	$login(id: string, scopes: string[]): Promise<modes.AuthenticationSession>;
 	$logout(id: string, sessionId: string): Promise<void>;
 }
@@ -1288,8 +1287,8 @@ export interface ExtHostTerminalServiceShape {
 	$acceptProcessRequestCwd(id: number): void;
 	$acceptProcessRequestLatency(id: number): number;
 	$acceptWorkspacePermissionsChanged(isAllowed: boolean): void;
-	$requestAvailableShells(): Promise<IShellDefinitionDto[]>;
-	$requestDefaultShellAndArgs(useAutomationShell: boolean): Promise<IShellAndArgsDto>;
+	$getAvailableShells(): Promise<IShellDefinitionDto[]>;
+	$getDefaultShellAndArgs(useAutomationShell: boolean): Promise<IShellAndArgsDto>;
 }
 
 export interface ExtHostSCMShape {
@@ -1452,7 +1451,7 @@ export interface ExtHostTunnelServiceShape {
 }
 
 export interface ExtHostTimelineShape {
-	$getTimeline(source: string, uri: UriComponents, token: CancellationToken): Promise<TimelineItemWithSource[]>;
+	$getTimeline(source: string, uri: UriComponents, token: CancellationToken): Promise<TimelineItem[]>;
 }
 
 // --- proxy identifiers

@@ -146,7 +146,6 @@ export class ExplorerView extends ViewPane {
 	private dragHandler!: DelayedDragHandler;
 	private autoReveal = false;
 	private actions: IAction[] | undefined;
-	private decorationsProvider: ExplorerDecorationsProvider | undefined;
 
 	constructor(
 		options: IViewPaneOptions,
@@ -160,7 +159,7 @@ export class ExplorerView extends ViewPane {
 		@IKeybindingService keybindingService: IKeybindingService,
 		@IContextKeyService private readonly contextKeyService: IContextKeyService,
 		@IConfigurationService configurationService: IConfigurationService,
-		@IDecorationsService private readonly decorationService: IDecorationsService,
+		@IDecorationsService decorationService: IDecorationsService,
 		@ILabelService private readonly labelService: ILabelService,
 		@IThemeService private readonly themeService: IWorkbenchThemeService,
 		@IMenuService private readonly menuService: IMenuService,
@@ -184,6 +183,10 @@ export class ExplorerView extends ViewPane {
 		this.compressedFocusLastContext = ExplorerCompressedLastFocusContext.bindTo(contextKeyService);
 
 		this.explorerService.registerContextProvider(this);
+
+		const decorationProvider = new ExplorerDecorationsProvider(this.explorerService, contextService);
+		this._register(decorationService.registerDecorationsProvider(decorationProvider));
+		this._register(decorationProvider);
 	}
 
 	get name(): string {
@@ -324,8 +327,16 @@ export class ExplorerView extends ViewPane {
 		this.tree.domFocus();
 
 		const focused = this.tree.getFocus();
-		if (focused.length === 1 && this.autoReveal) {
-			this.tree.reveal(focused[0], 0.5);
+		if (focused.length === 1) {
+			if (this.autoReveal) {
+				this.tree.reveal(focused[0], 0.5);
+			}
+
+			const activeFile = this.getActiveFile();
+			if (!activeFile && !focused[0].isDirectory) {
+				// Open the focused element in the editor if there is currently no file opened #67708
+				this.editorService.openEditor({ resource: focused[0].resource, options: { preserveFocus: true, revealIfVisible: true } });
+			}
 		}
 	}
 
@@ -579,7 +590,7 @@ export class ExplorerView extends ViewPane {
 		return DOM.getLargestChildWidth(parentNode, childNodes);
 	}
 
-	private async setTreeInput(): Promise<void> {
+	private setTreeInput(): Promise<void> {
 		if (!this.isBodyVisible()) {
 			this.shouldRefresh = true;
 			return Promise.resolve(undefined);
@@ -628,11 +639,7 @@ export class ExplorerView extends ViewPane {
 			delay: this.layoutService.isRestored() ? 800 : 1200 // less ugly initial startup
 		}, _progress => promise);
 
-		await promise;
-		if (!this.decorationsProvider) {
-			this.decorationsProvider = new ExplorerDecorationsProvider(this.explorerService, this.contextService);
-			this._register(this.decorationService.registerDecorationsProvider(this.decorationsProvider));
-		}
+		return promise;
 	}
 
 	private getActiveFile(): URI | undefined {

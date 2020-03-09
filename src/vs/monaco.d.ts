@@ -2795,11 +2795,6 @@ declare namespace monaco.editor {
 		 */
 		fastScrollSensitivity?: number;
 		/**
-		 * Enable that the editor scrolls only the predominant axis. Prevents horizontal drift when scrolling vertically on a trackpad.
-		 * Defaults to true.
-		 */
-		scrollPredominantAxis?: boolean;
-		/**
 		 * The modifier to be used to add multiple cursors with the mouse.
 		 * Defaults to 'alt'
 		 */
@@ -2841,10 +2836,6 @@ declare namespace monaco.editor {
 		 * Defaults to 10 (ms)
 		 */
 		quickSuggestionsDelay?: number;
-		/**
-		 * Controls the spacing around the editor.
-		 */
-		padding?: IEditorPaddingOptions;
 		/**
 		 * Parameter hint options.
 		 */
@@ -3396,25 +3387,6 @@ declare namespace monaco.editor {
 	export type EditorMinimapOptions = Readonly<Required<IEditorMinimapOptions>>;
 
 	/**
-	 * Configuration options for editor padding
-	 */
-	export interface IEditorPaddingOptions {
-		/**
-		 * Spacing between top edge of editor and first line.
-		 */
-		top?: number;
-		/**
-		 * Spacing between bottom edge of editor and last line.
-		 */
-		bottom?: number;
-	}
-
-	export interface InternalEditorPaddingOptions {
-		readonly top: number;
-		readonly bottom: number;
-	}
-
-	/**
 	 * Configuration options for parameter hints
 	 */
 	export interface IEditorParameterHintOptions {
@@ -3782,54 +3754,52 @@ declare namespace monaco.editor {
 		occurrencesHighlight = 61,
 		overviewRulerBorder = 62,
 		overviewRulerLanes = 63,
-		padding = 64,
-		parameterHints = 65,
-		peekWidgetDefaultFocus = 66,
-		definitionLinkOpensInPeek = 67,
-		quickSuggestions = 68,
-		quickSuggestionsDelay = 69,
-		readOnly = 70,
-		renderControlCharacters = 71,
-		renderIndentGuides = 72,
-		renderFinalNewline = 73,
-		renderLineHighlight = 74,
-		renderValidationDecorations = 75,
-		renderWhitespace = 76,
-		revealHorizontalRightPadding = 77,
-		roundedSelection = 78,
-		rulers = 79,
-		scrollbar = 80,
-		scrollBeyondLastColumn = 81,
-		scrollBeyondLastLine = 82,
-		scrollPredominantAxis = 83,
-		selectionClipboard = 84,
-		selectionHighlight = 85,
-		selectOnLineNumbers = 86,
-		showFoldingControls = 87,
-		showUnused = 88,
-		snippetSuggestions = 89,
-		smoothScrolling = 90,
-		stopRenderingLineAfter = 91,
-		suggest = 92,
-		suggestFontSize = 93,
-		suggestLineHeight = 94,
-		suggestOnTriggerCharacters = 95,
-		suggestSelection = 96,
-		tabCompletion = 97,
-		useTabStops = 98,
-		wordSeparators = 99,
-		wordWrap = 100,
-		wordWrapBreakAfterCharacters = 101,
-		wordWrapBreakBeforeCharacters = 102,
-		wordWrapColumn = 103,
-		wordWrapMinified = 104,
-		wrappingIndent = 105,
-		wrappingStrategy = 106,
-		editorClassName = 107,
-		pixelRatio = 108,
-		tabFocusMode = 109,
-		layoutInfo = 110,
-		wrappingInfo = 111
+		parameterHints = 64,
+		peekWidgetDefaultFocus = 65,
+		definitionLinkOpensInPeek = 66,
+		quickSuggestions = 67,
+		quickSuggestionsDelay = 68,
+		readOnly = 69,
+		renderControlCharacters = 70,
+		renderIndentGuides = 71,
+		renderFinalNewline = 72,
+		renderLineHighlight = 73,
+		renderValidationDecorations = 74,
+		renderWhitespace = 75,
+		revealHorizontalRightPadding = 76,
+		roundedSelection = 77,
+		rulers = 78,
+		scrollbar = 79,
+		scrollBeyondLastColumn = 80,
+		scrollBeyondLastLine = 81,
+		selectionClipboard = 82,
+		selectionHighlight = 83,
+		selectOnLineNumbers = 84,
+		showFoldingControls = 85,
+		showUnused = 86,
+		snippetSuggestions = 87,
+		smoothScrolling = 88,
+		stopRenderingLineAfter = 89,
+		suggest = 90,
+		suggestFontSize = 91,
+		suggestLineHeight = 92,
+		suggestOnTriggerCharacters = 93,
+		suggestSelection = 94,
+		tabCompletion = 95,
+		useTabStops = 96,
+		wordSeparators = 97,
+		wordWrap = 98,
+		wordWrapBreakAfterCharacters = 99,
+		wordWrapBreakBeforeCharacters = 100,
+		wordWrapColumn = 101,
+		wordWrapMinified = 102,
+		wrappingIndent = 103,
+		wrappingStrategy = 104,
+		editorClassName = 105,
+		pixelRatio = 106,
+		tabFocusMode = 107,
+		layoutInfo = 108,
+		wrappingInfo = 109
 	}
 	export const EditorOptions: {
 		acceptSuggestionOnCommitCharacter: IEditorOption<EditorOption.acceptSuggestionOnCommitCharacter, boolean>;
@@ -3896,7 +3866,6 @@ declare namespace monaco.editor {
 		occurrencesHighlight: IEditorOption<EditorOption.occurrencesHighlight, boolean>;
 		overviewRulerBorder: IEditorOption<EditorOption.overviewRulerBorder, boolean>;
 		overviewRulerLanes: IEditorOption<EditorOption.overviewRulerLanes, number>;
-		padding: IEditorOption<EditorOption.padding, InternalEditorPaddingOptions>;
 		parameterHints: IEditorOption<EditorOption.parameterHints, InternalParameterHintOptions>;
 		peekWidgetDefaultFocus: IEditorOption<EditorOption.peekWidgetDefaultFocus, 'tree' | 'editor'>;
 		definitionLinkOpensInPeek: IEditorOption<EditorOption.definitionLinkOpensInPeek, boolean>;
@@ -3915,7 +3884,6 @@ declare namespace monaco.editor {
 		scrollbar: IEditorOption<EditorOption.scrollbar, InternalEditorScrollbarOptions>;
 		scrollBeyondLastColumn: IEditorOption<EditorOption.scrollBeyondLastColumn, number>;
 		scrollBeyondLastLine: IEditorOption<EditorOption.scrollBeyondLastLine, boolean>;
-		scrollPredominantAxis: IEditorOption<EditorOption.scrollPredominantAxis, boolean>;
 		selectionClipboard: IEditorOption<EditorOption.selectionClipboard, boolean>;
 		selectionHighlight: IEditorOption<EditorOption.selectionHighlight, boolean>;
 		selectOnLineNumbers: IEditorOption<EditorOption.selectOnLineNumbers, boolean>;

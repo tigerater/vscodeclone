@@ -37,10 +37,6 @@
 	width: 100%;
 }
 
-.monaco-editor .mtkz {
-	display: inline-block;
-}
-
 /* TODO@tokenization bootstrap fix */
 /*.monaco-editor .view-line > span > span {
 	float: none;

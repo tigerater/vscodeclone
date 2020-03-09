@@ -309,17 +309,11 @@ export const enum Operation {
 
 function isReadOnly(operation: Operation): boolean {
 	switch (operation) {
-		case Operation.Blame:
-		case Operation.CheckIgnore:
-		case Operation.Diff:
-		case Operation.FindTrackingBranches:
-		case Operation.GetBranch:
-		case Operation.GetCommitTemplate:
-		case Operation.GetObjectDetails:
-		case Operation.Log:
-		case Operation.LogFile:
-		case Operation.MergeBase:
 		case Operation.Show:
+		case Operation.GetCommitTemplate:
+		case Operation.CheckIgnore:
+		case Operation.GetObjectDetails:
+		case Operation.MergeBase:
 			return true;
 		default:
 			return false;

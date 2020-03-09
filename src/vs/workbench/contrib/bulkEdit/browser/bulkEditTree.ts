@@ -447,33 +447,33 @@ class FileElementTemplate {
 		}));
 
 		if (element.edit.type & BulkFileOperationType.Rename && element.edit.newUri) {
-			// rename: oldName → newName
-			this._label.setResource({
-				resource: element.edit.uri,
-				name: localize('rename.label', "{0} → {1}", this._labelService.getUriLabel(element.edit.uri, { relative: true }), this._labelService.getUriLabel(element.edit.newUri, { relative: true })),
-			}, {
-				fileDecorations: { colors: true, badges: false }
-			});
-
-			this._details.innerText = localize('detail.rename', "(renaming)");
-
-		} else {
-			// create, delete, edit: NAME
-			const options = {
+			// rename: NEW NAME (old name)
+			this._label.setFile(element.edit.newUri, {
 				matches: createMatches(score),
 				fileKind: FileKind.FILE,
 				fileDecorations: { colors: true, badges: false },
-				extraClasses: <string[]>[]
-			};
+			});
+
+			this._details.innerText = localize(
+				'detail.rename', "(renaming from {0})",
+				this._labelService.getUriLabel(element.edit.uri, { relative: true })
+			);
+
+		} else {
+			// create, delete, edit: NAME
+			this._label.setFile(element.edit.uri, {
+				matches: createMatches(score),
+				fileKind: FileKind.FILE,
+				fileDecorations: { colors: true, badges: false },
+			});
+
 			if (element.edit.type & BulkFileOperationType.Create) {
 				this._details.innerText = localize('detail.create', "(creating)");
 			} else if (element.edit.type & BulkFileOperationType.Delete) {
 				this._details.innerText = localize('detail.del', "(deleting)");
-				options.extraClasses.push('delete');
 			} else {
 				this._details.innerText = '';
 			}
-			this._label.setFile(element.edit.uri, options);
 		}
 	}
 }

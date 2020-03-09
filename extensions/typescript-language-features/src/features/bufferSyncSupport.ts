@@ -289,25 +289,19 @@ class GetErrRequest {
 		public readonly files: ResourceMap<void>,
 		onDone: () => void
 	) {
-		const allFiles = coalesce(Array.from(files.entries).map(entry => client.normalizedPath(entry.resource)));
-		if (!allFiles.length) {
-			this._done = true;
-			onDone();
-		} else {
-			const request = client.configuration.enableProjectDiagnostics
-				// Note that geterrForProject is almost certainly not the api we want here as it ends up computing far
-				// too many diagnostics
-				? client.executeAsync('geterrForProject', { delay: 0, file: allFiles[0] }, this._token.token)
-				: client.executeAsync('geterr', { delay: 0, files: allFiles }, this._token.token);
+		const args: Proto.GeterrRequestArgs = {
+			delay: 0,
+			files: coalesce(Array.from(files.entries).map(entry => client.normalizedPath(entry.resource)))
+		};
 
-			request.finally(() => {
+		client.executeAsync('geterr', args, this._token.token)
+			.finally(() => {
 				if (this._done) {
 					return;
 				}
 				this._done = true;
 				onDone();
 			});
-		}
 	}
 
 	public cancel(): any {
@@ -335,7 +329,7 @@ export default class BufferSyncSupport extends Disposable {
 
 	constructor(
 		client: ITypeScriptServiceClient,
-		modeIds: readonly string[]
+		modeIds: string[]
 	) {
 		super();
 		this.client = client;
@@ -460,9 +454,7 @@ export default class BufferSyncSupport extends Disposable {
 	}
 
 	public interuptGetErr<R>(f: () => R): R {
-		if (!this.pendingGetErr
-			|| this.client.configuration.enableProjectDiagnostics // `geterr` happens on seperate server so no need to cancel it.
-		) {
+		if (!this.pendingGetErr) {
 			return f();
 		}
 

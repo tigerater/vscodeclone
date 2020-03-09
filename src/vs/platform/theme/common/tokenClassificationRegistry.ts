@@ -13,6 +13,7 @@ import { Event, Emitter } from 'vs/base/common/event';
 import { IJSONSchema, IJSONSchemaMap } from 'vs/base/common/jsonSchema';
 
 export const TOKEN_TYPE_WILDCARD = '*';
+export const TOKEN_TYPE_WILDCARD_NUM = -1;
 
 // qualified string [type|*](.modifier)*
 export type TokenClassificationString = string;
@@ -20,17 +21,16 @@ export type TokenClassificationString = string;
 export const typeAndModifierIdPattern = '^\\w+[-_\\w+]*$';
 export const fontStylePattern = '^(\\s*(-?italic|-?bold|-?underline))*\\s*$';
 
-export interface TokenSelector {
-	match(type: string, modifiers: string[]): number;
-	readonly selectorString: string;
+export interface TokenClassification {
+	type: number;
+	modifiers: number;
 }
 
 export interface TokenTypeOrModifierContribution {
 	readonly num: number;
 	readonly id: string;
-	readonly superType?: string;
 	readonly description: string;
-	readonly deprecationMessage?: string;
+	readonly deprecationMessage: string | undefined;
 }
 
 
@@ -96,13 +96,15 @@ export interface TokenStyleDefaults {
 }
 
 export interface TokenStylingDefaultRule {
-	selector: TokenSelector;
+	match(classification: TokenClassification): number;
+	selector: TokenClassification;
 	defaults: TokenStyleDefaults;
 }
 
 export interface TokenStylingRule {
-	style: TokenStyle;
-	selector: TokenSelector;
+	match(classification: TokenClassification): number;
+	value: TokenStyle;
+	selector: TokenClassification;
 }
 
 /**
@@ -122,37 +124,33 @@ export interface ITokenClassificationRegistry {
 	/**
 	 * Register a token type to the registry.
 	 * @param id The TokenType id as used in theme description files
-	 * @param description the description
+	 * @description the description
 	 */
-	registerTokenType(id: string, description: string, superType?: string, deprecationMessage?: string): void;
+	registerTokenType(id: string, description: string): void;
 
 	/**
 	 * Register a token modifier to the registry.
 	 * @param id The TokenModifier id as used in theme description files
-	 * @param description the description
+	 * @description the description
 	 */
 	registerTokenModifier(id: string, description: string): void;
 
-	/**
-	 * Parses a token selector from a selector string.
-	 * @param selectorString selector string in the form (*|type)(.modifier)*
-	 * @returns the parsesd selector
-	 * @throws an error if the string is not a valid selector
-	 */
-	parseTokenSelector(selectorString: string): TokenSelector;
+	getTokenClassification(type: string, modifiers: string[]): TokenClassification | undefined;
+
+	getTokenStylingRule(classification: TokenClassification, value: TokenStyle): TokenStylingRule;
 
 	/**
 	 * Register a TokenStyle default to the registry.
 	 * @param selector The rule selector
 	 * @param defaults The default values
 	 */
-	registerTokenStyleDefault(selector: TokenSelector, defaults: TokenStyleDefaults): void;
+	registerTokenStyleDefault(selector: TokenClassification, defaults: TokenStyleDefaults): void;
 
 	/**
 	 * Deregister a TokenStyle default to the registry.
 	 * @param selector The rule selector
 	 */
-	deregisterTokenStyleDefault(selector: TokenSelector): void;
+	deregisterTokenStyleDefault(selector: TokenClassification): void;
 
 	/**
 	 * Deregister a TokenType from the registry.
@@ -198,8 +196,6 @@ class TokenClassificationRegistry implements ITokenClassificationRegistry {
 
 	private tokenStylingDefaultRules: TokenStylingDefaultRule[] = [];
 
-	private typeHierarchy: { [id: string]: string[] };
-
 	private tokenStylingSchema: IJSONSchema & { properties: IJSONSchemaMap } = {
 		type: 'object',
 		properties: {},
@@ -236,23 +232,20 @@ class TokenClassificationRegistry implements ITokenClassificationRegistry {
 	constructor() {
 		this.tokenTypeById = {};
 		this.tokenModifierById = {};
-		this.typeHierarchy = {};
+
+		this.tokenTypeById[TOKEN_TYPE_WILDCARD] = { num: TOKEN_TYPE_WILDCARD_NUM, id: TOKEN_TYPE_WILDCARD, description: '', deprecationMessage: undefined };
 	}
 
-	public registerTokenType(id: string, description: string, superType?: string, deprecationMessage?: string): void {
+	public registerTokenType(id: string, description: string, deprecationMessage?: string): void {
 		if (!id.match(typeAndModifierIdPattern)) {
 			throw new Error('Invalid token type id.');
 		}
-		if (superType && !superType.match(typeAndModifierIdPattern)) {
-			throw new Error('Invalid token super type id.');
-		}
 
 		const num = this.currentTypeNumber++;
-		let tokenStyleContribution: TokenTypeOrModifierContribution = { num, id, superType, description, deprecationMessage };
+		let tokenStyleContribution: TokenTypeOrModifierContribution = { num, id, description, deprecationMessage };
 		this.tokenTypeById[id] = tokenStyleContribution;
 
 		this.tokenStylingSchema.properties[id] = getStylingSchemeEntry(description, deprecationMessage);
-		this.typeHierarchy = {};
 	}
 
 	public registerTokenModifier(id: string, description: string, deprecationMessage?: string): void {
@@ -268,52 +261,56 @@ class TokenClassificationRegistry implements ITokenClassificationRegistry {
 		this.tokenStylingSchema.properties[`*.${id}`] = getStylingSchemeEntry(description, deprecationMessage);
 	}
 
-	public parseTokenSelector(selectorString: string): TokenSelector {
-		const [selectorType, ...selectorModifiers] = selectorString.split('.');
-
-		if (!selectorType) {
-			return {
-				match: () => -1,
-				selectorString
-			};
+	public getTokenClassification(type: string, modifiers: string[]): TokenClassification | undefined {
+		const tokenTypeDesc = this.tokenTypeById[type];
+		if (!tokenTypeDesc) {
+			return undefined;
 		}
+		let allModifierBits = 0;
+		for (const modifier of modifiers) {
+			const tokenModifierDesc = this.tokenModifierById[modifier];
+			if (tokenModifierDesc) {
+				allModifierBits |= tokenModifierDesc.num;
+			}
+		}
+		return { type: tokenTypeDesc.num, modifiers: allModifierBits };
+	}
 
-		return {
-			match: (type: string, modifiers: string[]) => {
-				let score = 0;
-				if (selectorType !== TOKEN_TYPE_WILDCARD) {
-					const hierarchy = this.getTypeHierarchy(type);
-					const level = hierarchy.indexOf(selectorType);
-					if (level === -1) {
-						return -1;
-					}
-					score = 100 - level;
-				}
-				// all selector modifiers must be present
-				for (const selectorModifier of selectorModifiers) {
-					if (modifiers.indexOf(selectorModifier) === -1) {
-						return -1;
-					}
-				}
-				return score + selectorModifiers.length * 100;
-			},
-			selectorString
+
+	private newMatcher(selector: TokenClassification) {
+		const score = getTokenStylingScore(selector);
+		return (classification: TokenClassification) => {
+			const selectorType = selector.type;
+			if (selectorType !== TOKEN_TYPE_WILDCARD_NUM && selectorType !== classification.type) {
+				return -1;
+			}
+			const selectorModifier = selector.modifiers;
+			if ((classification.modifiers & selectorModifier) !== selectorModifier) {
+				return -1;
+			}
+			return score;
 		};
 	}
 
-	public registerTokenStyleDefault(selector: TokenSelector, defaults: TokenStyleDefaults): void {
-		this.tokenStylingDefaultRules.push({ selector, defaults });
+	public getTokenStylingRule(selector: TokenClassification, value: TokenStyle): TokenStylingRule {
+		return {
+			match: this.newMatcher(selector),
+			value,
+			selector
+		};
 	}
 
-	public deregisterTokenStyleDefault(selector: TokenSelector): void {
-		const selectorString = selector.selectorString;
-		this.tokenStylingDefaultRules = this.tokenStylingDefaultRules.filter(r => r.selector.selectorString !== selectorString);
+	public registerTokenStyleDefault(selector: TokenClassification, defaults: TokenStyleDefaults): void {
+		this.tokenStylingDefaultRules.push({ selector, match: this.newMatcher(selector), defaults });
+	}
+
+	public deregisterTokenStyleDefault(classification: TokenClassification): void {
+		this.tokenStylingDefaultRules = this.tokenStylingDefaultRules.filter(r => !(r.selector.type === classification.type && r.selector.modifiers === classification.modifiers));
 	}
 
 	public deregisterTokenType(id: string): void {
 		delete this.tokenTypeById[id];
 		delete this.tokenStylingSchema.properties[id];
-		this.typeHierarchy = {};
 	}
 
 	public deregisterTokenModifier(id: string): void {
@@ -335,19 +332,6 @@ class TokenClassificationRegistry implements ITokenClassificationRegistry {
 
 	public getTokenStylingDefaultRules(): TokenStylingDefaultRule[] {
 		return this.tokenStylingDefaultRules;
-	}
-
-	private getTypeHierarchy(typeId: string): string[] {
-		let hierarchy = this.typeHierarchy[typeId];
-		if (!hierarchy) {
-			this.typeHierarchy[typeId] = hierarchy = [typeId];
-			let type = this.tokenTypeById[typeId];
-			while (type && type.superType) {
-				hierarchy.push(type.superType);
-				type = this.tokenTypeById[type.superType];
-			}
-		}
-		return hierarchy;
 	}
 
 
@@ -373,21 +357,14 @@ platform.Registry.add(Extensions.TokenClassificationContribution, tokenClassific
 registerDefaultClassifications();
 
 function registerDefaultClassifications(): void {
-	function registerTokenType(id: string, description: string, scopesToProbe: ProbeScope[] = [], superType?: string, deprecationMessage?: string): string {
-		tokenClassificationRegistry.registerTokenType(id, description, superType, deprecationMessage);
-		if (scopesToProbe) {
-			registerTokenStyleDefault(id, scopesToProbe);
+	function registerTokenType(id: string, description: string, scopesToProbe: ProbeScope[] = [], extendsTC?: string, deprecationMessage?: string): string {
+		tokenClassificationRegistry.registerTokenType(id, description, deprecationMessage);
+
+		if (scopesToProbe || extendsTC) {
+			const classification = tokenClassificationRegistry.getTokenClassification(id, []);
+			tokenClassificationRegistry.registerTokenStyleDefault(classification!, { scopesToProbe, light: extendsTC, dark: extendsTC, hc: extendsTC });
 		}
 		return id;
-	}
-
-	function registerTokenStyleDefault(selectorString: string, scopesToProbe: ProbeScope[]) {
-		try {
-			const selector = tokenClassificationRegistry.parseTokenSelector(selectorString);
-			tokenClassificationRegistry.registerTokenStyleDefault(selector, { scopesToProbe });
-		} catch (e) {
-			console.log(e);
-		}
 	}
 
 	// default token types
@@ -412,11 +389,10 @@ function registerDefaultClassifications(): void {
 	registerTokenType('member', nls.localize('member', "Style for member"), [['entity.name.function.member'], ['support.function']]);
 	registerTokenType('macro', nls.localize('macro', "Style for macros."), [['entity.name.other.preprocessor.macro']], 'function');
 
-	registerTokenType('variable', nls.localize('variable', "Style for variables."), [['variable.other.readwrite'], ['entity.name.variable']]);
+	registerTokenType('variable', nls.localize('variable', "Style for variables."), [['variable'], ['entity.name.variable']]);
+	registerTokenType('constant', nls.localize('constant', "Style for constants."), [['variable.other.constant']], 'variable');
 	registerTokenType('parameter', nls.localize('parameter', "Style for parameters."), [['variable.parameter']], 'variable');
 	registerTokenType('property', nls.localize('property', "Style for properties."), [['variable.other.property']], 'variable');
-	registerTokenType('enumMember', nls.localize('enumMember', "Style for enum members."), [['variable.other.enummember']], 'variable');
-	registerTokenType('event', nls.localize('event', "Style for events."), [['variable.other.event']], 'variable');
 
 	registerTokenType('label', nls.localize('labels', "Style for labels. "), undefined);
 
@@ -432,11 +408,20 @@ function registerDefaultClassifications(): void {
 	tokenClassificationRegistry.registerTokenModifier('readonly', nls.localize('readonly', "Style to use for symbols that are readonly."), undefined);
 
 
-	registerTokenStyleDefault('variable.readonly', [['variable.other.constant']]);
 }
 
 export function getTokenClassificationRegistry(): ITokenClassificationRegistry {
 	return tokenClassificationRegistry;
+}
+
+function bitCount(u: number) {
+	// https://blogs.msdn.microsoft.com/jeuge/2005/06/08/bit-fiddling-3/
+	const uCount = u - ((u >> 1) & 0o33333333333) - ((u >> 2) & 0o11111111111);
+	return ((uCount + (uCount >> 3)) & 0o30707070707) % 63;
+}
+
+function getTokenStylingScore(classification: TokenClassification) {
+	return bitCount(classification.modifiers) + ((classification.type !== TOKEN_TYPE_WILDCARD_NUM) ? 1 : 0);
 }
 
 function getStylingSchemeEntry(description?: string, deprecationMessage?: string): IJSONSchema {

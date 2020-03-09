@@ -17,21 +17,21 @@ import { ExplorerItem } from 'vs/workbench/contrib/files/common/explorerModel';
 export function provideDecorations(fileStat: ExplorerItem): IDecorationData | undefined {
 	if (fileStat.isRoot && fileStat.isError) {
 		return {
-			tooltip: localize('canNotResolve', "Unable to resolve workspace folder"),
+			tooltip: localize('canNotResolve', "Can not resolve workspace folder"),
 			letter: '!',
 			color: listInvalidItemForeground,
 		};
 	}
-	if (fileStat.isSymbolicLink) {
+	if (fileStat.isUnknown) {
+		return {
+			tooltip: localize('unknown', "Unknown resource"),
+			letter: '?'
+		};
+	}
+	if (fileStat.isSymbolicLink && !fileStat.isUnknown) {
 		return {
 			tooltip: localize('symbolicLlink', "Symbolic Link"),
 			letter: '\u2937'
-		};
-	}
-	if (fileStat.isUnknown) {
-		return {
-			tooltip: localize('unknown', "Unknown File Type"),
-			letter: '?'
 		};
 	}
 

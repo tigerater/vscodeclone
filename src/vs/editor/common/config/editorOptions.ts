@@ -320,11 +320,6 @@ export interface IEditorOptions {
 	 */
 	fastScrollSensitivity?: number;
 	/**
-	 * Enable that the editor scrolls only the predominant axis. Prevents horizontal drift when scrolling vertically on a trackpad.
-	 * Defaults to true.
-	 */
-	scrollPredominantAxis?: boolean;
-	/**
 	 * The modifier to be used to add multiple cursors with the mouse.
 	 * Defaults to 'alt'
 	 */
@@ -366,10 +361,6 @@ export interface IEditorOptions {
 	 * Defaults to 10 (ms)
 	 */
 	quickSuggestionsDelay?: number;
-	/**
-	 * Controls the spacing around the editor.
-	 */
-	padding?: IEditorPaddingOptions;
 	/**
 	 * Parameter hint options.
 	 */
@@ -2080,61 +2071,6 @@ function _multiCursorModifierFromString(multiCursorModifier: 'ctrlCmd' | 'alt'):
 
 //#endregion
 
-//#region padding
-
-/**
- * Configuration options for editor padding
- */
-export interface IEditorPaddingOptions {
-	/**
-	 * Spacing between top edge of editor and first line.
-	 */
-	top?: number;
-	/**
-	 * Spacing between bottom edge of editor and last line.
-	 */
-	bottom?: number;
-}
-
-export interface InternalEditorPaddingOptions {
-	readonly top: number;
-	readonly bottom: number;
-}
-
-class EditorPadding extends BaseEditorOption<EditorOption.padding, InternalEditorPaddingOptions> {
-
-	constructor() {
-		super(
-			EditorOption.padding, 'padding', { top: 0, bottom: 0 },
-			{
-				'editor.padding.top': {
-					type: 'number',
-					default: 0,
-					description: nls.localize('padding.top', "Controls the amount of space between the top edge of the editor and the first line.")
-				},
-				'editor.padding.bottom': {
-					type: 'number',
-					default: 0,
-					description: nls.localize('padding.bottom', "Controls the amount of space between the bottom edge of the editor and the last line.")
-				}
-			}
-		);
-	}
-
-	public validate(_input: any): InternalEditorPaddingOptions {
-		if (typeof _input !== 'object') {
-			return this.defaultValue;
-		}
-		const input = _input as IEditorPaddingOptions;
-
-		return {
-			top: EditorIntOption.clampedInt(input.top, 0, 0, 1000),
-			bottom: EditorIntOption.clampedInt(input.bottom, 0, 0, 1000)
-		};
-	}
-}
-//#endregion
-
 //#region parameterHints
 
 /**
@@ -3239,7 +3175,6 @@ export const enum EditorOption {
 	occurrencesHighlight,
 	overviewRulerBorder,
 	overviewRulerLanes,
-	padding,
 	parameterHints,
 	peekWidgetDefaultFocus,
 	definitionLinkOpensInPeek,
@@ -3258,7 +3193,6 @@ export const enum EditorOption {
 	scrollbar,
 	scrollBeyondLastColumn,
 	scrollBeyondLastLine,
-	scrollPredominantAxis,
 	selectionClipboard,
 	selectionHighlight,
 	selectOnLineNumbers,
@@ -3627,7 +3561,6 @@ export const EditorOptions = {
 		EditorOption.overviewRulerLanes, 'overviewRulerLanes',
 		3, 0, 3
 	)),
-	padding: register(new EditorPadding()),
 	parameterHints: register(new EditorParameterHints()),
 	peekWidgetDefaultFocus: register(new EditorStringEnumOption(
 		EditorOption.peekWidgetDefaultFocus, 'peekWidgetDefaultFocus',
@@ -3717,10 +3650,6 @@ export const EditorOptions = {
 	scrollBeyondLastLine: register(new EditorBooleanOption(
 		EditorOption.scrollBeyondLastLine, 'scrollBeyondLastLine', true,
 		{ description: nls.localize('scrollBeyondLastLine', "Controls whether the editor will scroll beyond the last line.") }
-	)),
-	scrollPredominantAxis: register(new EditorBooleanOption(
-		EditorOption.scrollPredominantAxis, 'scrollPredominantAxis', true,
-		{ description: nls.localize('scrollPredominantAxis', "Scroll only along the predominant axis when scrolling both vertically and horizontally at the same time. Prevents horizontal drift when scrolling vertically on a trackpad.") }
 	)),
 	selectionClipboard: register(new EditorBooleanOption(
 		EditorOption.selectionClipboard, 'selectionClipboard', true,
