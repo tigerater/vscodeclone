@@ -61,6 +61,7 @@ export class OpenSearchEditorAction extends Action {
 	static readonly LABEL = localize('search.openNewEditor', "Open New Search Editor");
 
 	constructor(id: string, label: string,
+		@IConfigurationService private configurationService: IConfigurationService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 	) {
 		super(id, label, 'codicon-new-file');
@@ -75,7 +76,9 @@ export class OpenSearchEditorAction extends Action {
 	}
 
 	async run() {
-		await this.instantiationService.invokeFunction(openNewSearchEditor);
+		if (this.configurationService.getValue<ISearchConfigurationProperties>('search').enableSearchEditorPreview) {
+			await this.instantiationService.invokeFunction(openNewSearchEditor);
+		}
 	}
 }
 
@@ -86,6 +89,7 @@ export class OpenResultsInEditorAction extends Action {
 
 	constructor(id: string, label: string,
 		@IViewsService private viewsService: IViewsService,
+		@IConfigurationService private configurationService: IConfigurationService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 	) {
 		super(id, label, 'codicon-go-to-file');
@@ -102,7 +106,7 @@ export class OpenResultsInEditorAction extends Action {
 
 	async run() {
 		const searchView = getSearchView(this.viewsService);
-		if (searchView) {
+		if (searchView && this.configurationService.getValue<ISearchConfigurationProperties>('search').enableSearchEditorPreview) {
 			await this.instantiationService.invokeFunction(createEditorFromSearchResult, searchView.searchResult, searchView.searchIncludePattern.getValue(), searchView.searchExcludePattern.getValue());
 		}
 	}

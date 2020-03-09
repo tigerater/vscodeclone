@@ -340,7 +340,9 @@ export interface ISearchConfigurationProperties {
 	collapseResults: 'auto' | 'alwaysCollapse' | 'alwaysExpand';
 	searchOnType: boolean;
 	searchOnTypeDebouncePeriod: number;
-	searchEditor: { doubleClickBehaviour: 'selectWord' | 'goToLocation' | 'openLocationToSide' };
+	enableSearchEditorPreview: boolean;
+	searchEditorPreview: { doubleClickBehaviour: 'selectWord' | 'goToLocation' | 'openLocationToSide' };
+	searchEditorPreviewForceAbsolutePaths: boolean;
 	sortOrder: SearchSortOrder;
 }
 

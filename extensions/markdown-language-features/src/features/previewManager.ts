@@ -148,16 +148,12 @@ export class MarkdownPreviewManager extends Disposable implements vscode.Webview
 		this.registerDynamicPreview(preview);
 	}
 
-	public async provideWebviewCustomEditorDocument(resource: vscode.Uri) {
-		return vscode.window.createWebviewEditorCustomDocument('vscode.markdown.preview.editor', resource, undefined, {});
-	}
-
-	public async resolveWebviewCustomEditor(
-		document: vscode.WebviewEditorCustomDocument,
+	public async resolveWebviewEditor(
+		resource: vscode.Uri,
 		webview: vscode.WebviewPanel
 	): Promise<void> {
 		const preview = DynamicMarkdownPreview.revive(
-			{ resource: document.uri, locked: false, resourceColumn: vscode.ViewColumn.One },
+			{ resource, locked: false, resourceColumn: vscode.ViewColumn.One },
 			webview,
 			this._contentProvider,
 			this._previewConfigurations,

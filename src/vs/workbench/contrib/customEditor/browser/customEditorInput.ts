@@ -16,26 +16,20 @@ import { IInstantiationService } from 'vs/platform/instantiation/common/instanti
 import { ILabelService } from 'vs/platform/label/common/label';
 import { GroupIdentifier, IEditorInput, IRevertOptions, ISaveOptions, Verbosity } from 'vs/workbench/common/editor';
 import { ICustomEditorModel, ICustomEditorService } from 'vs/workbench/contrib/customEditor/common/customEditor';
-import { IWebviewService, WebviewEditorOverlay } from 'vs/workbench/contrib/webview/browser/webview';
+import { WebviewEditorOverlay, IWebviewService } from 'vs/workbench/contrib/webview/browser/webview';
 import { IWebviewWorkbenchService, LazilyResolvedWebviewEditorInput } from 'vs/workbench/contrib/webview/browser/webviewWorkbenchService';
-import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
 import { AutoSaveMode, IFilesConfigurationService } from 'vs/workbench/services/filesConfiguration/common/filesConfigurationService';
-import { ITextFileService } from 'vs/workbench/services/textfile/common/textfiles';
+import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
 
-export const enum ModelType {
-	Custom = 'custom',
-	Text = 'text',
-}
-
-export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
-
+export class CustomFileEditorInput extends LazilyResolvedWebviewEditorInput {
 
 	public static typeId = 'workbench.editors.webviewEditor';
 
 	private readonly _editorResource: URI;
 	get resource() { return this._editorResource; }
 
-	private _model?: { readonly type: ModelType.Custom, readonly model: ICustomEditorModel } | { readonly type: ModelType.Text };
+	private _model?: ICustomEditorModel;
+
 
 	constructor(
 		resource: URI,
@@ -49,18 +43,14 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 		@ICustomEditorService private readonly customEditorService: ICustomEditorService,
 		@IFileDialogService private readonly fileDialogService: IFileDialogService,
 		@IFilesConfigurationService private readonly filesConfigurationService: IFilesConfigurationService,
-		@IEditorService private readonly editorService: IEditorService,
-		@ITextFileService private readonly textFileService: ITextFileService,
-
+		@IEditorService private readonly editorService: IEditorService
 	) {
 		super(id, viewType, '', webview, webviewService, webviewWorkbenchService);
 		this._editorResource = resource;
 	}
 
-	public modelType?: ModelType;
-
 	public getTypeId(): string {
-		return CustomEditorInput.typeId;
+		return CustomFileEditorInput.typeId;
 	}
 
 	public supportsSplitEditor() {
@@ -72,8 +62,13 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 		return basename(this.labelService.getUriLabel(this.resource));
 	}
 
+	@memoize
+	getDescription(): string | undefined {
+		return super.getDescription();
+	}
+
 	matches(other: IEditorInput): boolean {
-		return this === other || (other instanceof CustomEditorInput
+		return this === other || (other instanceof CustomFileEditorInput
 			&& this.viewType === other.viewType
 			&& isEqual(this.resource, other.resource));
 	}
@@ -106,24 +101,11 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 	}
 
 	public isReadonly(): boolean {
-		return false; // TODO
+		return false;
 	}
 
 	public isDirty(): boolean {
-		if (!this._model) {
-			return false;
-		}
-
-		switch (this._model.type) {
-			case ModelType.Text:
-				return this.textFileService.isDirty(this.resource);
-
-			case ModelType.Custom:
-				return this._model.model.isDirty();
-
-			default:
-				throw new Error('Unknown model type');
-		}
+		return this._model ? this._model.isDirty() : false;
 	}
 
 	public isSaving(): boolean {
@@ -143,20 +125,12 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 			return undefined;
 		}
 
-		switch (this._model.type) {
-			case ModelType.Text:
-				{
-					const result = await this.textFileService.save(this.resource, options);
-					return result ? this : undefined;
-				}
-			case ModelType.Custom:
-				{
-					const result = await this._model.model.save(options);
-					return result ? this : undefined;
-				}
-			default:
-				throw new Error('Unknown model type');
+		const result = await this._model.save(options);
+		if (!result) {
+			return undefined;
 		}
+
+		return this;
 	}
 
 	public async saveAs(groupId: GroupIdentifier, options?: ISaveOptions): Promise<IEditorInput | undefined> {
@@ -170,81 +144,31 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 			return undefined; // save cancelled
 		}
 
-		switch (this._model.type) {
-			case ModelType.Text:
-				if (!await this.textFileService.saveAs(this.resource, target, options)) {
-					return undefined;
-				}
-				break;
-
-			case ModelType.Custom:
-				if (!await this._model.model.saveAs(this._editorResource, target, options)) {
-					return undefined;
-				}
-				break;
-
-			default:
-				throw new Error('Unknown model type');
+		if (!await this._model.saveAs(this._editorResource, target, options)) {
+			return undefined;
 		}
 
 		return this.handleMove(groupId, target) || this.editorService.createInput({ resource: target, forceFile: true });
 	}
 
-	public async revert(group: GroupIdentifier, options?: IRevertOptions): Promise<boolean> {
-		if (!this._model) {
-			return false;
-		}
-
-		switch (this._model.type) {
-			case ModelType.Text:
-				return this.textFileService.revert(this.resource, options);
-
-			case ModelType.Custom:
-				return this._model.model.revert(options);
-
-			default:
-				throw new Error('Unknown model type');
-		}
+	public revert(group: GroupIdentifier, options?: IRevertOptions): Promise<boolean> {
+		return this._model ? this._model.revert(options) : Promise.resolve(false);
 	}
 
 	public async resolve(): Promise<IEditorModel> {
-		const editorModel = await super.resolve();
-		if (!this._model) {
-			switch (this.modelType) {
-				case ModelType.Custom:
-					const model = await this.customEditorService.models.resolve(this.resource, this.viewType);
-					this._model = { type: ModelType.Custom, model };
-					this._register(model.onDidChangeDirty(() => this._onDidChangeDirty.fire()));
-
-					break;
-
-				case ModelType.Text:
-					this._model = { type: ModelType.Text, };
-					this.textFileService.files.onDidChangeDirty(e => {
-						if (isEqual(this.resource, e.resource)) {
-							this._onDidChangeDirty.fire();
-						}
-					});
-
-					break;
-
-				default:
-					throw new Error('Unknown model type');
-			}
-		}
-
+		this._model = await this.customEditorService.models.resolve(this.resource, this.viewType);
+		this._register(this._model.onDidChangeDirty(() => this._onDidChangeDirty.fire()));
 		if (this.isDirty()) {
 			this._onDidChangeDirty.fire();
 		}
-
-		return editorModel;
+		return await super.resolve();
 	}
 
 	public handleMove(groupId: GroupIdentifier, uri: URI, options?: ITextEditorOptions): IEditorInput | undefined {
 		const editorInfo = this.customEditorService.getCustomEditor(this.viewType);
 		if (editorInfo?.matches(uri)) {
 			const webview = assertIsDefined(this.takeOwnershipOfWebview());
-			const newInput = this.instantiationService.createInstance(CustomEditorInput,
+			const newInput = this.instantiationService.createInstance(CustomFileEditorInput,
 				uri,
 				this.viewType,
 				generateUuid(),
@@ -253,43 +177,5 @@ export class CustomEditorInput extends LazilyResolvedWebviewEditorInput {
 			return newInput;
 		}
 		return undefined;
-	}
-
-	public undo(): void {
-		if (!this._model) {
-			return;
-		}
-
-		switch (this._model.type) {
-			case ModelType.Custom:
-				this._model.model.undo();
-				return;
-
-			case ModelType.Text:
-				this.textFileService.files.get(this.resource)?.textEditorModel?.undo();
-				return;
-
-			default:
-				throw new Error('Unknown model type');
-		}
-	}
-
-	public redo(): void {
-		if (!this._model) {
-			return;
-		}
-
-		switch (this._model.type) {
-			case ModelType.Custom:
-				this._model.model.redo();
-				return;
-
-			case ModelType.Text:
-				this.textFileService.files.get(this.resource)?.textEditorModel?.redo();
-				return;
-
-			default:
-				throw new Error('Unknown model type');
-		}
 	}
 }
