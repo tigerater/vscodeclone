@@ -244,12 +244,12 @@ class ItemRenderer implements IListRenderer<CompletionItem, ISuggestionTemplateD
 			data.signatureLabel.textContent = '';
 			data.qualifierLabel.textContent = '';
 			data.detailsLabel.textContent = (suggestion.detail || '').replace(/\n.*$/m, '');
-			addClass(data.root, 'string-label');
+			removeClass(data.right, 'always-show-details');
 		} else {
 			data.signatureLabel.textContent = (suggestion.label.signature || '').replace(/\n.*$/m, '');
 			data.qualifierLabel.textContent = (suggestion.label.qualifier || '').replace(/\n.*$/m, '');
 			data.detailsLabel.textContent = (suggestion.label.type || '').replace(/\n.*$/m, '');
-			removeClass(data.root, 'string-label');
+			addClass(data.right, 'always-show-details');
 		}
 
 		if (canExpandCompletionItem(element)) {
