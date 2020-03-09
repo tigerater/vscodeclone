@@ -1761,30 +1761,6 @@
           72
         ]
       }
-    },
-    "documentation": {
-      "view": [
-        {
-          "view": "workbench.scm",
-          "contents": "%view.workbench.scm.disabled%",
-          "when": "!config.git.enabled"
-        },
-        {
-          "view": "workbench.scm",
-          "contents": "%view.workbench.scm.empty%",
-          "when": "config.git.enabled && workbenchState == empty"
-        },
-        {
-          "view": "workbench.scm",
-          "contents": "%view.workbench.scm.folder%",
-          "when": "config.git.enabled && workbenchState == folder"
-        },
-        {
-          "view": "workbench.scm",
-          "contents": "%view.workbench.scm.workspace%",
-          "when": "config.git.enabled && workbenchState == workspace"
-        }
-      ]
     }
   },
   "dependencies": {
