@@ -12,7 +12,6 @@ import { IMarkerData, MarkerSeverity } from 'vs/platform/markers/common/markers'
 import { mock } from 'vs/workbench/test/browser/api/mock';
 import { Emitter, Event } from 'vs/base/common/event';
 import { NullLogService } from 'vs/platform/log/common/log';
-import type * as vscode from 'vscode';
 
 suite('ExtHostDiagnostics', () => {
 
@@ -97,7 +96,7 @@ suite('ExtHostDiagnostics', () => {
 		assert.throws(() => array.pop());
 		assert.throws(() => array[0] = new Diagnostic(new Range(0, 0, 0, 0), 'evil'));
 
-		collection.forEach((uri: URI, array: readonly vscode.Diagnostic[]): any => {
+		collection.forEach((uri, array: readonly Diagnostic[]) => {
 			assert.throws(() => (array as Diagnostic[]).length = 0);
 			assert.throws(() => (array as Diagnostic[]).pop());
 			assert.throws(() => (array as Diagnostic[])[0] = new Diagnostic(new Range(0, 0, 0, 0), 'evil'));

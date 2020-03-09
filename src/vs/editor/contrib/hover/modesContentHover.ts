@@ -516,10 +516,10 @@ export class ModesContentHoverWidget extends ContentHoverWidget {
 						sourceElement.innerText = source;
 					}
 					this._codeLink = dom.append(sourceAndCodeElement, $('a.code-link'));
-					this._codeLink.setAttribute('href', code.target.toString());
+					this._codeLink.setAttribute('href', code.link.toString());
 
 					this._codeLink.onclick = (e) => {
-						this._openerService.open(code.target);
+						this._openerService.open(code.link);
 						e.preventDefault();
 						e.stopPropagation();
 					};

@@ -49,7 +49,6 @@ import { ExcludeSettingWidget, IListChangeEvent, IListDataItem, ListSettingWidge
 import { SETTINGS_EDITOR_COMMAND_SHOW_CONTEXT_MENU } from 'vs/workbench/contrib/preferences/common/preferences';
 import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
 import { ISetting, ISettingsGroup, SettingValueType } from 'vs/workbench/services/preferences/common/preferences';
-import { IUserDataSyncEnablementService } from 'vs/platform/userDataSync/common/userDataSync';
 
 const $ = DOM.$;
 
@@ -1192,7 +1191,7 @@ export class SettingTreeRenderers {
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@IContextMenuService private readonly _contextMenuService: IContextMenuService,
 		@IContextViewService private readonly _contextViewService: IContextViewService,
-		@IUserDataSyncEnablementService private readonly _userDataSyncEnablementService: IUserDataSyncEnablementService,
+		@IConfigurationService private readonly _configService: IConfigurationService,
 	) {
 		this.settingActions = [
 			new Action('settings.resetSetting', localize('resetSettingLabel', "Reset Setting"), undefined, undefined, (context: SettingsTreeSettingElement) => {
@@ -1236,7 +1235,7 @@ export class SettingTreeRenderers {
 	}
 
 	private getActionsForSetting(setting: ISetting): IAction[] {
-		const enableSync = this._userDataSyncEnablementService.isEnabled();
+		const enableSync = this._configService.getValue<boolean>('sync.enable');
 		return enableSync ?
 			[this._instantiationService.createInstance(StopSyncingSettingAction, setting)] :
 			[];

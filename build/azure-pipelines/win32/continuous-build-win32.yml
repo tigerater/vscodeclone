@@ -45,13 +45,13 @@ steps:
   displayName: Download Built-in Extensions
 - powershell: |
     .\scripts\test.bat --tfs "Unit Tests"
-  displayName: Run Unit Tests (Electron)
+  displayName: Run Unit Tests
 - powershell: |
-    yarn test-browser --browser chromium
+    yarn test-browser --browser chromium --browser webkit
   displayName: Run Unit Tests (Browser)
 - powershell: |
     .\scripts\test-integration.bat --tfs "Integration Tests"
-  displayName: Run Integration Tests (Electron)
+  displayName: Run Integration Tests
 - task: PublishTestResults@2
   displayName: Publish Tests Results
   inputs:

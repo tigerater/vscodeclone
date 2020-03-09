@@ -134,10 +134,10 @@ class MessageWidget {
 					detailsElement.appendChild(codeElement);
 				} else {
 					this._codeLink = dom.$('a.code-link');
-					this._codeLink.setAttribute('href', `${code.target.toString()}`);
+					this._codeLink.setAttribute('href', `${code.link.toString()}`);
 
 					this._codeLink.onclick = (e) => {
-						this._openerService.open(code.target);
+						this._openerService.open(code.link);
 						e.preventDefault();
 						e.stopPropagation();
 					};

@@ -1063,16 +1063,12 @@ export class DirtyDiffModel extends Disposable {
 
 		return this.diffDelayer
 			.trigger(() => this.diff())
-			.then((changes: IChange[] | null) => {
+			.then((changes: IChange[]) => {
 				if (!this._editorModel || this._editorModel.isDisposed() || !this._originalModel || this._originalModel.isDisposed()) {
 					return; // disposed
 				}
 
 				if (this._originalModel.getValueLength() === 0) {
-					changes = [];
-				}
-
-				if (!changes) {
 					changes = [];
 				}
 

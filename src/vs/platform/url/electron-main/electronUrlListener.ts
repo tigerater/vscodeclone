@@ -58,7 +58,7 @@ export class ElectronURLListener {
 				return url;
 			});
 
-		const onOpenUrl = Event.filter<URI | null, URI>(Event.map(onOpenElectronUrl, uriFromRawUrl), (uri): uri is URI => !!uri);
+		const onOpenUrl = Event.filter(Event.map(onOpenElectronUrl, uriFromRawUrl), uri => !!uri);
 		onOpenUrl(this.urlService.open, this.urlService, this.disposables);
 
 		const isWindowReady = windowsMainService.getWindows()

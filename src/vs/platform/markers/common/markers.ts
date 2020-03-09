@@ -87,7 +87,7 @@ export namespace MarkerSeverity {
  * A structure defining a problem/warning/etc.
  */
 export interface IMarkerData {
-	code?: string | { value: string; target: URI };
+	code?: string | { value: string; link: URI };
 	severity: MarkerSeverity;
 	message: string;
 	source?: string;
@@ -108,7 +108,7 @@ export interface IMarker {
 	owner: string;
 	resource: URI;
 	severity: MarkerSeverity;
-	code?: string | { value: string; target: URI };
+	code?: string | { value: string; link: URI };
 	message: string;
 	source?: string;
 	startLineNumber: number;

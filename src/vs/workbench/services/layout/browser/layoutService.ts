@@ -9,7 +9,6 @@ import { MenuBarVisibility } from 'vs/platform/windows/common/windows';
 import { ILayoutService } from 'vs/platform/layout/browser/layoutService';
 import { Part } from 'vs/workbench/browser/part';
 import { Dimension } from 'vs/base/browser/dom';
-import { Direction } from 'vs/base/browser/ui/grid/grid';
 
 export const IWorkbenchLayoutService = createDecorator<IWorkbenchLayoutService>('layoutService');
 
@@ -225,9 +224,4 @@ export interface IWorkbenchLayoutService extends ILayoutService {
 	 * Updates the maximized state of the window.
 	 */
 	updateWindowMaximizedState(maximized: boolean): void;
-
-	/**
-	 * Returns the next visible view part in a given direction
-	 */
-	getVisibleNeighborPart(part: Parts, direction: Direction): Parts | undefined;
 }
