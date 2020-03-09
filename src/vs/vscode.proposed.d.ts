@@ -1625,7 +1625,7 @@ declare module 'vscode' {
 	//#endregion
 
 
-	//#region https://github.com/microsoft/vscode/issues/90208
+	//#region
 
 	export interface ExtensionContext {
 		/**

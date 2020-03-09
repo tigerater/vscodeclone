@@ -57,7 +57,7 @@ const withReporter = (function () {
 })()
 
 const outdir = argv.build ? 'out-build' : 'out';
-const out = path.join(__dirname, `../../../${outdir}`);
+const out = path.join(__dirname, `../../${outdir}`);
 
 const testModules = (async function () {
 
@@ -95,9 +95,10 @@ const testModules = (async function () {
 async function runTestsInBrowser(testModules, browserType) {
 
 	const browser = await playwright[browserType].launch({ headless: !Boolean(argv.debug) });
-	const page = (await browser.defaultContext().pages())[0]
+	const context = await browser.newContext();
+
 	const target = url.pathToFileURL(path.join(__dirname, 'renderer.html'));
-	await page.goto(target.href);
+	const page = await context.newPage(target.href);
 
 	const emitter = new events.EventEmitter();
 	await page.exposeFunction('mocha_report', (type, data1, data2) => {
@@ -190,12 +191,22 @@ class EchoRunner extends events.EventEmitter {
 
 testModules.then(async modules => {
 
-	const browserTypes = Array.isArray(argv.browser) ? argv.browser : [argv.browser];
-	const promises = browserTypes.map(browserType => runTestsInBrowser(modules, browserType));
-	const messages = await Promise.all(promises);
+	// run tests in selected browsers
+	const browserTypes = Array.isArray(argv.browser)
+		? argv.browser : [argv.browser];
+
+	const promises = browserTypes.map(async browserType => {
+		try {
+			return await runTestsInBrowser(modules, browserType);
+		} catch (err) {
+			console.error(err);
+			process.exit(1);
+		}
+	});
 
 	// aftermath
 	let didFail = false;
+	const messages = await Promise.all(promises);
 	for (let msg of messages) {
 		if (msg) {
 			didFail = true;
