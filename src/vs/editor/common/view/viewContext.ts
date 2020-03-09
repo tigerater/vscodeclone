@@ -7,30 +7,7 @@ import { IConfiguration } from 'vs/editor/common/editorCommon';
 import { ViewEventDispatcher } from 'vs/editor/common/view/viewEventDispatcher';
 import { ViewEventHandler } from 'vs/editor/common/viewModel/viewEventHandler';
 import { IViewLayout, IViewModel } from 'vs/editor/common/viewModel/viewModel';
-import { ITheme, ThemeType } from 'vs/platform/theme/common/themeService';
-import { ColorIdentifier } from 'vs/platform/theme/common/colorRegistry';
-import { Color } from 'vs/base/common/color';
-
-export class EditorTheme {
-
-	private _theme: ITheme;
-
-	public get type(): ThemeType {
-		return this._theme.type;
-	}
-
-	constructor(theme: ITheme) {
-		this._theme = theme;
-	}
-
-	public update(theme: ITheme): void {
-		this._theme = theme;
-	}
-
-	public getColor(color: ColorIdentifier): Color | undefined {
-		return this._theme.getColor(color);
-	}
-}
+import { ITheme } from 'vs/platform/theme/common/themeService';
 
 export class ViewContext {
 
@@ -38,7 +15,8 @@ export class ViewContext {
 	public readonly model: IViewModel;
 	public readonly viewLayout: IViewLayout;
 	public readonly privateViewEventBus: ViewEventDispatcher;
-	public readonly theme: EditorTheme;
+
+	public theme: ITheme; // will be updated
 
 	constructor(
 		configuration: IConfiguration,
@@ -47,7 +25,7 @@ export class ViewContext {
 		privateViewEventBus: ViewEventDispatcher
 	) {
 		this.configuration = configuration;
-		this.theme = new EditorTheme(theme);
+		this.theme = theme;
 		this.model = model;
 		this.viewLayout = model.viewLayout;
 		this.privateViewEventBus = privateViewEventBus;

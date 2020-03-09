@@ -5,7 +5,7 @@
 
 /* Debug viewlet */
 
-.debug-pane {
+.debug-viewlet {
 	height: 100%;
 }
 
@@ -13,27 +13,27 @@
 	height: 100%;
 }
 
-.debug-pane .debug-start-view {
+.debug-viewlet .debug-start-view {
 	padding: 0 20px 0 20px;
 }
 
-.debug-pane .debug-start-view .monaco-button,
-.debug-pane .debug-start-view .section {
+.debug-viewlet .debug-start-view .monaco-button,
+.debug-viewlet .debug-start-view .section {
 	margin-top: 20px;
 }
 
-.debug-pane .debug-start-view .top-section {
+.debug-viewlet .debug-start-view .top-section {
 	margin-top: 10px;
 }
 
-.debug-pane .debug-start-view .monaco-button {
+.debug-viewlet .debug-start-view .monaco-button {
 	max-width: 260px;
 	margin-left: auto;
 	margin-right: auto;
 	display: block;
 }
 
-.debug-pane .debug-start-view .click {
+.debug-viewlet .debug-start-view .click {
 	cursor: pointer;
 	color: #007ACC;
 }
@@ -87,7 +87,7 @@
 
 /* Debug viewlet trees */
 
-.debug-pane .line-number {
+.debug-viewlet .line-number {
 	background: rgba(136, 136, 136, 0.3);
 	border-radius: 2px;
 	font-size: 0.9em;
@@ -95,29 +95,29 @@
 	line-height: 20px;
 }
 
-.debug-pane .monaco-list-row.selected .line-number,
-.debug-pane .monaco-list-row.selected .thread > .state > .label,
-.debug-pane .monaco-list-row.selected .session > .state > .label {
+.debug-viewlet .monaco-list-row.selected .line-number,
+.debug-viewlet .monaco-list-row.selected .thread > .state > .label,
+.debug-viewlet .monaco-list-row.selected .session > .state > .label {
 	background-color: #ffffff;
 	color: #666;
 }
 
-.debug-pane .monaco-list:focus .monaco-list-row.selected.focused .codicon {
+.debug-viewlet .monaco-list:focus .monaco-list-row.selected.focused .codicon {
 	color: inherit !important;
 }
 
-.debug-pane .disabled {
+.debug-viewlet .disabled {
 	opacity: 0.65;
 }
 
 /* Call stack */
 
-.debug-pane .debug-call-stack-title {
+.debug-viewlet .debug-call-stack-title {
 	display: flex;
 	width: 100%;
 }
 
-.debug-pane .debug-call-stack-title > .pause-message {
+.debug-viewlet .debug-call-stack-title > .pause-message {
 	flex: 1;
 	text-align: right;
 	text-overflow: ellipsis;
@@ -126,41 +126,41 @@
 	margin: 0px 10px;
 }
 
-.debug-pane .debug-call-stack-title > .pause-message > .label {
+.debug-viewlet .debug-call-stack-title > .pause-message > .label {
 	border-radius: 3px;
 	padding: 1px 2px;
 	font-size: 9px;
 }
 
-.debug-pane .debug-call-stack-title > .pause-message > .label.exception {
+.debug-viewlet .debug-call-stack-title > .pause-message > .label.exception {
 	background-color: #A31515;
 	color: rgb(255, 255, 255);
 }
 
-.vs-dark .debug-pane .debug-call-stack-title > .pause-message > .label.exception {
+.vs-dark .debug-viewlet .debug-call-stack-title > .pause-message > .label.exception {
 	background-color: #6C2022;
 	color: inherit;
 }
 
-.hc-black .debug-pane .debug-call-stack-title > .pause-message > .label.exception {
+.hc-black .debug-viewlet .debug-call-stack-title > .pause-message > .label.exception {
 	background-color: #6C2022;
 	color: inherit;
 }
 
-.debug-pane .debug-call-stack .thread,
-.debug-pane .debug-call-stack .session {
+.debug-viewlet .debug-call-stack .thread,
+.debug-viewlet .debug-call-stack .session {
 	display: flex;
 }
 
-.debug-pane .debug-call-stack .thread > .name,
-.debug-pane .debug-call-stack .session > .name {
+.debug-viewlet .debug-call-stack .thread > .name,
+.debug-viewlet .debug-call-stack .session > .name {
 	flex: 1;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
-.debug-pane .debug-call-stack .thread > .state,
-.debug-pane .debug-call-stack .session > .state {
+.debug-viewlet .debug-call-stack .thread > .state,
+.debug-viewlet .debug-call-stack .session > .state {
 	text-align: right;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -168,116 +168,116 @@
 	text-transform: uppercase;
 }
 
-.debug-pane .debug-call-stack .monaco-list-row:hover .state {
+.debug-viewlet .debug-call-stack .monaco-list-row:hover .state {
 	display: none;
 }
 
-.debug-pane .debug-call-stack .monaco-list-row:hover .stack-frame.has-actions .file .line-number {
+.debug-viewlet .debug-call-stack .monaco-list-row:hover .stack-frame.has-actions .file .line-number {
 	display: none;
 }
 
-.debug-pane .debug-call-stack .monaco-list-row .monaco-action-bar {
+.debug-viewlet .debug-call-stack .monaco-list-row .monaco-action-bar {
 	display: none;
 }
 
-.debug-pane .debug-call-stack .monaco-list-row:hover .monaco-action-bar {
+.debug-viewlet .debug-call-stack .monaco-list-row:hover .monaco-action-bar {
 	display: initial;
 }
 
-.monaco-workbench  .debug-pane .debug-call-stack .monaco-action-bar .action-item > .action-label {
+.monaco-workbench  .debug-viewlet .debug-call-stack .monaco-action-bar .action-item > .action-label {
 	width: 16px;
 	height: 100%;
 	margin-right: 8px;
 	vertical-align: text-top;
 }
 
-.debug-pane .debug-call-stack .thread > .state > .label,
-.debug-pane .debug-call-stack .session > .state > .label {
+.debug-viewlet .debug-call-stack .thread > .state > .label,
+.debug-viewlet .debug-call-stack .session > .state > .label {
 	background: rgba(136, 136, 136, 0.3);
 	border-radius: 2px;
 	font-size: 0.8em;
 	padding: 0 3px;
 }
 
-.debug-pane .debug-call-stack .stack-frame {
+.debug-viewlet .debug-call-stack .stack-frame {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	padding-right: 0.8em;
 	display: flex;
 }
 
-.debug-pane .debug-call-stack .stack-frame.label {
+.debug-viewlet .debug-call-stack .stack-frame.label {
 	text-align: center;
 	font-style: italic;
 }
 
-.debug-pane .debug-call-stack .stack-frame .label {
+.debug-viewlet .debug-call-stack .stack-frame .label {
 	flex: 1;
 	flex-shrink: 0;
 	min-width: fit-content;
 	min-width: -moz-fit-content;
 }
 
-.debug-pane .debug-call-stack .stack-frame.subtle {
+.debug-viewlet .debug-call-stack .stack-frame.subtle {
 	font-style: italic;
 }
 
-.debug-pane .debug-call-stack .stack-frame.label > .file {
+.debug-viewlet .debug-call-stack .stack-frame.label > .file {
 	display: none;
 }
 
-.debug-pane .debug-call-stack .stack-frame > .file {
+.debug-viewlet .debug-call-stack .stack-frame > .file {
 	display: flex;
 	overflow: hidden;
 	flex-wrap: wrap;
 	justify-content: flex-end;
 }
 
-.debug-pane .debug-call-stack .stack-frame > .file > .line-number.unavailable {
+.debug-viewlet .debug-call-stack .stack-frame > .file > .line-number.unavailable {
 	display: none;
 }
 
-.debug-pane .debug-call-stack .monaco-list-row:not(.selected) .stack-frame > .file {
+.debug-viewlet .debug-call-stack .monaco-list-row:not(.selected) .stack-frame > .file {
 	color: rgba(108, 108, 108, 0.8);
 }
 
-.debug-pane .debug-call-stack .stack-frame > .file > .file-name {
+.debug-viewlet .debug-call-stack .stack-frame > .file > .file-name {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	margin-right: 0.8em;
 }
 
-.vs-dark .debug-pane .debug-call-stack .monaco-list-row:not(.selected) .stack-frame > .file {
+.vs-dark .debug-viewlet .debug-call-stack .monaco-list-row:not(.selected) .stack-frame > .file {
 	color: rgba(204, 204, 204, 0.6);
 }
 
-.debug-pane .debug-call-stack .stack-frame > .file:not(:first-child) {
+.debug-viewlet .debug-call-stack .stack-frame > .file:not(:first-child) {
 	margin-left: 0.8em;
 }
 
-.debug-pane .debug-call-stack .load-more {
+.debug-viewlet .debug-call-stack .load-more {
 	font-style: italic;
 	text-align: center;
 }
 
-.debug-pane .debug-call-stack .show-more {
+.debug-viewlet .debug-call-stack .show-more {
 	font-style: italic;
 	opacity: 0.35;
 }
 
-.debug-pane .debug-call-stack .error {
+.debug-viewlet .debug-call-stack .error {
 	font-style: italic;
 	text-overflow: ellipsis;
 	overflow: hidden;
 }
 
-.debug-pane .debug-call-stack .monaco-list:focus .monaco-list-row.selected .codicon {
+.debug-viewlet .debug-call-stack .monaco-list:focus .monaco-list-row.selected .codicon {
 	color: inherit !important;
 }
 
 /* Variables & Expression view */
 
-.debug-pane .scope {
+.debug-viewlet .scope {
 	font-weight: bold;
 	font-size: 11px;
 }
@@ -295,7 +295,7 @@
 	100% { background-color: rgba(86, 156, 214, .2) }
 }
 
-.debug-pane .monaco-list-row .expression .value.changed {
+.debug-viewlet .monaco-list-row .expression .value.changed {
 	padding: 2px;
 	margin: 4px;
 	border-radius: 4px;
@@ -305,67 +305,67 @@
 	animation-fill-mode: forwards;
 }
 
-.debug-pane .monaco-inputbox {
+.debug-viewlet .monaco-inputbox {
 	width: 100%;
 	line-height: normal;
 }
 
-.debug-pane .inputBoxContainer {
+.debug-viewlet .inputBoxContainer {
 	box-sizing: border-box;
 	flex-grow: 1;
 }
 
-.debug-pane .debug-watch .monaco-inputbox {
+.debug-viewlet .debug-watch .monaco-inputbox {
 	font-family: var(--monaco-monospace-font);
 }
 
-.debug-pane .monaco-inputbox > .wrapper {
+.debug-viewlet .monaco-inputbox > .wrapper {
 	height: 19px;
 }
 
-.debug-pane .monaco-inputbox > .wrapper > .input {
+.debug-viewlet .monaco-inputbox > .wrapper > .input {
 	padding: 0px;
 	color: initial;
 }
 
-.debug-pane .watch-expression {
+.debug-viewlet .watch-expression {
 	display: flex;
 }
 
-.debug-pane .watch-expression .expression {
+.debug-viewlet .watch-expression .expression {
 	flex : 1;
 }
 
-.vs-dark .debug-pane .monaco-list-row .expression .value.changed {
+.vs-dark .debug-viewlet .monaco-list-row .expression .value.changed {
 	animation-name: debugViewletValueChanged;
 }
 
 /* Breakpoints */
 
-.debug-pane .monaco-list-row {
+.debug-viewlet .monaco-list-row {
 	line-height: 22px;
 }
 
-.debug-pane .debug-breakpoints .monaco-list-row .breakpoint {
+.debug-viewlet .debug-breakpoints .monaco-list-row .breakpoint {
 	padding-left: 2px;
 }
 
-.debug-pane .debug-breakpoints .breakpoint.exception {
+.debug-viewlet .debug-breakpoints .breakpoint.exception {
 	padding-left: 20px;
 }
 
-.debug-pane .debug-breakpoints .breakpoint {
+.debug-viewlet .debug-breakpoints .breakpoint {
 	display: flex;
 	padding-right: 0.8em;
 	flex: 1;
 	align-items: center;
 }
 
-.debug-pane .debug-breakpoints .breakpoint input {
+.debug-viewlet .debug-breakpoints .breakpoint input {
 	flex-shrink: 0;
 }
 
-.debug-pane .debug-breakpoints .breakpoint > .codicon {
+.debug-viewlet .debug-breakpoints .breakpoint > .codicon {
 	width: 19px;
 	height: 19px;
 	min-width: 19px;
@@ -374,7 +374,7 @@
 	justify-content: center;
 }
 
-.debug-pane .debug-breakpoints .breakpoint > .file-path {
+.debug-viewlet .debug-breakpoints .breakpoint > .file-path {
 	opacity: 0.7;
 	font-size: 0.9em;
 	margin-left: 0.8em;
@@ -383,7 +383,7 @@
 	overflow: hidden;
 }
 
-.debug-pane .debug-breakpoints .breakpoint .name {
+.debug-viewlet .debug-breakpoints .breakpoint .name {
 	overflow: hidden;
 	text-overflow: ellipsis
 }

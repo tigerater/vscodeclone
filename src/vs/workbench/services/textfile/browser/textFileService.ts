@@ -36,7 +36,6 @@ import { suggestFilename } from 'vs/base/common/mime';
 import { INotificationService } from 'vs/platform/notification/common/notification';
 import { toErrorMessage } from 'vs/base/common/errorMessage';
 import { IRemotePathService } from 'vs/workbench/services/path/common/remotePathService';
-import { isValidBasename } from 'vs/base/common/extpath';
 
 /**
  * The workbench file service implementation implements the raw file service spec and adds additional methods on top.
@@ -568,19 +567,12 @@ export abstract class AbstractTextFileService extends Disposable implements ITex
 					return toLocalResource(resource, remoteAuthority);
 				}
 
-				// Untitled without associated file path: use name
-				// of untitled model if it is a valid path name
-				let untitledName = model.name;
-				if (!isValidBasename(untitledName)) {
-					untitledName = basename(resource);
-				}
-
-				// Add mode file extension if specified
+				// Untitled without associated file path
 				const mode = model.getMode();
-				if (mode !== PLAINTEXT_MODE_ID) {
-					suggestedFilename = suggestFilename(mode, untitledName);
+				if (mode !== PLAINTEXT_MODE_ID) { // do not suggest when the mode ID is simple plain text
+					suggestedFilename = suggestFilename(mode, model.name);
 				} else {
-					suggestedFilename = untitledName;
+					suggestedFilename = model.name;
 				}
 			}
 		}

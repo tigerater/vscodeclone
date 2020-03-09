@@ -8,8 +8,7 @@ import { Command } from '../utils/commandManager';
 import { isTypeScriptDocument } from '../utils/languageModeIds';
 
 export class LearnMoreAboutRefactoringsCommand implements Command {
-	public static readonly id = '_typescript.learnMoreAboutRefactorings';
-	public readonly id = LearnMoreAboutRefactoringsCommand.id;
+	public readonly id = '_typescript.learnMoreAboutRefactorings';
 
 	public execute() {
 		const docUrl = vscode.window.activeTextEditor && isTypeScriptDocument(vscode.window.activeTextEditor.document)

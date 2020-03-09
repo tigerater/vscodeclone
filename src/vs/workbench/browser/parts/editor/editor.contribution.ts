@@ -55,7 +55,6 @@ import { withNullAsUndefined } from 'vs/base/common/types';
 import { IFilesConfigurationService } from 'vs/workbench/services/filesConfiguration/common/filesConfigurationService';
 import { EditorAutoSave } from 'vs/workbench/browser/parts/editor/editorAutoSave';
 import { ThemeIcon } from 'vs/platform/theme/common/themeService';
-import { PLAINTEXT_MODE_ID } from 'vs/editor/common/modes/modesRegistry';
 
 // Register String Editor
 Registry.as<IEditorRegistry>(EditorExtensions.Editors).registerEditor(
@@ -106,7 +105,8 @@ Registry.as<IEditorRegistry>(EditorExtensions.Editors).registerEditor(
 );
 
 interface ISerializedUntitledTextEditorInput {
-	resourceJSON: UriComponents;
+	resource: string;
+	resourceJSON: object;
 	modeId: string | undefined;
 	encoding: string | undefined;
 }
@@ -131,25 +131,14 @@ class UntitledTextEditorInputFactory implements IEditorInputFactory {
 		const untitledTextEditorInput = <UntitledTextEditorInput>editorInput;
 
 		let resource = untitledTextEditorInput.getResource();
-		if (untitledTextEditorInput.model.hasAssociatedFilePath) {
+		if (untitledTextEditorInput.hasAssociatedFilePath) {
 			resource = toLocalResource(resource, this.environmentService.configuration.remoteAuthority); // untitled with associated file path use the local schema
 		}
 
-		// Mode: only remember mode if it is either specific (not text)
-		// or if the mode was explicitly set by the user. We want to preserve
-		// this information across restarts and not set the mode unless
-		// this is the case.
-		let modeId: string | undefined;
-		const modeIdCandidate = untitledTextEditorInput.getMode();
-		if (modeIdCandidate !== PLAINTEXT_MODE_ID) {
-			modeId = modeIdCandidate;
-		} else if (untitledTextEditorInput.model.hasModeSetExplicitly) {
-			modeId = modeIdCandidate;
-		}
-
 		const serialized: ISerializedUntitledTextEditorInput = {
+			resource: resource.toString(), // Keep for backwards compatibility
 			resourceJSON: resource.toJSON(),
-			modeId,
+			modeId: untitledTextEditorInput.getMode(),
 			encoding: untitledTextEditorInput.getEncoding()
 		};
 
@@ -159,7 +148,7 @@ class UntitledTextEditorInputFactory implements IEditorInputFactory {
 	deserialize(instantiationService: IInstantiationService, serializedEditorInput: string): UntitledTextEditorInput {
 		return instantiationService.invokeFunction<UntitledTextEditorInput>(accessor => {
 			const deserialized: ISerializedUntitledTextEditorInput = JSON.parse(serializedEditorInput);
-			const resource = URI.revive(deserialized.resourceJSON);
+			const resource = !!deserialized.resourceJSON ? URI.revive(<UriComponents>deserialized.resourceJSON) : URI.parse(deserialized.resource);
 			const mode = deserialized.modeId;
 			const encoding = deserialized.encoding;
 

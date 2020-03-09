@@ -26,7 +26,7 @@ import { FileEditorInput } from 'vs/workbench/contrib/files/common/editors/fileE
 import * as SearchConstants from 'vs/workbench/contrib/search/common/constants';
 import * as SearchEditorConstants from 'vs/workbench/contrib/searchEditor/browser/constants';
 import { SearchEditor } from 'vs/workbench/contrib/searchEditor/browser/searchEditor';
-import { OpenResultsInEditorAction, OpenSearchEditorAction, toggleSearchEditorCaseSensitiveCommand, toggleSearchEditorContextLinesCommand, toggleSearchEditorRegexCommand, toggleSearchEditorWholeWordCommand } from 'vs/workbench/contrib/searchEditor/browser/searchEditorActions';
+import { OpenResultsInEditorAction, OpenSearchEditorAction, ReRunSearchEditorSearchAction, toggleSearchEditorCaseSensitiveCommand, toggleSearchEditorContextLinesCommand, toggleSearchEditorRegexCommand, toggleSearchEditorWholeWordCommand } from 'vs/workbench/contrib/searchEditor/browser/searchEditorActions';
 import { getOrMakeSearchEditorInput, SearchEditorInput } from 'vs/workbench/contrib/searchEditor/browser/searchEditorInput';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
 import { ISearchConfigurationProperties } from 'vs/workbench/services/search/common/search';
@@ -106,17 +106,18 @@ class SearchEditorInputFactory implements IEditorInputFactory {
 
 		const config = input.getConfigSync();
 		const dirty = input.isDirty();
-		const matchRanges = input.getMatchRanges();
+		const highlights = input.highlights;
 
-		return JSON.stringify({ resource, dirty, config, name: input.getName(), matchRanges });
+		return JSON.stringify({ resource, dirty, config, viewState: input.viewState, name: input.getName(), highlights });
 	}
 
 	deserialize(instantiationService: IInstantiationService, serializedEditorInput: string): SearchEditorInput | undefined {
-		const { resource, dirty, config, matchRanges } = JSON.parse(serializedEditorInput);
+		const { resource, dirty, config, viewState, highlights } = JSON.parse(serializedEditorInput);
 		if (config && (config.query !== undefined)) {
 			const input = instantiationService.invokeFunction(getOrMakeSearchEditorInput, { config, uri: URI.parse(resource) });
+			input.viewState = viewState;
 			input.setDirty(dirty);
-			input.setMatchRanges(matchRanges);
+			input.setHighlights(highlights);
 			return input;
 		}
 		return undefined;
@@ -163,6 +164,11 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 //#region Actions
 const registry = Registry.as<IWorkbenchActionRegistry>(ActionExtensions.WorkbenchActions);
 const category = localize('search', "Search Editor");
+
+registry.registerWorkbenchAction(
+	SyncActionDescriptor.create(ReRunSearchEditorSearchAction, ReRunSearchEditorSearchAction.ID, ReRunSearchEditorSearchAction.LABEL),
+	'Search Editor: Rerun search', category, ContextKeyExpr.and(SearchEditorConstants.InSearchEditor)
+);
 
 registry.registerWorkbenchAction(
 	SyncActionDescriptor.create(OpenResultsInEditorAction, OpenResultsInEditorAction.ID, OpenResultsInEditorAction.LABEL,

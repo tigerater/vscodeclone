@@ -14,12 +14,6 @@ All integration tests run in an Electron instance. You can specify to run the te
 
 ## Run (inside browser)
 
-	resources/server/test/test-web-integration.[sh|bat] --browser [chromium|webkit] [--debug]
+	resources/server/test/test-web-integration.[sh|bat] --browser [chromium|webkit]
 
 All integration tests run in a browser instance as specified by the command line arguments.
-
-Add the `--debug` flag to see a browser window with the tests running.
-
-## Debug
-
-All integration tests can be run and debugged from within VSCode (both Electron and Web) simply by selecting the related launch configuration and running them.

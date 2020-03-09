@@ -86,7 +86,7 @@ export class SettingsDocument {
 				}));
 			} else {
 				// Value
-				return this.provideLanguageCompletionItemsForLanguageOverrides(location, range);
+				return this.provideLanguageCompletionItems(location, range);
 			}
 		}
 
@@ -158,11 +158,6 @@ export class SettingsDocument {
 	}
 
 	private provideLanguageCompletionItems(_location: Location, range: vscode.Range, formatFunc: (string: string) => string = (l) => JSON.stringify(l)): Thenable<vscode.CompletionItem[]> {
-		return vscode.languages.getLanguages()
-			.then(languages => languages.map(l => this.newSimpleCompletionItem(formatFunc(l), range)));
-	}
-
-	private provideLanguageCompletionItemsForLanguageOverrides(_location: Location, range: vscode.Range, formatFunc: (string: string) => string = (l) => JSON.stringify(l)): Thenable<vscode.CompletionItem[]> {
 		return vscode.languages.getLanguages().then(languages => {
 			const completionItems = [];
 			const configuration = vscode.workspace.getConfiguration();
@@ -187,7 +182,7 @@ export class SettingsDocument {
 			let text = this.document.getText(range);
 			if (text && text.trim().startsWith('[')) {
 				range = new vscode.Range(new vscode.Position(range.start.line, range.start.character + text.indexOf('[')), range.end);
-				return this.provideLanguageCompletionItemsForLanguageOverrides(location, range, language => `"[${language}]"`);
+				return this.provideLanguageCompletionItems(location, range, language => `"[${language}]"`);
 			}
 
 			range = this.document.getWordRangeAtPosition(position) || new vscode.Range(position, position);
@@ -214,7 +209,7 @@ export class SettingsDocument {
 			// Suggestion model word matching includes closed sqaure bracket and ending quote
 			// Hence include them in the proposal to replace
 			let range = this.document.getWordRangeAtPosition(position) || new vscode.Range(position, position);
-			return this.provideLanguageCompletionItemsForLanguageOverrides(location, range, language => `"[${language}]"`);
+			return this.provideLanguageCompletionItems(location, range, language => `"[${language}]"`);
 		}
 		return Promise.resolve([]);
 	}
