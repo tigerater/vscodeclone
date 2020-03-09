@@ -103,8 +103,6 @@ export interface IProductConfiguration {
 
 	readonly msftInternalDomains?: string[];
 	readonly linkProtectionTrustedDomains?: readonly string[];
-
-	readonly 'configurationSync.store'?: { url: string, authenticationProviderId: string };
 }
 
 export interface IExeBasedExtensionTip {

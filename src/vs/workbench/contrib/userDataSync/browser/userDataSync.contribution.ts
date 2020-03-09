@@ -9,16 +9,14 @@ import { LifecyclePhase } from 'vs/platform/lifecycle/common/lifecycle';
 import { UserDataSyncWorkbenchContribution } from 'vs/workbench/contrib/userDataSync/browser/userDataSync';
 import { IConfigurationService, ConfigurationTarget } from 'vs/platform/configuration/common/configuration';
 import { IUserDataSyncEnablementService, getUserDataSyncStore } from 'vs/platform/userDataSync/common/userDataSync';
-import { IProductService } from 'vs/platform/product/common/productService';
 
 class UserDataSyncSettingsMigrationContribution implements IWorkbenchContribution {
 
 	constructor(
-		@IProductService productService: IProductService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IUserDataSyncEnablementService userDataSyncEnablementService: IUserDataSyncEnablementService,
 	) {
-		if (getUserDataSyncStore(productService, configurationService)) {
+		if (getUserDataSyncStore(configurationService)) {
 			if (!configurationService.getValue('sync.enableSettings')) {
 				userDataSyncEnablementService.setResourceEnablement('settings', false);
 			}
