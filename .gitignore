@@ -11,7 +11,6 @@ out-editor/
 out-editor-src/
 out-editor-build/
 out-editor-esm/
-out-editor-esm-bundle/
 out-editor-min/
 out-monaco-editor-core/
 out-vscode/
