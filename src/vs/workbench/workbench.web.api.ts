@@ -16,7 +16,6 @@ import { IUpdateProvider, IUpdate } from 'vs/workbench/services/update/browser/u
 import { Event, Emitter } from 'vs/base/common/event';
 import { Disposable, IDisposable } from 'vs/base/common/lifecycle';
 import { IWorkspaceProvider, IWorkspace } from 'vs/workbench/services/host/browser/browserHostService';
-import { CommandsRegistry } from 'vs/platform/commands/common/commands';
 
 interface IResourceUriProvider {
 	(uri: URI): URI;
@@ -37,23 +36,18 @@ interface IExternalUriResolver {
 
 interface TunnelOptions {
 	remoteAddress: { port: number, host: string };
-	/**
-	 * The desired local port. If this port can't be used, then another will be chosen.
-	 */
+	// The desired local port. If this port can't be used, then another will be chosen.
 	localAddressPort?: number;
 	label?: string;
 }
 
-interface Tunnel extends IDisposable {
+interface Tunnel {
 	remoteAddress: { port: number, host: string };
-	/**
-	 * The complete local address(ex. localhost:1234)
-	 */
+	//The complete local address(ex. localhost:1234)
 	localAddress: string;
-	/**
-	 * Implementers of Tunnel should fire onDidDispose when dispose is called.
-	 */
+	// Implementers of Tunnel should fire onDidDispose when dispose is called.
 	onDidDispose: Event<void>;
+	dispose(): void;
 }
 
 interface ITunnelFactory {
@@ -70,7 +64,7 @@ interface IApplicationLink {
 	 * A link that is opened in the OS. If you want to open VSCode it must
 	 * follow our expected structure of links:
 	 *
-	 * <vscode|vscode-insiders>://<file|vscode-remote>/<remote-authority>/<path>
+	 * <vscode|vscode-insiders>://<file|vscode-remote>/<authority>/<path>
 	 *
 	 * For example:
 	 *
@@ -80,28 +74,16 @@ interface IApplicationLink {
 	uri: URI;
 
 	/**
-	 * A label for the application link to display.
+	 * A label for the link to display.
 	 */
 	label: string;
 }
 
-interface ICommand {
-
-	/**
-	 * An identifier for the command. Commands can be executed from extensions
-	 * using the `vscode.commands.executeCommand` API using that command ID.
-	 */
-	id: string,
-
-	/**
-	 * A function that is being executed with any arguments passed over.
-	 */
-	handler: (...args: any[]) => void;
+interface IApplicationLinkProvider {
+	(): IApplicationLink[] | undefined
 }
 
 interface IWorkbenchConstructionOptions {
-
-	//#region Connection related configuration
 
 	/**
 	 * The remote authority is the IP:PORT from where the workbench is served
@@ -121,36 +103,6 @@ interface IWorkbenchConstructionOptions {
 	readonly webviewEndpoint?: string;
 
 	/**
-	 * A factory for web sockets.
-	 */
-	readonly webSocketFactory?: IWebSocketFactory;
-
-	/**
-	 * A provider for resource URIs.
-	 */
-	readonly resourceUriProvider?: IResourceUriProvider;
-
-	/**
-	 * Resolves an external uri before it is opened.
-	 */
-	readonly resolveExternalUri?: IExternalUriResolver;
-
-	/**
-	 * Support for creating tunnels.
-	 */
-	readonly tunnelFactory?: ITunnelFactory;
-
-	/**
-	 * Support for filtering candidate ports
-	 */
-	readonly showCandidate?: IShowCandidate;
-
-	//#endregion
-
-
-	//#region Workbench configuration
-
-	/**
 	 * A handler for opening workspaces and providing the initial workspace.
 	 */
 	readonly workspaceProvider?: IWorkspaceProvider;
@@ -160,6 +112,16 @@ interface IWorkbenchConstructionOptions {
 	 * state like settings, keybindings, UI state (e.g. opened editors) and snippets.
 	 */
 	userDataProvider?: IFileSystemProvider;
+
+	/**
+	 * A factory for web sockets.
+	 */
+	readonly webSocketFactory?: IWebSocketFactory;
+
+	/**
+	 * A provider for resource URIs.
+	 */
+	readonly resourceUriProvider?: IResourceUriProvider;
 
 	/**
 	 * The credentials provider to store and retrieve secrets.
@@ -187,6 +149,21 @@ interface IWorkbenchConstructionOptions {
 	readonly resolveCommonTelemetryProperties?: ICommontTelemetryPropertiesResolver;
 
 	/**
+	 * Resolves an external uri before it is opened.
+	 */
+	readonly resolveExternalUri?: IExternalUriResolver;
+
+	/**
+	 * Support for creating tunnels.
+	 */
+	readonly tunnelFactory?: ITunnelFactory;
+
+	/**
+	 * Support for filtering candidate ports
+	 */
+	readonly showCandidate?: IShowCandidate;
+
+	/**
 	 * Provide entries for the "Open in Desktop" feature.
 	 *
 	 * Depending on the returned elements the behaviour is:
@@ -196,20 +173,7 @@ interface IWorkbenchConstructionOptions {
 	 * - N elements: there will be a "Open in Desktop" affordance that opens
 	 *   a picker on click to select which application to open.
 	 */
-	readonly applicationLinks?: readonly IApplicationLink[];
-
-	/**
-	 * A set of optional commands that should be registered with the commands
-	 * registry.
-	 *
-	 * Note: commands can be called from extensions if the identifier is known!
-	 */
-	readonly commands?: readonly ICommand[];
-
-	//#endregion
-
-
-	//#region Diagnostics
+	readonly applicationLinkProvider?: IApplicationLinkProvider;
 
 	/**
 	 * Current logging level. Default is `LogLevel.Info`.
@@ -220,8 +184,6 @@ interface IWorkbenchConstructionOptions {
 	 * Whether to enable the smoke test driver.
 	 */
 	readonly driver?: boolean;
-
-	//#endregion
 }
 
 /**
@@ -230,21 +192,8 @@ interface IWorkbenchConstructionOptions {
  * @param domElement the container to create the workbench in
  * @param options for setting up the workbench
  */
-async function create(domElement: HTMLElement, options: IWorkbenchConstructionOptions): Promise<void> {
-
-	// Startup workbench
-	await main(domElement, options);
-
-	// Register commands if any
-	if (Array.isArray(options.commands)) {
-		for (const command of options.commands) {
-			CommandsRegistry.registerCommand(command.id, (accessor, ...args: any[]) => {
-				// we currently only pass on the arguments but not the accessor
-				// to the command to reduce our exposure of internal API.
-				command.handler(...args);
-			});
-		}
-	}
+function create(domElement: HTMLElement, options: IWorkbenchConstructionOptions): Promise<void> {
+	return main(domElement, options);
 }
 
 export {
@@ -252,7 +201,6 @@ export {
 	// Factory
 	create,
 	IWorkbenchConstructionOptions,
-
 
 	// Basic Types
 	URI,
@@ -304,7 +252,5 @@ export {
 
 	// Protocol Links
 	IApplicationLink,
-
-	// Commands
-	ICommand
+	IApplicationLinkProvider
 };
