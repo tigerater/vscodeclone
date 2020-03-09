@@ -22,6 +22,7 @@ import { IProductService } from 'vs/platform/product/common/productService';
 import { IFilesConfigurationService } from 'vs/workbench/services/filesConfiguration/common/filesConfigurationService';
 import { ITextModelService } from 'vs/editor/common/services/resolverService';
 import { ICodeEditorService } from 'vs/editor/browser/services/codeEditorService';
+import { INotificationService } from 'vs/platform/notification/common/notification';
 import { URI } from 'vs/base/common/uri';
 import { IReadTextFileOptions, ITextFileStreamContent, ITextFileService } from 'vs/workbench/services/textfile/common/textfiles';
 import { createTextBufferFactoryFromStream } from 'vs/editor/common/model/textModel';
@@ -61,6 +62,7 @@ export class TestTextFileService extends NativeTextFileService {
 		@IFilesConfigurationService filesConfigurationService: IFilesConfigurationService,
 		@ITextModelService textModelService: ITextModelService,
 		@ICodeEditorService codeEditorService: ICodeEditorService,
+		@INotificationService notificationService: INotificationService,
 		@IRemotePathService remotePathService: IRemotePathService
 	) {
 		super(
@@ -77,6 +79,7 @@ export class TestTextFileService extends NativeTextFileService {
 			filesConfigurationService,
 			textModelService,
 			codeEditorService,
+			notificationService,
 			remotePathService
 		);
 	}

@@ -90,11 +90,11 @@ export class NotificationsToasts extends Themable {
 			this.model.notifications.forEach(notification => this.addToast(notification));
 
 			// Update toasts on notification changes
-			this._register(this.model.onDidChangeNotification(e => this.onDidChangeNotification(e)));
+			this._register(this.model.onDidNotificationChange(e => this.onDidNotificationChange(e)));
 		});
 
 		// Filter
-		this._register(this.model.onDidChangeFilter(filter => {
+		this._register(this.model.onDidFilterChange(filter => {
 			if (filter === NotificationsFilter.SILENT || filter === NotificationsFilter.ERROR) {
 				this.hide();
 			}
@@ -114,7 +114,7 @@ export class NotificationsToasts extends Themable {
 		]);
 	}
 
-	private onDidChangeNotification(e: INotificationChangeEvent): void {
+	private onDidNotificationChange(e: INotificationChangeEvent): void {
 		switch (e.kind) {
 			case NotificationChangeType.ADD:
 				return this.addToast(e.item);
@@ -194,12 +194,12 @@ export class NotificationsToasts extends Themable {
 		this.layoutContainer(maxDimensions.height);
 
 		// Update when item height changes due to expansion
-		itemDisposables.add(item.onDidChangeExpansion(() => {
+		itemDisposables.add(item.onDidExpansionChange(() => {
 			notificationList.updateNotificationsList(0, 1, [item]);
 		}));
 
 		// Update when item height potentially changes due to label changes
-		itemDisposables.add(item.onDidChangeLabel(e => {
+		itemDisposables.add(item.onDidLabelChange(e => {
 			if (!item.expanded) {
 				return; // dynamic height only applies to expanded notifications
 			}

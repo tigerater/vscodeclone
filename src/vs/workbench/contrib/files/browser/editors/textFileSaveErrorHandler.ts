@@ -64,7 +64,7 @@ export class TextFileSaveErrorHandler extends Disposable implements ISaveErrorHa
 		this._register(textModelService.registerTextModelContentProvider(CONFLICT_RESOLUTION_SCHEME, provider));
 
 		// Set as save error handler to service for text files
-		this.textFileService.files.saveErrorHandler = this;
+		this.textFileService.saveErrorHandler = this;
 
 		this.registerListeners();
 	}
