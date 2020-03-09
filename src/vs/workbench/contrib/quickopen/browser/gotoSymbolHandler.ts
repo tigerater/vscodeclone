@@ -77,7 +77,7 @@ class OutlineModel extends QuickOpenModel {
 		const searchValuePos = searchValue.indexOf(SCOPE_PREFIX) === 0 ? 1 : 0;
 
 		// Check for match and update visibility and group label
-		(<Array<SymbolEntry>>this.entries).forEach(entry => {
+		this.entries.forEach((entry: SymbolEntry) => {
 
 			// Clear all state first
 			entry.setGroupLabel(undefined);
@@ -98,7 +98,7 @@ class OutlineModel extends QuickOpenModel {
 		});
 
 		// select comparator based on the presence of the colon-prefix
-		(<Array<SymbolEntry>>this.entries).sort(searchValuePos === 0
+		this.entries.sort(searchValuePos === 0
 			? SymbolEntry.compareByRank
 			: SymbolEntry.compareByKindAndRank
 		);

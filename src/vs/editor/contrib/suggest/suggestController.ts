@@ -139,12 +139,10 @@ export class SuggestController implements IEditorContribution {
 			// Wire up makes text edit context key
 			const ctxMakesTextEdit = SuggestContext.MakesTextEdit.bindTo(this._contextKeyService);
 			const ctxHasInsertAndReplace = SuggestContext.HasInsertAndReplaceRange.bindTo(this._contextKeyService);
-			const ctxCanResolve = SuggestContext.CanResolve.bindTo(this._contextKeyService);
 
 			this._toDispose.add(toDisposable(() => {
 				ctxMakesTextEdit.reset();
 				ctxHasInsertAndReplace.reset();
-				ctxCanResolve.reset();
 			}));
 
 			this._toDispose.add(widget.onDidFocus(({ item }) => {
@@ -174,9 +172,6 @@ export class SuggestController implements IEditorContribution {
 
 				// (ctx: hasInsertAndReplaceRange)
 				ctxHasInsertAndReplace.set(!Position.equals(item.editInsertEnd, item.editReplaceEnd));
-
-				// (ctx: canResolve)
-				ctxCanResolve.set(Boolean(item.provider.resolveCompletionItem) || Boolean(item.completion.documentation) || item.completion.detail !== item.completion.label);
 			}));
 
 			this._toDispose.add(widget.onDetailsKeyDown(e => {
@@ -700,13 +695,13 @@ registerEditorCommand(new SuggestCommand({
 		menuId: suggestWidgetStatusbarMenu,
 		group: 'right',
 		order: 1,
-		when: ContextKeyExpr.and(SuggestContext.DetailsVisible, SuggestContext.CanResolve),
+		when: SuggestContext.DetailsVisible,
 		title: nls.localize('detail.more', "show less")
 	}, {
 		menuId: suggestWidgetStatusbarMenu,
 		group: 'right',
 		order: 1,
-		when: ContextKeyExpr.and(SuggestContext.DetailsVisible.toNegated(), SuggestContext.CanResolve),
+		when: SuggestContext.DetailsVisible.toNegated(),
 		title: nls.localize('detail.less', "show more")
 	}]
 }));

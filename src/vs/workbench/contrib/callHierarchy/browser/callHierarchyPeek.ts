@@ -82,15 +82,13 @@ class LayoutInfo {
 	) { }
 }
 
-class CallHierarchyTree extends WorkbenchAsyncDataTree<CallHierarchyModel, callHTree.Call, FuzzyScore>{ }
-
 export class CallHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 
 	private _changeDirectionAction?: ChangeHierarchyDirectionAction;
 	private _parent!: HTMLElement;
 	private _message!: HTMLElement;
 	private _splitView!: SplitView;
-	private _tree!: CallHierarchyTree;
+	private _tree!: WorkbenchAsyncDataTree<CallHierarchyModel, callHTree.Call, FuzzyScore>;
 	private _treeViewStates = new Map<CallHierarchyDirection, IAsyncDataTreeViewState>();
 	private _editor!: EmbeddedCodeEditorWidget;
 	private _dim!: Dimension;
@@ -206,8 +204,8 @@ export class CallHierarchyTreePeekWidget extends peekView.PeekViewWidget {
 				listBackground: peekView.peekViewResultsBackground
 			}
 		};
-		this._tree = this._instantiationService.createInstance(
-			CallHierarchyTree,
+		this._tree = this._instantiationService.createInstance<typeof WorkbenchAsyncDataTree, WorkbenchAsyncDataTree<CallHierarchyModel, callHTree.Call, FuzzyScore>>(
+			WorkbenchAsyncDataTree,
 			'CallHierarchyPeek',
 			treeContainer,
 			new callHTree.VirtualDelegate(),

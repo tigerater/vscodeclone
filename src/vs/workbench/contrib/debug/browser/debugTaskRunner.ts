@@ -72,9 +72,6 @@ export class DebugTaskRunner {
 				await this.viewsService.openView(Constants.MARKERS_VIEW_ID);
 				return Promise.resolve(TaskRunResult.Failure);
 			}
-			if (onTaskErrors === 'cancel') {
-				return Promise.resolve(TaskRunResult.Failure);
-			}
 
 			const taskLabel = typeof taskId === 'string' ? taskId : taskId ? taskId.name : '';
 			const message = errorCount > 1
@@ -92,15 +89,12 @@ export class DebugTaskRunner {
 				cancelId: 2
 			});
 
-
-			const debugAnyway = result.choice === 0;
-			const cancel = result.choice = 2;
-			if (result.checkboxChecked) {
-				this.configurationService.updateValue('debug.onTaskErrors', result.choice === 0 ? 'debugAnyway' : cancel ? 'cancel' : 'showErrors');
-			}
-
-			if (cancel) {
+			if (result.choice === 2) {
 				return Promise.resolve(TaskRunResult.Failure);
+			}
+			const debugAnyway = result.choice === 0;
+			if (result.checkboxChecked) {
+				this.configurationService.updateValue('debug.onTaskErrors', debugAnyway ? 'debugAnyway' : 'showErrors');
 			}
 			if (debugAnyway) {
 				return TaskRunResult.Success;

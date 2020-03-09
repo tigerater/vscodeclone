@@ -64,7 +64,7 @@ export class InstantiationService implements IInstantiationService {
 					return result;
 				}
 			};
-			return fn(accessor, ...args);
+			return fn.apply(undefined, [accessor, ...args]);
 		} finally {
 			_done = true;
 			_trace.stop();

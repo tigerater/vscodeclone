@@ -137,11 +137,12 @@ function waitForEndpoint(): Promise<string> {
 	});
 }
 
-export function connect(engine: 'chromium' | 'webkit' | 'firefox' = 'chromium'): Promise<{ client: IDisposable, driver: IDriver }> {
+export function connect(headless: boolean, engine: 'chromium' | 'webkit' | 'firefox' = 'chromium'): Promise<{ client: IDisposable, driver: IDriver }> {
 	return new Promise(async (c) => {
 		const browser = await playwright[engine].launch({
 			// Run in Edge dev on macOS
-			// executablePath: '/Applications/Microsoft\ Edge\ Dev.app/Contents/MacOS/Microsoft\ Edge\ Dev'
+			// executablePath: '/Applications/Microsoft\ Edge\ Dev.app/Contents/MacOS/Microsoft\ Edge\ Dev',
+			headless
 		});
 		const page = (await browser.defaultContext().pages())[0];
 		await page.setViewport({ width, height });

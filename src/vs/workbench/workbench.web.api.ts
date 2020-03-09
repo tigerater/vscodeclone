@@ -58,31 +58,6 @@ interface IShowCandidate {
 	(host: string, port: number, detail: string): Thenable<boolean>;
 }
 
-interface IApplicationLink {
-
-	/**
-	 * A link that is opened in the OS. If you want to open VSCode it must
-	 * follow our expected structure of links:
-	 *
-	 * <vscode|vscode-insiders>://<file|vscode-remote>/<remote-authority>/<path>
-	 *
-	 * For example:
-	 *
-	 * vscode://vscode-remote/vsonline+2005711d/home/vsonline/workspace for
-	 * a remote folder in VSO or vscode://file/home/workspace for a local folder.
-	 */
-	uri: URI;
-
-	/**
-	 * A label for the link to display.
-	 */
-	label: string;
-}
-
-interface IApplicationLinkProvider {
-	(): IApplicationLink[] | undefined
-}
-
 interface IWorkbenchConstructionOptions {
 
 	/**
@@ -164,18 +139,6 @@ interface IWorkbenchConstructionOptions {
 	readonly showCandidate?: IShowCandidate;
 
 	/**
-	 * Provide entries for the "Open in Desktop" feature.
-	 *
-	 * Depending on the returned elements the behaviour is:
-	 * - no elements: there will not be a "Open in Desktop" affordance
-	 * - 1 element: there will be a "Open in Desktop" affordance that opens on click
-	 *   and it will use the label provided by the link
-	 * - N elements: there will be a "Open in Desktop" affordance that opens
-	 *   a picker on click to select which application to open.
-	 */
-	readonly applicationLinkProvider?: IApplicationLinkProvider;
-
-	/**
 	 * Current logging level. Default is `LogLevel.Info`.
 	 */
 	readonly logLevel?: LogLevel;
@@ -248,9 +211,5 @@ export {
 	ICommontTelemetryPropertiesResolver,
 
 	// External Uris
-	IExternalUriResolver,
-
-	// Protocol Links
-	IApplicationLink,
-	IApplicationLinkProvider
+	IExternalUriResolver
 };

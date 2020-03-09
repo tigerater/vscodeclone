@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IWorkbenchConstructionOptions, create, URI, Event, Emitter, UriComponents, ICredentialsProvider, IURLCallbackProvider, IWorkspaceProvider, IWorkspace, IApplicationLinkProvider, IApplicationLink } from 'vs/workbench/workbench.web.api';
+import { IWorkbenchConstructionOptions, create, URI, Event, Emitter, UriComponents, ICredentialsProvider, IURLCallbackProvider, IWorkspaceProvider, IWorkspace } from 'vs/workbench/workbench.web.api';
 import { generateUuid } from 'vs/base/common/uuid';
 import { CancellationToken } from 'vs/base/common/cancellation';
 import { streamToBuffer } from 'vs/base/common/buffer';
@@ -12,10 +12,6 @@ import { request } from 'vs/base/parts/request/browser/request';
 import { isFolderToOpen, isWorkspaceToOpen } from 'vs/platform/windows/common/windows';
 import { isEqual } from 'vs/base/common/resources';
 import { isStandalone } from 'vs/base/browser/browser';
-import product from 'vs/platform/product/common/product';
-import { Schemas } from 'vs/base/common/network';
-import { posix } from 'vs/base/common/path';
-import { localize } from 'vs/nls';
 
 interface ICredential {
 	service: string;
@@ -279,39 +275,6 @@ class WorkspaceProvider implements IWorkspaceProvider {
 	}
 }
 
-class ApplicationLinkProvider {
-
-	private links: IApplicationLink[] | undefined = undefined;
-
-	constructor(workspace: IWorkspace) {
-		this.computeLink(workspace);
-	}
-
-	private computeLink(workspace: IWorkspace): void {
-		if (!workspace) {
-			return; // not for empty workspaces
-		}
-
-		const workspaceUri = isWorkspaceToOpen(workspace) ? workspace.workspaceUri : isFolderToOpen(workspace) ? workspace.folderUri : undefined;
-		if (workspaceUri) {
-			this.links = [{
-				uri: URI.from({
-					scheme: product.quality === 'stable' ? 'vscode' : 'vscode-insiders',
-					authority: Schemas.vscodeRemote,
-					path: posix.join(posix.sep, workspaceUri.authority, workspaceUri.path),
-					query: workspaceUri.query,
-					fragment: workspaceUri.fragment,
-				}),
-				label: localize('openInDesktop', "Open in Desktop")
-			}];
-		}
-	}
-
-	get provider(): IApplicationLinkProvider {
-		return () => this.links;
-	}
-}
-
 (function () {
 
 	// Find config by checking for DOM
@@ -380,7 +343,6 @@ class ApplicationLinkProvider {
 		...config,
 		workspaceProvider: new WorkspaceProvider(workspace, payload),
 		urlCallbackProvider: new PollingURLCallbackProvider(),
-		credentialsProvider: new LocalStorageCredentialsProvider(),
-		applicationLinkProvider: new ApplicationLinkProvider(workspace).provider
+		credentialsProvider: new LocalStorageCredentialsProvider()
 	});
 })();

@@ -105,7 +105,8 @@ Registry.as<IEditorRegistry>(EditorExtensions.Editors).registerEditor(
 );
 
 interface ISerializedUntitledTextEditorInput {
-	resourceJSON: UriComponents;
+	resource: string;
+	resourceJSON: object;
 	modeId: string | undefined;
 	encoding: string | undefined;
 }
@@ -130,11 +131,12 @@ class UntitledTextEditorInputFactory implements IEditorInputFactory {
 		const untitledTextEditorInput = <UntitledTextEditorInput>editorInput;
 
 		let resource = untitledTextEditorInput.getResource();
-		if (untitledTextEditorInput.model.hasAssociatedFilePath) {
+		if (untitledTextEditorInput.hasAssociatedFilePath) {
 			resource = toLocalResource(resource, this.environmentService.configuration.remoteAuthority); // untitled with associated file path use the local schema
 		}
 
 		const serialized: ISerializedUntitledTextEditorInput = {
+			resource: resource.toString(), // Keep for backwards compatibility
 			resourceJSON: resource.toJSON(),
 			modeId: untitledTextEditorInput.getMode(),
 			encoding: untitledTextEditorInput.getEncoding()
@@ -146,7 +148,7 @@ class UntitledTextEditorInputFactory implements IEditorInputFactory {
 	deserialize(instantiationService: IInstantiationService, serializedEditorInput: string): UntitledTextEditorInput {
 		return instantiationService.invokeFunction<UntitledTextEditorInput>(accessor => {
 			const deserialized: ISerializedUntitledTextEditorInput = JSON.parse(serializedEditorInput);
-			const resource = URI.revive(deserialized.resourceJSON);
+			const resource = !!deserialized.resourceJSON ? URI.revive(<UriComponents>deserialized.resourceJSON) : URI.parse(deserialized.resource);
 			const mode = deserialized.modeId;
 			const encoding = deserialized.encoding;
 

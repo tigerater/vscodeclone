@@ -24,12 +24,10 @@ export class ExtHostLanguages {
 		return this._proxy.$getLanguages();
 	}
 
-	async changeLanguage(uri: vscode.Uri, languageId: string): Promise<vscode.TextDocument> {
-		await this._proxy.$changeLanguage(uri, languageId);
-		const data = this._documents.getDocumentData(uri);
-		if (!data) {
-			throw new Error(`document '${uri.toString}' NOT found`);
-		}
-		return data.document;
+	changeLanguage(uri: vscode.Uri, languageId: string): Promise<vscode.TextDocument | undefined> {
+		return this._proxy.$changeLanguage(uri, languageId).then(() => {
+			const data = this._documents.getDocumentData(uri);
+			return data ? data.document : undefined;
+		});
 	}
 }
