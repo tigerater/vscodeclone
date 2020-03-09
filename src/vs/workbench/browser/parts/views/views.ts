@@ -559,7 +559,7 @@ export class ViewsService extends Disposable implements IViewsService {
 						}
 					});
 				}
-				run(accessor: ServicesAccessor): void {
+				run(accessor: ServicesAccessor): any {
 					accessor.get(IViewsService).openView(viewDescriptor.id, true);
 				}
 			}));
@@ -589,7 +589,7 @@ export class ViewsService extends Disposable implements IViewsService {
 						}],
 					});
 				}
-				run(accessor: ServicesAccessor): void {
+				run(accessor: ServicesAccessor): any {
 					accessor.get(IViewDescriptorService).moveViewToLocation(viewDescriptor, newLocation);
 					accessor.get(IViewsService).openView(viewDescriptor.id, true);
 				}

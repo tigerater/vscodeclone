@@ -328,12 +328,11 @@ class FocusSideBarAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 
 		// Show side bar
 		if (!this.layoutService.isVisible(Parts.SIDEBAR_PART)) {
-			this.layoutService.setSideBarHidden(false);
-			return;
+			return Promise.resolve(this.layoutService.setSideBarHidden(false));
 		}
 
 		// Focus into active viewlet
@@ -341,6 +340,8 @@ class FocusSideBarAction extends Action {
 		if (viewlet) {
 			viewlet.focus();
 		}
+
+		return Promise.resolve(true);
 	}
 }
 

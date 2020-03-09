@@ -238,7 +238,7 @@ async function create(domElement: HTMLElement, options: IWorkbenchConstructionOp
 	// Register commands if any
 	if (Array.isArray(options.commands)) {
 		for (const command of options.commands) {
-			CommandsRegistry.registerCommand(command.id, (accessor, ...args) => {
+			CommandsRegistry.registerCommand(command.id, (accessor, ...args: any[]) => {
 				// we currently only pass on the arguments but not the accessor
 				// to the command to reduce our exposure of internal API.
 				command.handler(...args);

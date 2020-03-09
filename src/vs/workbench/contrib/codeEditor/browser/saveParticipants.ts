@@ -30,7 +30,7 @@ import { IWorkbenchContribution, Extensions as WorkbenchContributionsExtensions,
 import { Registry } from 'vs/platform/registry/common/platform';
 import { LifecyclePhase } from 'vs/platform/lifecycle/common/lifecycle';
 
-export class TrimWhitespaceParticipant implements ITextFileSaveParticipant {
+class TrimWhitespaceParticipant implements ITextFileSaveParticipant {
 
 	constructor(
 		@IConfigurationService private readonly configurationService: IConfigurationService,

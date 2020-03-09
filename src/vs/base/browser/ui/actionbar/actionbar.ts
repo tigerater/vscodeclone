@@ -104,7 +104,7 @@ export class BaseActionViewItem extends Disposable implements IActionViewItem {
 		return this._action.enabled;
 	}
 
-	setActionContext(newContext: unknown): void {
+	setActionContext(newContext: any): void {
 		this._context = newContext;
 	}
 
@@ -248,7 +248,7 @@ export class ActionViewItem extends BaseActionViewItem {
 
 	private cssClass?: string;
 
-	constructor(context: unknown, action: IAction, options: IActionViewItemOptions = {}) {
+	constructor(context: any, action: IAction, options: IActionViewItemOptions = {}) {
 		super(context, action, options);
 
 		this.options = options;
@@ -423,7 +423,7 @@ export class ActionBar extends Disposable implements IActionRunner {
 	options: IActionBarOptions;
 
 	private _actionRunner: IActionRunner;
-	private _context: unknown;
+	private _context: any;
 
 	// View Items
 	viewItems: IActionViewItem[];
@@ -821,7 +821,7 @@ export class ActionBar extends Disposable implements IActionRunner {
 		this._onDidCancel.fire();
 	}
 
-	run(action: IAction, context?: unknown): Promise<void> {
+	run(action: IAction, context?: any): Promise<void> {
 		return this._actionRunner.run(action, context);
 	}
 
@@ -838,7 +838,7 @@ export class ActionBar extends Disposable implements IActionRunner {
 export class SelectActionViewItem extends BaseActionViewItem {
 	protected selectBox: SelectBox;
 
-	constructor(ctx: unknown, action: IAction, options: ISelectOptionItem[], selected: number, contextViewProvider: IContextViewProvider, selectBoxOptions?: ISelectBoxOptions) {
+	constructor(ctx: any, action: IAction, options: ISelectOptionItem[], selected: number, contextViewProvider: IContextViewProvider, selectBoxOptions?: ISelectBoxOptions) {
 		super(ctx, action);
 
 		this.selectBox = new SelectBox(options, selected, contextViewProvider, undefined, selectBoxOptions);

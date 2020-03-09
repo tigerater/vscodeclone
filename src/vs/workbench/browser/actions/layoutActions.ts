@@ -50,8 +50,10 @@ export class CloseSidebarAction extends Action {
 		this.enabled = !!this.layoutService;
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 		this.layoutService.setSideBarHidden(true);
+
+		return Promise.resolve();
 	}
 }
 
@@ -77,7 +79,7 @@ export class ToggleActivityBarVisibilityAction extends Action {
 		this.enabled = !!this.layoutService;
 	}
 
-	run(): Promise<void> {
+	run(): Promise<any> {
 		const visibility = this.layoutService.isVisible(Parts.ACTIVITYBAR_PART);
 		const newVisibilityValue = !visibility;
 
@@ -113,8 +115,10 @@ class ToggleCenteredLayout extends Action {
 		this.enabled = !!this.layoutService;
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 		this.layoutService.centerEditorLayout(!this.layoutService.isEditorLayoutCentered());
+
+		return Promise.resolve();
 	}
 }
 
@@ -161,9 +165,11 @@ export class ToggleEditorLayoutAction extends Action {
 		this.enabled = this.editorGroupService.count > 1;
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 		const newOrientation = (this.editorGroupService.orientation === GroupOrientation.VERTICAL) ? GroupOrientation.HORIZONTAL : GroupOrientation.VERTICAL;
 		this.editorGroupService.setGroupOrientation(newOrientation);
+
+		return Promise.resolve();
 	}
 }
 
@@ -199,7 +205,7 @@ export class ToggleSidebarPositionAction extends Action {
 		this.enabled = !!this.layoutService && !!this.configurationService;
 	}
 
-	run(): Promise<void> {
+	run(): Promise<any> {
 		const position = this.layoutService.getSideBarPosition();
 		const newPositionValue = (position === Position.LEFT) ? 'right' : 'left';
 
@@ -249,8 +255,10 @@ export class ToggleEditorVisibilityAction extends Action {
 		this.enabled = !!this.layoutService;
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 		this.layoutService.toggleMaximizedPanel();
+
+		return Promise.resolve();
 	}
 }
 
@@ -281,9 +289,11 @@ export class ToggleSidebarVisibilityAction extends Action {
 		this.enabled = !!this.layoutService;
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 		const hideSidebar = this.layoutService.isVisible(Parts.SIDEBAR_PART);
 		this.layoutService.setSideBarHidden(hideSidebar);
+
+		return Promise.resolve();
 	}
 }
 
@@ -326,7 +336,7 @@ export class ToggleStatusbarVisibilityAction extends Action {
 		this.enabled = !!this.layoutService;
 	}
 
-	run(): Promise<void> {
+	run(): Promise<any> {
 		const visibility = this.layoutService.isVisible(Parts.STATUSBAR_PART);
 		const newVisibilityValue = !visibility;
 
@@ -363,7 +373,7 @@ class ToggleTabsVisibilityAction extends Action {
 		super(id, label);
 	}
 
-	run(): Promise<void> {
+	run(): Promise<any> {
 		const visibility = this.configurationService.getValue<string>(ToggleTabsVisibilityAction.tabsVisibleKey);
 		const newVisibilityValue = !visibility;
 
@@ -393,8 +403,10 @@ class ToggleZenMode extends Action {
 		this.enabled = !!this.layoutService;
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 		this.layoutService.toggleZenMode();
+
+		return Promise.resolve();
 	}
 }
 
@@ -454,7 +466,9 @@ export class ToggleMenuBarAction extends Action {
 			newVisibilityValue = (isWeb && currentVisibilityValue === 'hidden') ? 'compact' : 'default';
 		}
 
-		return this.configurationService.updateValue(ToggleMenuBarAction.menuBarVisibilityKey, newVisibilityValue, ConfigurationTarget.USER);
+		this.configurationService.updateValue(ToggleMenuBarAction.menuBarVisibilityKey, newVisibilityValue, ConfigurationTarget.USER);
+
+		return Promise.resolve();
 	}
 }
 
@@ -487,7 +501,7 @@ export class ResetViewLocationsAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<void> {
 		const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
 		viewContainerRegistry.all.forEach(viewContainer => {
 			const viewDescriptors = this.viewDescriptorService.getViewDescriptors(viewContainer);
@@ -501,6 +515,8 @@ export class ResetViewLocationsAction extends Action {
 				}
 			});
 		});
+
+		return Promise.resolve();
 	}
 }
 
@@ -525,20 +541,20 @@ export class MoveFocusedViewAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<void> {
 		const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
 
 		const focusedViewId = FocusedViewContext.getValue(this.contextKeyService);
 
 		if (focusedViewId === undefined || focusedViewId.trim() === '') {
 			this.notificationService.error(nls.localize('moveFocusedView.error.noFocusedView', "There is no view currently focused."));
-			return;
+			return Promise.resolve();
 		}
 
 		const viewDescriptor = this.viewDescriptorService.getViewDescriptor(focusedViewId);
 		if (!viewDescriptor || !viewDescriptor.canMoveView) {
 			this.notificationService.error(nls.localize('moveFocusedView.error.nonMovableView', "The currently focused view is not movable."));
-			return;
+			return Promise.resolve();
 		}
 
 		const quickPick = this.quickInputService.createQuickPick();
@@ -592,6 +608,8 @@ export class MoveFocusedViewAction extends Action {
 		});
 
 		quickPick.show();
+
+		return Promise.resolve();
 	}
 }
 
