@@ -1614,7 +1614,7 @@ export namespace CoreEditingCommands {
 		constructor() {
 			super({
 				id: 'deleteLeft',
-				precondition: undefined,
+				precondition: EditorContextKeys.writable,
 				kbOpts: {
 					weight: CORE_WEIGHT,
 					kbExpr: EditorContextKeys.textInputFocus,
@@ -1639,7 +1639,7 @@ export namespace CoreEditingCommands {
 		constructor() {
 			super({
 				id: 'deleteRight',
-				precondition: undefined,
+				precondition: EditorContextKeys.writable,
 				kbOpts: {
 					weight: CORE_WEIGHT,
 					kbExpr: EditorContextKeys.textInputFocus,
