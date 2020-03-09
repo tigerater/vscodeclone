@@ -25,7 +25,7 @@ import { PaneView, IPaneViewOptions, IPaneOptions, Pane, DefaultPaneDndControlle
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { IWorkbenchLayoutService } from 'vs/workbench/services/layout/browser/layoutService';
 import { StandardMouseEvent } from 'vs/base/browser/mouseEvent';
-import { Extensions as ViewContainerExtensions, IView, FocusedViewContext, IViewContainersRegistry, IViewDescriptor, ViewContainer, IViewDescriptorService, ViewContainerLocation, IViewPaneContainer, IViewsRegistry, IViewContentDescriptor } from 'vs/workbench/common/views';
+import { Extensions as ViewContainerExtensions, IView, FocusedViewContext, IViewContainersRegistry, IViewDescriptor, ViewContainer, IViewDescriptorService, ViewContainerLocation, IViewPaneContainer, IViewsRegistry } from 'vs/workbench/common/views';
 import { IStorageService, StorageScope } from 'vs/platform/storage/common/storage';
 import { IContextKey, IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 import { assertIsDefined } from 'vs/base/common/types';
@@ -60,81 +60,6 @@ export interface IViewPaneOptions extends IPaneOptions {
 
 const viewsRegistry = Registry.as<IViewsRegistry>(ViewContainerExtensions.ViewsRegistry);
 
-interface IEmptyViewItem {
-	readonly view: IViewContentDescriptor;
-	visible: boolean;
-}
-
-class EmptyViewsController {
-
-	private _onDidChange = new Emitter<void>();
-	readonly onDidChange = this._onDidChange.event;
-
-	private items: IEmptyViewItem[] = [];
-	get viewContentDescriptors(): IViewContentDescriptor[] {
-		return this.items
-			.filter(v => v.visible)
-			.map(v => v.view);
-	}
-
-	private contextKeyService: IContextKeyService;
-	private countKey: IContextKey<number>;
-	private disposables = new DisposableStore();
-
-	constructor(
-		private id: string,
-		@IContextKeyService contextKeyService: IContextKeyService,
-	) {
-		this.contextKeyService = contextKeyService.createScoped();
-		this.disposables.add(this.contextKeyService);
-
-		this.countKey = this.contextKeyService.createKey('view.emptyViewContentCount', 0);
-
-		contextKeyService.onDidChangeContext(this.onDidChangeContext, this, this.disposables);
-		Event.filter(viewsRegistry.onDidChangeEmptyViewContent, id => id === this.id)(this.onDidChangeEmptyViewContent, this, this.disposables);
-		this.onDidChangeEmptyViewContent();
-	}
-
-	private onDidChangeEmptyViewContent(): void {
-		const contentDescriptors = viewsRegistry.getEmptyViewContent(this.id);
-		this.countKey.set(contentDescriptors.length);
-
-		this.items = contentDescriptors.map(view => ({
-			view,
-			visible: view.when ? this.contextKeyService.contextMatchesRules(view.when) : true
-		}));
-
-		this._onDidChange.fire();
-	}
-
-	private onDidChangeContext(): void {
-		let didChange = false;
-
-		for (const item of this.items) {
-			if (!item.view.when) {
-				continue;
-			}
-
-			const visible = this.contextKeyService.contextMatchesRules(item.view.when);
-
-			if (item.visible === visible) {
-				continue;
-			}
-
-			item.visible = visible;
-			didChange = true;
-		}
-
-		if (didChange) {
-			this._onDidChange.fire();
-		}
-	}
-
-	dispose(): void {
-		this.disposables.dispose();
-	}
-}
-
 export abstract class ViewPane extends Pane implements IView {
 
 	private static readonly AlwaysShowActionsConfig = 'workbench.view.alwaysShowHeaderActions';
@@ -163,7 +88,7 @@ export abstract class ViewPane extends Pane implements IView {
 	private readonly menuActions: ViewMenuActions;
 
 	protected actionRunner?: IActionRunner;
-	protected toolbar?: ToolBar;
+	private toolbar?: ToolBar;
 	private readonly showActionsAlways: boolean = false;
 	private headerContainer?: HTMLElement;
 	private titleContainer?: HTMLElement;
@@ -172,7 +97,6 @@ export abstract class ViewPane extends Pane implements IView {
 	private bodyContainer!: HTMLElement;
 	private emptyViewContainer!: HTMLElement;
 	private emptyViewDisposable: IDisposable = Disposable.None;
-	private emptyViewsController: EmptyViewsController;
 
 	constructor(
 		options: IViewPaneOptions,
@@ -195,8 +119,6 @@ export abstract class ViewPane extends Pane implements IView {
 
 		this.menuActions = this._register(instantiationService.createInstance(ViewMenuActions, this.id, options.titleMenuId || MenuId.ViewTitle, MenuId.ViewTitleContext));
 		this._register(this.menuActions.onDidChangeTitle(() => this.updateActions()));
-
-		this.emptyViewsController = new EmptyViewsController(this.id, contextKeyService);
 	}
 
 	setVisible(visible: boolean): void {
@@ -286,13 +208,16 @@ export abstract class ViewPane extends Pane implements IView {
 		this.bodyContainer = container;
 		this.emptyViewContainer = append(container, $('.empty-view', { tabIndex: 0 }));
 
-		const onEmptyViewContentChange = Event.any(this.emptyViewsController.onDidChange, this.onDidChangeEmptyState);
-		this._register(onEmptyViewContentChange(this.updateEmptyContents, this));
-		this.updateEmptyContents();
-	}
+		// we should update our empty state whenever
+		const onEmptyViewContentChange = Event.any(
+			// the registry changes
+			Event.map(Event.filter(viewsRegistry.onDidChangeEmptyViewContent, id => id === this.id), () => this.isEmpty()),
+			// or the view's empty state changes
+			Event.latch(Event.map(this.onDidChangeEmptyState, () => this.isEmpty()))
+		);
 
-	protected layoutBody(height: number, width: number): void {
-		// noop
+		this._register(onEmptyViewContentChange(this.updateEmptyState, this));
+		this.updateEmptyState(this.isEmpty());
 	}
 
 	protected getProgressLocation(): string {
@@ -361,16 +286,16 @@ export abstract class ViewPane extends Pane implements IView {
 		// Subclasses to implement for saving state
 	}
 
-	private updateEmptyContents(): void {
+	private updateEmptyState(isEmpty: boolean): void {
 		this.emptyViewDisposable.dispose();
 
-		if (!this.isEmpty()) {
+		if (!isEmpty) {
 			removeClass(this.bodyContainer, 'empty');
 			this.emptyViewContainer.innerHTML = '';
 			return;
 		}
 
-		const contents = this.emptyViewsController.viewContentDescriptors;
+		const contents = viewsRegistry.getEmptyViewContent(this.id);
 
 		if (contents.length === 0) {
 			removeClass(this.bodyContainer, 'empty');
