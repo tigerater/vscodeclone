@@ -2795,6 +2795,11 @@ declare namespace monaco.editor {
 		 */
 		fastScrollSensitivity?: number;
 		/**
+		 * Enable that the editor scrolls only the predominant axis. Prevents horizontal drift when scrolling vertically on a trackpad.
+		 * Defaults to true.
+		 */
+		scrollPredominantAxisOnly?: boolean;
+		/**
 		 * The modifier to be used to add multiple cursors with the mouse.
 		 * Defaults to 'alt'
 		 */
