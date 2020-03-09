@@ -572,10 +572,9 @@ suite('TextModelWithTokens regression tests', () => {
 });
 
 suite('TextModel.getLineIndentGuide', () => {
-	function assertIndentGuides(lines: [number, number, number, number, string][], tabSize: number): void {
+	function assertIndentGuides(lines: [number, number, number, number, string][]): void {
 		let text = lines.map(l => l[4]).join('\n');
 		let model = TextModel.createFromString(text);
-		model.updateOptions({ tabSize: tabSize });
 
 		let actualIndents = model.getLinesIndentGuides(1, model.getLineCount());
 
@@ -590,13 +589,13 @@ suite('TextModel.getLineIndentGuide', () => {
 		model.dispose();
 	}
 
-	test('getLineIndentGuide one level 2', () => {
+	test('getLineIndentGuide one level', () => {
 		assertIndentGuides([
 			[0, 1, 1, 0, 'A'],
 			[1, 2, 4, 1, '  A'],
 			[1, 2, 4, 1, '  A'],
 			[1, 2, 4, 1, '  A'],
-		], 2);
+		]);
 	});
 
 	test('getLineIndentGuide two levels', () => {
@@ -604,45 +603,45 @@ suite('TextModel.getLineIndentGuide', () => {
 			[0, 1, 1, 0, 'A'],
 			[1, 2, 5, 1, '  A'],
 			[1, 2, 5, 1, '  A'],
-			[2, 4, 5, 2, '    A'],
-			[2, 4, 5, 2, '    A'],
-		], 2);
+			[1, 2, 5, 1, '    A'],
+			[1, 2, 5, 1, '    A'],
+		]);
 	});
 
 	test('getLineIndentGuide three levels', () => {
 		assertIndentGuides([
 			[0, 1, 1, 0, 'A'],
 			[1, 2, 4, 1, '  A'],
-			[2, 3, 4, 2, '    A'],
-			[3, 4, 4, 3, '      A'],
+			[1, 2, 4, 1, '    A'],
+			[2, 4, 4, 2, '      A'],
 			[0, 5, 5, 0, 'A'],
-		], 2);
+		]);
 	});
 
 	test('getLineIndentGuide decreasing indent', () => {
 		assertIndentGuides([
-			[2, 1, 1, 2, '    A'],
+			[1, 1, 2, 1, '    A'],
 			[1, 1, 2, 1, '  A'],
 			[0, 3, 3, 0, 'A'],
-		], 2);
+		]);
 	});
 
 	test('getLineIndentGuide Java', () => {
 		assertIndentGuides([
 			/* 1*/[0, 1, 1, 0, 'class A {'],
 			/* 2*/[1, 2, 9, 1, '  void foo() {'],
-			/* 3*/[2, 3, 4, 2, '    console.log(1);'],
-			/* 4*/[2, 3, 4, 2, '    console.log(2);'],
+			/* 3*/[1, 2, 9, 1, '    console.log(1);'],
+			/* 4*/[1, 2, 9, 1, '    console.log(2);'],
 			/* 5*/[1, 2, 9, 1, '  }'],
 			/* 6*/[1, 2, 9, 1, ''],
 			/* 7*/[1, 2, 9, 1, '  void bar() {'],
-			/* 8*/[2, 8, 8, 2, '    console.log(3);'],
+			/* 8*/[1, 2, 9, 1, '    console.log(3);'],
 			/* 9*/[1, 2, 9, 1, '  }'],
 			/*10*/[0, 10, 10, 0, '}'],
 			/*11*/[0, 11, 11, 0, 'interface B {'],
 			/*12*/[1, 12, 12, 1, '  void bar();'],
 			/*13*/[0, 13, 13, 0, '}'],
-		], 2);
+		]);
 	});
 
 	test('getLineIndentGuide Javadoc', () => {
@@ -654,7 +653,7 @@ suite('TextModel.getLineIndentGuide', () => {
 			[1, 5, 6, 1, '  void foo() {'],
 			[1, 5, 6, 1, '  }'],
 			[0, 7, 7, 0, '}'],
-		], 2);
+		]);
 	});
 
 	test('getLineIndentGuide Whitespace', () => {
@@ -662,12 +661,12 @@ suite('TextModel.getLineIndentGuide', () => {
 			[0, 1, 1, 0, 'class A {'],
 			[1, 2, 7, 1, ''],
 			[1, 2, 7, 1, '  void foo() {'],
-			[2, 4, 5, 2, '     '],
-			[3, 5, 5, 3, '     return 1;'],
+			[1, 2, 7, 1, '     '],
+			[2, 5, 5, 2, '     return 1;'],
 			[1, 2, 7, 1, '  }'],
 			[1, 2, 7, 1, '      '],
 			[0, 8, 8, 0, '}']
-		], 2);
+		]);
 	});
 
 	test('getLineIndentGuide Tabs', () => {
@@ -680,7 +679,7 @@ suite('TextModel.getLineIndentGuide', () => {
 			[1, 2, 7, 1, '  \t}'],
 			[1, 2, 7, 1, '      '],
 			[0, 8, 8, 0, '}']
-		], 4);
+		]);
 	});
 
 	test('getLineIndentGuide checker.ts', () => {
@@ -702,7 +701,7 @@ suite('TextModel.getLineIndentGuide', () => {
 			/*15*/[2, 11, 15, 2, '        return node.id;'],
 			/*16*/[1, 5, 16, 1, '    }'],
 			/*17*/[0, 17, 17, 0, '}']
-		], 4);
+		]);
 	});
 
 	test('issue #8425 - Missing indentation lines for first level indentation', () => {
@@ -711,7 +710,7 @@ suite('TextModel.getLineIndentGuide', () => {
 			[2, 2, 3, 2, '\t\tindent2'],
 			[2, 2, 3, 2, '\t\tindent2'],
 			[1, 1, 4, 1, '\tindent1']
-		], 4);
+		]);
 	});
 
 	test('issue #8952 - Indentation guide lines going through text on .yml file', () => {
@@ -722,7 +721,7 @@ suite('TextModel.getLineIndentGuide', () => {
 			[2, 3, 5, 2, '        - length:'],
 			[3, 5, 5, 3, '            max: 255'],
 			[0, 6, 6, 0, 'getters:']
-		], 4);
+		]);
 	});
 
 	test('issue #11892 - Indent guides look funny', () => {
@@ -735,7 +734,7 @@ suite('TextModel.getLineIndentGuide', () => {
 			[3, 6, 6, 3, '\t\t\treturn 2;'],
 			[1, 2, 7, 1, '\t}'],
 			[0, 8, 8, 0, '}']
-		], 4);
+		]);
 	});
 
 	test('issue #12398 - Problem in indent guidelines', () => {
@@ -743,7 +742,7 @@ suite('TextModel.getLineIndentGuide', () => {
 			[2, 1, 2, 2, '\t\t.bla'],
 			[3, 2, 2, 3, '\t\t\tlabel(for)'],
 			[0, 3, 3, 0, 'include script']
-		], 4);
+		]);
 	});
 
 	test('issue #49173', () => {
@@ -765,5 +764,37 @@ suite('TextModel.getLineIndentGuide', () => {
 		const actual = model.getActiveIndentGuide(2, 4, 9);
 		assert.deepEqual(actual, { startLineNumber: 2, endLineNumber: 9, indent: 1 });
 		model.dispose();
+	});
+
+	test('tweaks - no active', () => {
+		assertIndentGuides([
+			[0, 1, 1, 0, 'A'],
+			[0, 2, 2, 0, 'A']
+		]);
+	});
+
+	test('tweaks - inside scope', () => {
+		assertIndentGuides([
+			[0, 2, 2, 1, 'A'],
+			[1, 2, 2, 1, '  A']
+		]);
+	});
+
+	test('tweaks - scope start', () => {
+		assertIndentGuides([
+			[0, 2, 2, 1, 'A'],
+			[1, 2, 2, 1, '  A'],
+			[0, 2, 2, 1, 'A']
+		]);
+	});
+
+	test('tweaks - empty line', () => {
+		assertIndentGuides([
+			[0, 2, 4, 1, 'A'],
+			[1, 2, 4, 1, '  A'],
+			[1, 2, 4, 1, ''],
+			[1, 2, 4, 1, '  A'],
+			[0, 2, 4, 1, 'A']
+		]);
 	});
 });
