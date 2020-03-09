@@ -31,7 +31,6 @@ export interface IModeService {
 	_serviceBrand: undefined;
 
 	onDidCreateMode: Event<IMode>;
-	onLanguagesMaybeChanged: Event<void>;
 
 	// --- reading
 	isRegisteredMode(mimetypeOrModeId: string): boolean;

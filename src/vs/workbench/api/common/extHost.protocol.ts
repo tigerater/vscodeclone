@@ -801,7 +801,6 @@ export interface MainThreadTunnelServiceShape extends IDisposable {
 	$registerCandidateFinder(): Promise<void>;
 	$setTunnelProvider(): Promise<void>;
 	$setCandidateFilter(): Promise<void>;
-	$tunnelServiceReady(): Promise<void>;
 }
 
 export interface MainThreadTimelineShape extends IDisposable {
