@@ -210,7 +210,7 @@ export class UserDataSyncStoreError extends UserDataSyncError { }
 export interface ISyncExtension {
 	identifier: IExtensionIdentifier;
 	version?: string;
-	disabled?: boolean;
+	enabled: boolean;
 }
 
 export interface IGlobalState {
@@ -283,9 +283,6 @@ export interface IUserDataSyncService {
 
 	readonly onDidChangeLocal: Event<void>;
 
-	readonly lastSyncTime: number | undefined;
-	readonly onDidChangeLastSyncTime: Event<number>;
-
 	pull(): Promise<void>;
 	sync(): Promise<void>;
 	stop(): Promise<void>;
@@ -309,6 +306,19 @@ export interface IUserDataSyncUtilService {
 	_serviceBrand: undefined;
 	resolveUserBindings(userbindings: string[]): Promise<IStringDictionary<string>>;
 	resolveFormattingOptions(resource: URI): Promise<FormattingOptions>;
+}
+
+export const IUserDataAuthTokenService = createDecorator<IUserDataAuthTokenService>('IUserDataAuthTokenService');
+
+export interface IUserDataAuthTokenService {
+	_serviceBrand: undefined;
+
+	readonly onDidChangeToken: Event<string | undefined>;
+	readonly onTokenFailed: Event<void>;
+
+	getToken(): Promise<string | undefined>;
+	setToken(accessToken: string | undefined): Promise<void>;
+	sendTokenFailed(): void;
 }
 
 export const IUserDataSyncLogService = createDecorator<IUserDataSyncLogService>('IUserDataSyncLogService');

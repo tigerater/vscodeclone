@@ -3,21 +3,22 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IUserDataSyncService, IUserDataSyncLogService, IUserDataSyncEnablementService } from 'vs/platform/userDataSync/common/userDataSync';
+import { IUserDataSyncService, IUserDataSyncLogService, IUserDataAuthTokenService, IUserDataSyncEnablementService } from 'vs/platform/userDataSync/common/userDataSync';
+import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { Event } from 'vs/base/common/event';
 import { UserDataAutoSyncService as BaseUserDataAutoSyncService } from 'vs/platform/userDataSync/common/userDataAutoSyncService';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { UserDataSyncTrigger } from 'vs/workbench/contrib/userDataSync/browser/userDataSyncTrigger';
 import { IHostService } from 'vs/workbench/services/host/browser/host';
-import { IAuthenticationTokenService } from 'vs/platform/authentication/common/authentication';
 
 export class UserDataAutoSyncService extends BaseUserDataAutoSyncService {
 
 	constructor(
 		@IUserDataSyncEnablementService userDataSyncEnablementService: IUserDataSyncEnablementService,
 		@IUserDataSyncService userDataSyncService: IUserDataSyncService,
+		@IConfigurationService configurationService: IConfigurationService,
 		@IUserDataSyncLogService logService: IUserDataSyncLogService,
-		@IAuthenticationTokenService authTokenService: IAuthenticationTokenService,
+		@IUserDataAuthTokenService authTokenService: IUserDataAuthTokenService,
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IHostService hostService: IHostService,
 	) {

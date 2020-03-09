@@ -49,7 +49,6 @@ export interface PromptStringInputInfo {
 	type: 'promptString';
 	description: string;
 	default?: string;
-	password?: boolean;
 }
 
 export interface PickStringInputInfo {

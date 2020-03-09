@@ -5,7 +5,7 @@
 
 import * as assert from 'assert';
 import { Event } from 'vs/base/common/event';
-import { TextFileEditorTracker } from 'vs/workbench/contrib/files/browser/editors/textFileEditorTracker';
+import { FileEditorTracker } from 'vs/workbench/contrib/files/browser/editors/fileEditorTracker';
 import { toResource } from 'vs/base/test/common/utils';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
 import { TestFileService, TestTextFileService, workbenchInstantiationService } from 'vs/workbench/test/browser/workbenchTestServices';
@@ -36,7 +36,7 @@ class ServiceAccessor {
 	}
 }
 
-suite('Files - TextFileEditorTracker', () => {
+suite('Files - FileEditorTracker', () => {
 
 	let disposables: IDisposable[] = [];
 
@@ -60,7 +60,7 @@ suite('Files - TextFileEditorTracker', () => {
 		const instantiationService = workbenchInstantiationService();
 		const accessor = instantiationService.createInstance(ServiceAccessor);
 
-		const tracker = instantiationService.createInstance(TextFileEditorTracker);
+		const tracker = instantiationService.createInstance(FileEditorTracker);
 
 		const resource = toResource.call(this, '/path/index.txt');
 
@@ -82,7 +82,7 @@ suite('Files - TextFileEditorTracker', () => {
 		(<TextFileEditorModelManager>accessor.textFileService.files).dispose();
 	});
 
-	async function createTracker(): Promise<[EditorPart, ServiceAccessor, TextFileEditorTracker, IInstantiationService, IEditorService]> {
+	async function createTracker(): Promise<[EditorPart, ServiceAccessor, FileEditorTracker, IInstantiationService, IEditorService]> {
 		const instantiationService = workbenchInstantiationService();
 
 		const part = instantiationService.createInstance(EditorPart);
@@ -98,7 +98,7 @@ suite('Files - TextFileEditorTracker', () => {
 
 		await part.whenRestored;
 
-		const tracker = instantiationService.createInstance(TextFileEditorTracker);
+		const tracker = instantiationService.createInstance(FileEditorTracker);
 
 		return [part, accessor, tracker, instantiationService, editorService];
 	}

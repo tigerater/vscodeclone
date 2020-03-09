@@ -97,23 +97,6 @@ export class IssueReporter extends Disposable {
 			this.previewButton = new Button(issueReporterElement);
 		}
 
-		const issueTitle = configuration.data.issueTitle;
-		if (issueTitle) {
-			const issueTitleElement = this.getElementById<HTMLInputElement>('issue-title');
-			if (issueTitleElement) {
-				issueTitleElement.value = issueTitle;
-			}
-		}
-
-		const issueBody = configuration.data.issueBody;
-		if (issueBody) {
-			const description = this.getElementById<HTMLTextAreaElement>('description');
-			if (description) {
-				description.value = issueBody;
-				this.issueReporterModel.update({ issueDescription: issueBody });
-			}
-		}
-
 		ipcRenderer.on('vscode:issuePerformanceInfoResponse', (_: unknown, info: Partial<IssueReporterData>) => {
 			this.logService.trace('issueReporter: Received performance data');
 			this.issueReporterModel.update(info);
@@ -1192,8 +1175,8 @@ export class IssueReporter extends Disposable {
 		}
 	}
 
-	private getElementById<T extends HTMLElement = HTMLElement>(elementId: string): T | undefined {
-		const element = document.getElementById(elementId) as T | undefined;
+	private getElementById(elementId: string): HTMLElement | undefined {
+		const element = document.getElementById(elementId);
 		if (element) {
 			return element;
 		} else {

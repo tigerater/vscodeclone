@@ -33,7 +33,6 @@ export class ViewModel extends viewEvents.ViewEventEmitter implements IViewModel
 	private readonly configuration: IConfiguration;
 	private readonly model: ITextModel;
 	private readonly _tokenizeViewportSoon: RunOnceScheduler;
-	private readonly _updateConfigurationViewLineCount: RunOnceScheduler;
 	private hasFocus: boolean;
 	private viewportStartLine: number;
 	private viewportStartLineTrackedRange: string | null;
@@ -57,7 +56,6 @@ export class ViewModel extends viewEvents.ViewEventEmitter implements IViewModel
 		this.configuration = configuration;
 		this.model = model;
 		this._tokenizeViewportSoon = this._register(new RunOnceScheduler(() => this.tokenizeViewport(), 50));
-		this._updateConfigurationViewLineCount = this._register(new RunOnceScheduler(() => this._updateConfigurationViewLineCountNow(), 0));
 		this.hasFocus = false;
 		this.viewportStartLine = -1;
 		this.viewportStartLineTrackedRange = null;
@@ -132,8 +130,6 @@ export class ViewModel extends viewEvents.ViewEventEmitter implements IViewModel
 				this._endEmit();
 			}
 		}));
-
-		this._updateConfigurationViewLineCountNow();
 	}
 
 	public dispose(): void {
@@ -144,10 +140,6 @@ export class ViewModel extends viewEvents.ViewEventEmitter implements IViewModel
 		this.lines.dispose();
 		this.invalidateMinimapColorCache();
 		this.viewportStartLineTrackedRange = this.model._setTrackedRange(this.viewportStartLineTrackedRange, null, TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges);
-	}
-
-	private _updateConfigurationViewLineCountNow(): void {
-		this.configuration.setViewLineCount(this.lines.getViewLineCount());
 	}
 
 	public tokenizeViewport(): void {
@@ -188,8 +180,6 @@ export class ViewModel extends viewEvents.ViewEventEmitter implements IViewModel
 				// Never change the scroll position from 0 to something else...
 				restorePreviousViewportStart = true;
 			}
-
-			this._updateConfigurationViewLineCount.schedule();
 		}
 
 		if (e.hasChanged(EditorOption.readOnly)) {
@@ -311,7 +301,6 @@ export class ViewModel extends viewEvents.ViewEventEmitter implements IViewModel
 			// Update the configuration and reset the centered view line
 			this.viewportStartLine = -1;
 			this.configuration.setMaxLineNumber(this.model.getLineCount());
-			this._updateConfigurationViewLineCountNow();
 
 			// Recover viewport
 			if (!this.hasFocus && this.model.getAttachedEditorCount() >= 2 && this.viewportStartLineTrackedRange) {
@@ -369,7 +358,6 @@ export class ViewModel extends viewEvents.ViewEventEmitter implements IViewModel
 				} finally {
 					this._endEmit();
 				}
-				this._updateConfigurationViewLineCount.schedule();
 			}
 		}));
 
@@ -399,7 +387,6 @@ export class ViewModel extends viewEvents.ViewEventEmitter implements IViewModel
 		} finally {
 			this._endEmit();
 		}
-		this._updateConfigurationViewLineCount.schedule();
 	}
 
 	public getVisibleRanges(): Range[] {

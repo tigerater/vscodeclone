@@ -3,24 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { createDecorator } from 'vs/platform/instantiation/common/instantiation';
 import { Emitter, Event } from 'vs/base/common/event';
 import { Disposable } from 'vs/base/common/lifecycle';
+import { IUserDataAuthTokenService } from 'vs/platform/userDataSync/common/userDataSync';
 
-export const IAuthenticationTokenService = createDecorator<IAuthenticationTokenService>('IAuthenticationTokenService');
-
-export interface IAuthenticationTokenService {
-	_serviceBrand: undefined;
-
-	readonly onDidChangeToken: Event<string | undefined>;
-	readonly onTokenFailed: Event<void>;
-
-	getToken(): Promise<string | undefined>;
-	setToken(accessToken: string | undefined): Promise<void>;
-	sendTokenFailed(): void;
-}
-
-export class AuthenticationTokenService extends Disposable implements IAuthenticationTokenService {
+export class UserDataAuthTokenService extends Disposable implements IUserDataAuthTokenService {
 
 	_serviceBrand: any;
 
@@ -51,4 +38,3 @@ export class AuthenticationTokenService extends Disposable implements IAuthentic
 		this._onTokenFailed.fire();
 	}
 }
-

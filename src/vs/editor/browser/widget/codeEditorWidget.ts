@@ -756,15 +756,6 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 		);
 	}
 
-	public revealRangeNearTopIfOutsideViewport(range: IRange, scrollType: editorCommon.ScrollType = editorCommon.ScrollType.Smooth): void {
-		this._revealRange(
-			range,
-			VerticalRevealType.NearTopIfOutsideViewport,
-			true,
-			scrollType
-		);
-	}
-
 	public revealRangeAtTop(range: IRange, scrollType: editorCommon.ScrollType = editorCommon.ScrollType.Smooth): void {
 		this._revealRange(
 			range,
@@ -1588,7 +1579,7 @@ export class CodeEditorWidget extends Disposable implements editorBrowser.ICodeE
 		this._modelData = null;
 
 		this._domElement.removeAttribute('data-mode-id');
-		if (removeDomNode && this._domElement.contains(removeDomNode)) {
+		if (removeDomNode) {
 			this._domElement.removeChild(removeDomNode);
 		}
 

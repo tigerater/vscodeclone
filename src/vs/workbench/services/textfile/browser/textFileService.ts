@@ -9,7 +9,7 @@ import { AsyncEmitter } from 'vs/base/common/event';
 import { ITextFileService, ITextFileStreamContent, ITextFileContent, IResourceEncodings, IReadTextFileOptions, IWriteTextFileOptions, toBufferOrReadable, TextFileOperationError, TextFileOperationResult, ITextFileSaveOptions, ITextFileEditorModelManager, TextFileCreateEvent } from 'vs/workbench/services/textfile/common/textfiles';
 import { IRevertOptions, IEncodingSupport } from 'vs/workbench/common/editor';
 import { ILifecycleService } from 'vs/platform/lifecycle/common/lifecycle';
-import { IFileService, FileOperationError, FileOperationResult, IFileStatWithMetadata, ICreateFileOptions, FileOperation } from 'vs/platform/files/common/files';
+import { IFileService, FileOperationError, FileOperationResult, IFileStatWithMetadata, ICreateFileOptions } from 'vs/platform/files/common/files';
 import { Disposable } from 'vs/base/common/lifecycle';
 import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
 import { IUntitledTextEditorService, IUntitledTextEditorModelManager } from 'vs/workbench/services/untitled/common/untitledTextEditorService';
@@ -33,7 +33,6 @@ import { ICodeEditorService } from 'vs/editor/browser/services/codeEditorService
 import { suggestFilename } from 'vs/base/common/mime';
 import { IRemotePathService } from 'vs/workbench/services/path/common/remotePathService';
 import { isValidBasename } from 'vs/base/common/extpath';
-import { IWorkingCopyFileService } from 'vs/workbench/services/workingCopy/common/workingCopyFileService';
 
 /**
  * The workbench file service implementation implements the raw file service spec and adds additional methods on top.
@@ -43,6 +42,9 @@ export abstract class AbstractTextFileService extends Disposable implements ITex
 	_serviceBrand: undefined;
 
 	//#region events
+
+	private _onWillCreateTextFile = this._register(new AsyncEmitter<TextFileCreateEvent>());
+	readonly onWillCreateTextFile = this._onWillCreateTextFile.event;
 
 	private _onDidCreateTextFile = this._register(new AsyncEmitter<TextFileCreateEvent>());
 	readonly onDidCreateTextFile = this._onDidCreateTextFile.event;
@@ -68,8 +70,7 @@ export abstract class AbstractTextFileService extends Disposable implements ITex
 		@IFilesConfigurationService protected readonly filesConfigurationService: IFilesConfigurationService,
 		@ITextModelService private readonly textModelService: ITextModelService,
 		@ICodeEditorService private readonly codeEditorService: ICodeEditorService,
-		@IRemotePathService private readonly remotePathService: IRemotePathService,
-		@IWorkingCopyFileService private readonly workingCopyFileService: IWorkingCopyFileService
+		@IRemotePathService private readonly remotePathService: IRemotePathService
 	) {
 		super();
 
@@ -140,8 +141,8 @@ export abstract class AbstractTextFileService extends Disposable implements ITex
 
 	async create(resource: URI, value?: string | ITextSnapshot, options?: ICreateFileOptions): Promise<IFileStatWithMetadata> {
 
-		// file operation participation
-		await this.workingCopyFileService.runFileOperationParticipants(resource, undefined, FileOperation.CREATE);
+		// before event
+		await this._onWillCreateTextFile.fireAsync({ resource }, CancellationToken.None);
 
 		// create file on disk
 		const stat = await this.doCreate(resource, value, options);

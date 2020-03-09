@@ -13,8 +13,7 @@ import { registerSingleton } from 'vs/platform/instantiation/common/extensions';
 import { IWorkbenchIssueService } from 'vs/workbench/contrib/issue/electron-browser/issue';
 import { WorkbenchIssueService } from 'vs/workbench/contrib/issue/electron-browser/issueService';
 import { CommandsRegistry } from 'vs/platform/commands/common/commands';
-import { IIssueService, IssueReporterData } from 'vs/platform/issue/node/issue';
-import { OpenIssueReporterArgs, OpenIssueReporterActionId } from 'vs/workbench/contrib/issue/common/commands';
+import { IIssueService } from 'vs/platform/issue/node/issue';
 
 const helpCategory = { value: nls.localize('help', "Help"), original: 'Help' };
 const workbenchActionsRegistry = Registry.as<IWorkbenchActionRegistry>(Extensions.WorkbenchActions);
@@ -22,14 +21,16 @@ const workbenchActionsRegistry = Registry.as<IWorkbenchActionRegistry>(Extension
 if (!!product.reportIssueUrl) {
 	workbenchActionsRegistry.registerWorkbenchAction(SyncActionDescriptor.create(ReportPerformanceIssueUsingReporterAction, ReportPerformanceIssueUsingReporterAction.ID, ReportPerformanceIssueUsingReporterAction.LABEL), 'Help: Report Performance Issue', helpCategory.value);
 
+	const OpenIssueReporterActionId = 'workbench.action.openIssueReporter';
 	const OpenIssueReporterActionLabel = nls.localize({ key: 'reportIssueInEnglish', comment: ['Translate this to "Report Issue in English" in all languages please!'] }, "Report Issue");
 
-	CommandsRegistry.registerCommand(OpenIssueReporterActionId, function (accessor, args?: [string] | OpenIssueReporterArgs) {
-		const data: Partial<IssueReporterData> = Array.isArray(args)
-			? { extensionId: args[0] }
-			: args || {};
+	CommandsRegistry.registerCommand(OpenIssueReporterActionId, function (accessor, args?: [string]) {
+		let extensionId: string | undefined;
+		if (args && Array.isArray(args)) {
+			[extensionId] = args;
+		}
 
-		return accessor.get(IWorkbenchIssueService).openReporter(data);
+		return accessor.get(IWorkbenchIssueService).openReporter({ extensionId });
 	});
 
 	const command: ICommandAction = {

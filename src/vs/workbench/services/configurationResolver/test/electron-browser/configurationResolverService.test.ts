@@ -599,8 +599,7 @@ class MockInputsConfigurationService extends TestConfigurationService {
 						id: 'input3',
 						type: 'promptString',
 						description: 'Enterinput3',
-						default: 'default input3',
-						password: true
+						default: 'default input3'
 					},
 					{
 						id: 'input4',

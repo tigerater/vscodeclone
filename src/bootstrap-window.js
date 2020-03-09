@@ -212,7 +212,7 @@ function onUnexpectedError(error, enableDeveloperTools) {
 
 	console.error('[uncaught exception]: ' + error);
 
-	if (error && error.stack) {
+	if (error.stack) {
 		console.error(error.stack);
 	}
 }

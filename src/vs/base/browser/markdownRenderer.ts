@@ -25,7 +25,7 @@ export interface MarkdownRenderOptions extends FormattedTextRenderOptions {
 /**
  * Create html nodes for the given content element.
  */
-export function renderMarkdown(markdown: IMarkdownString, options: MarkdownRenderOptions = {}, markedOptions: marked.MarkedOptions = {}): HTMLElement {
+export function renderMarkdown(markdown: IMarkdownString, options: MarkdownRenderOptions = {}): HTMLElement {
 	const element = createElement(options);
 
 	const _uriMassage = function (part: string): string {
@@ -169,8 +169,10 @@ export function renderMarkdown(markdown: IMarkdownString, options: MarkdownRende
 		}));
 	}
 
-	markedOptions.sanitize = true;
-	markedOptions.renderer = renderer;
+	const markedOptions: marked.MarkedOptions = {
+		sanitize: true,
+		renderer
+	};
 
 	const allowedSchemes = [Schemas.http, Schemas.https, Schemas.mailto, Schemas.data, Schemas.file, Schemas.vscodeRemote, Schemas.vscodeRemoteResource];
 	if (markdown.isTrusted) {

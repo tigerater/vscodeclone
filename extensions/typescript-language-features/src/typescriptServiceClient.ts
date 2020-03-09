@@ -529,10 +529,7 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 			id: MessageAction;
 		}
 
-		const previousVersion = this.apiVersion;
-		const previousState = this.serverState;
 		this.serverState = ServerState.None;
-
 		if (restart) {
 			const diff = Date.now() - this.lastStart;
 			this.numberRestarts++;
@@ -568,11 +565,8 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 				}
 				if (prompt) {
 					prompt.then(item => {
-						if (item?.id === MessageAction.reportIssue) {
-							const args = previousState.type === ServerState.Type.Errored && previousState.error instanceof TypeScriptServerError
-								? getReportIssueArgsForError(previousState.error, previousVersion)
-								: undefined;
-							return vscode.commands.executeCommand('workbench.action.openIssueReporter', args);
+						if (item && item.id === MessageAction.reportIssue) {
+							return vscode.commands.executeCommand('workbench.action.openIssueReporter');
 						}
 						return undefined;
 					});
@@ -725,6 +719,9 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 	}
 
 	private fatalError(command: string, error: unknown): void {
+		if (!(error instanceof TypeScriptServerError)) {
+			console.log('fdasfasdf');
+		}
 		/* __GDPR__
 			"fatalError" : {
 				"${include}": [
@@ -743,9 +740,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 		if (this.serverState.type === ServerState.Type.Running) {
 			this.info('Killing TS Server');
 			this.serverState.server.kill();
-			if (error instanceof TypeScriptServerError) {
-				this.serverState = new ServerState.Errored(error);
-			}
 		}
 	}
 
@@ -873,32 +867,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 			this.executeWithoutWaitingForResponse('configurePlugin', { pluginName, configuration });
 		}
 	}
-}
-
-function getReportIssueArgsForError(error: TypeScriptServerError, apiVersion: API): { issueTitle: string, issueBody: string } | undefined {
-	if (!error.serverStack || !error.serverMessage) {
-		return undefined;
-	}
-
-	// Note these strings are intentionally not localized
-	// as we want users to file issues in english
-	return {
-		issueTitle: `TS Server fatal error:  ${error.serverMessage}`,
-
-		issueBody: `**TypeScript Version:** ${apiVersion.fullVersionString}
-
-**Steps to reproduce crash**
-
-1.
-2.
-3.
-
-** TS Server Error Stack **
-
-\`\`\`
-${error.serverStack}
-\`\`\``,
-	};
 }
 
 function getDignosticsKind(event: Proto.Event) {

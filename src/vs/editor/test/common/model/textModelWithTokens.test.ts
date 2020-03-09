@@ -72,7 +72,7 @@ suite('TextModelWithTokens', () => {
 			brackets: brackets
 		});
 
-		let model = TextModel.createFromString(
+		let model = new TextModel(
 			contents.join('\n'),
 			TextModel.DEFAULT_CREATION_OPTIONS,
 			languageIdentifier

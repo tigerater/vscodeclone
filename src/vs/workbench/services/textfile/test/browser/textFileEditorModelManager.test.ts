@@ -14,7 +14,6 @@ import { IModelService } from 'vs/editor/common/services/modelService';
 import { toResource } from 'vs/base/test/common/utils';
 import { ModesRegistry, PLAINTEXT_MODE_ID } from 'vs/editor/common/modes/modesRegistry';
 import { ITextFileEditorModel } from 'vs/workbench/services/textfile/common/textfiles';
-import { createTextBufferFactory } from 'vs/editor/common/model/textModel';
 
 class ServiceAccessor {
 	constructor(
@@ -199,11 +198,11 @@ suite('Files - TextFileEditorModelManager', () => {
 		const model2 = await manager.resolve(resource2, { encoding: 'utf8' });
 		assert.equal(loadedCounter, 2);
 
-		model1.updateTextEditorModel(createTextBufferFactory('changed'));
+		model1.textEditorModel!.setValue('changed');
 		model1.updatePreferredEncoding('utf16');
 
 		await model1.revert();
-		model1.updateTextEditorModel(createTextBufferFactory('changed again'));
+		model1.textEditorModel!.setValue('changed again');
 
 		await model1.save();
 		model1.dispose();
@@ -240,7 +239,7 @@ suite('Files - TextFileEditorModelManager', () => {
 		const resource = toResource.call(this, '/path/index_something.txt');
 
 		const model = await manager.resolve(resource, { encoding: 'utf8' });
-		model.updateTextEditorModel(createTextBufferFactory('make dirty'));
+		model.textEditorModel!.setValue('make dirty');
 		manager.disposeModel((model as TextFileEditorModel));
 		assert.ok(!model.isDisposed());
 		model.revert({ soft: true });

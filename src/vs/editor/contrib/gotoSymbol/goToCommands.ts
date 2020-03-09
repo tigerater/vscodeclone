@@ -167,7 +167,7 @@ abstract class SymbolNavigationAction extends EditorAction {
 			resource: reference.uri,
 			options: {
 				selection: Range.collapseToStart(range),
-				selectionRevealType: TextEditorSelectionRevealType.NearTopIfOutsideViewport
+				selectionRevealType: TextEditorSelectionRevealType.CenterIfOutsideViewport
 			}
 		}, editor, sideBySide);
 

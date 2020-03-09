@@ -123,7 +123,6 @@ class TestFileEditorInput extends EditorInput implements IFileEditorInput {
 	setForceOpenAsBinary(): void { }
 	setMode(mode: string) { }
 	setPreferredMode(mode: string) { }
-	isResolved(): boolean { return false; }
 
 	matches(other: TestFileEditorInput): boolean {
 		return other && this.id === other.id && other instanceof TestFileEditorInput;

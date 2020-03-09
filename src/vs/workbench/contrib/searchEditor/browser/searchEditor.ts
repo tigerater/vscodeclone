@@ -180,6 +180,7 @@ export class SearchEditor extends BaseTextEditor {
 		this.messageBox = DOM.append(this.queryEditorContainer, DOM.$('.messages'));
 	}
 
+
 	private toggleRunAgainMessage(show: boolean) {
 		DOM.clearNode(this.messageBox);
 		dispose(this.messageDisposables);
@@ -442,11 +443,6 @@ export class SearchEditor extends BaseTextEditor {
 		this.toggleIncludesExcludes(config.showIncludesExcludes);
 
 		this.restoreViewState();
-
-		if (!options?.preserveFocus) {
-			this.focus();
-		}
-
 		this.pauseSearching = false;
 	}
 
@@ -494,6 +490,11 @@ export class SearchEditor extends BaseTextEditor {
 	private restoreViewState() {
 		const viewState = this.loadViewState();
 		if (viewState) { this.searchResultEditor.restoreViewState(viewState); }
+		if (viewState && viewState.focused === 'editor') {
+			this.searchResultEditor.focus();
+		} else {
+			this.queryEditorWidget.focus();
+		}
 	}
 
 	clearInput() {

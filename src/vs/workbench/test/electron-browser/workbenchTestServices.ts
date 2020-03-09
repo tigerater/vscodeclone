@@ -29,7 +29,6 @@ import { IOpenedWindow, IOpenEmptyWindowOptions, IWindowOpenable, IOpenWindowOpt
 import { parseArgs, OPTIONS } from 'vs/platform/environment/node/argv';
 import { LogLevel } from 'vs/platform/log/common/log';
 import { IRemotePathService } from 'vs/workbench/services/path/common/remotePathService';
-import { IWorkingCopyFileService } from 'vs/workbench/services/workingCopy/common/workingCopyFileService';
 
 export const TestWindowConfiguration: IWindowConfiguration = {
 	windowId: 0,
@@ -62,8 +61,7 @@ export class TestTextFileService extends NativeTextFileService {
 		@IFilesConfigurationService filesConfigurationService: IFilesConfigurationService,
 		@ITextModelService textModelService: ITextModelService,
 		@ICodeEditorService codeEditorService: ICodeEditorService,
-		@IRemotePathService remotePathService: IRemotePathService,
-		@IWorkingCopyFileService workingCopyFileService: IWorkingCopyFileService
+		@IRemotePathService remotePathService: IRemotePathService
 	) {
 		super(
 			fileService,
@@ -79,8 +77,7 @@ export class TestTextFileService extends NativeTextFileService {
 			filesConfigurationService,
 			textModelService,
 			codeEditorService,
-			remotePathService,
-			workingCopyFileService
+			remotePathService
 		);
 	}
 

@@ -128,7 +128,7 @@ class SymbolNavigationService implements ISymbolNavigationService {
 			resource: reference.uri,
 			options: {
 				selection: Range.collapseToStart(reference.range),
-				selectionRevealType: TextEditorSelectionRevealType.NearTopIfOutsideViewport
+				selectionRevealType: TextEditorSelectionRevealType.CenterIfOutsideViewport
 			}
 		}, source).finally(() => {
 			this._ignoreEditorChange = false;

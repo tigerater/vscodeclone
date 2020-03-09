@@ -462,7 +462,6 @@ export interface IDebugConfiguration {
 		lineHeight: number;
 		wordWrap: boolean;
 		closeOnEnd: boolean;
-		historySuggestions: boolean;
 	};
 	focusWindowOnBreak: boolean;
 	onTaskErrors: 'debugAnyway' | 'showErrors' | 'prompt' | 'abort';

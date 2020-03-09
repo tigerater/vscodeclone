@@ -443,12 +443,12 @@ export class ListSettingWidget extends Disposable {
 
 		const onSubmit = (edited: boolean) => {
 			this.model.setEditKey('none');
-			const value = valueInput.value;
+			const value = valueInput.value.trim();
 			if (edited && !isUndefinedOrNull(value)) {
 				this._onDidChangeList.fire({
 					originalValue: item.value,
 					value: value,
-					sibling: siblingInput && siblingInput.value,
+					sibling: siblingInput && siblingInput.value.trim(),
 					targetIndex: idx
 				});
 			}

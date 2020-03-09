@@ -21,7 +21,6 @@ type SyncErrorClassification = {
 };
 
 const SESSION_ID_KEY = 'sync.sessionId';
-const LAST_SYNC_TIME_KEY = 'sync.lastSyncTime';
 
 export class UserDataSyncService extends Disposable implements IUserDataSyncService {
 
@@ -40,11 +39,6 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 	get conflictsSources(): SyncSource[] { return this._conflictsSources; }
 	private _onDidChangeConflicts: Emitter<SyncSource[]> = this._register(new Emitter<SyncSource[]>());
 	readonly onDidChangeConflicts: Event<SyncSource[]> = this._onDidChangeConflicts.event;
-
-	private _lastSyncTime: number | undefined = undefined;
-	get lastSyncTime(): number | undefined { return this._lastSyncTime; }
-	private _onDidChangeLastSyncTime: Emitter<number> = this._register(new Emitter<number>());
-	readonly onDidChangeLastSyncTime: Event<number> = this._onDidChangeLastSyncTime.event;
 
 	private readonly keybindingsSynchroniser: KeybindingsSynchroniser;
 	private readonly extensionsSynchroniser: ExtensionsSynchroniser;
@@ -69,7 +63,6 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 			this._register(Event.any(...this.synchronisers.map(s => Event.map(s.onDidChangeStatus, () => undefined)))(() => this.updateStatus()));
 		}
 
-		this._lastSyncTime = this.storageService.getNumber(LAST_SYNC_TIME_KEY, StorageScope.GLOBAL, undefined);
 		this.onDidChangeLocal = Event.any(...this.synchronisers.map(s => s.onDidChangeLocal));
 	}
 
@@ -82,7 +75,6 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 				this.handleSyncError(e, synchroniser.source);
 			}
 		}
-		this.updateLastSyncTime(Date.now());
 	}
 
 	async push(): Promise<void> {
@@ -94,7 +86,6 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 				this.handleSyncError(e, synchroniser.source);
 			}
 		}
-		this.updateLastSyncTime(Date.now());
 	}
 
 	async sync(): Promise<void> {
@@ -140,7 +131,6 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 			}
 
 			this.logService.info(`Sync done. Took ${new Date().getTime() - startTime}ms`);
-			this.updateLastSyncTime(Date.now());
 
 		} finally {
 			this.updateStatus();
@@ -199,7 +189,6 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 	async resetLocal(): Promise<void> {
 		await this.checkEnablement();
 		this.storageService.remove(SESSION_ID_KEY, StorageScope.GLOBAL);
-		this.storageService.remove(LAST_SYNC_TIME_KEY, StorageScope.GLOBAL);
 		for (const synchroniser of this.synchronisers) {
 			try {
 				synchroniser.resetLocal();
@@ -265,14 +254,6 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 			return SyncStatus.Syncing;
 		}
 		return SyncStatus.Idle;
-	}
-
-	private updateLastSyncTime(lastSyncTime: number): void {
-		if (this._lastSyncTime !== lastSyncTime) {
-			this._lastSyncTime = lastSyncTime;
-			this.storageService.store(LAST_SYNC_TIME_KEY, lastSyncTime, StorageScope.GLOBAL);
-			this._onDidChangeLastSyncTime.fire(lastSyncTime);
-		}
 	}
 
 	private handleSyncError(e: Error, source: SyncSource): void {

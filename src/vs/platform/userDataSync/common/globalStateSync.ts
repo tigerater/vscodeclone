@@ -21,7 +21,6 @@ const argvProperties: string[] = ['locale'];
 interface ISyncPreviewResult {
 	readonly local: IGlobalState | undefined;
 	readonly remote: IGlobalState | undefined;
-	readonly localUserData: IGlobalState;
 	readonly remoteUserData: IRemoteUserData;
 	readonly lastSyncUserData: IRemoteUserData | null;
 }
@@ -60,9 +59,8 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 			const remoteUserData = await this.getRemoteUserData(lastSyncUserData);
 
 			if (remoteUserData.syncData !== null) {
-				const localUserData = await this.getLocalGlobalState();
 				const local: IGlobalState = JSON.parse(remoteUserData.syncData.content);
-				await this.apply({ local, remote: undefined, remoteUserData, localUserData, lastSyncUserData });
+				await this.apply({ local, remote: undefined, remoteUserData, lastSyncUserData });
 			}
 
 			// No remote exists to pull
@@ -88,10 +86,10 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 			this.logService.info('UI State: Started pushing UI State...');
 			this.setStatus(SyncStatus.Syncing);
 
-			const localUserData = await this.getLocalGlobalState();
+			const remote = await this.getLocalGlobalState();
 			const lastSyncUserData = await this.getLastSyncUserData();
 			const remoteUserData = await this.getRemoteUserData(lastSyncUserData);
-			await this.apply({ local: undefined, remote: localUserData, remoteUserData, localUserData, lastSyncUserData }, true);
+			await this.apply({ local: undefined, remote, remoteUserData, lastSyncUserData }, true);
 
 			this.logService.info('UI State: Finished pushing UI State.');
 		} finally {
@@ -154,10 +152,10 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 
 		const { local, remote } = merge(localGloablState, remoteGlobalState, lastSyncGlobalState);
 
-		return { local, remote, remoteUserData, localUserData: localGloablState, lastSyncUserData };
+		return { local, remote, remoteUserData, lastSyncUserData };
 	}
 
-	private async apply({ local, remote, remoteUserData, lastSyncUserData, localUserData }: ISyncPreviewResult, forcePush?: boolean): Promise<void> {
+	private async apply({ local, remote, remoteUserData, lastSyncUserData }: ISyncPreviewResult, forcePush?: boolean): Promise<void> {
 
 		const hasChanges = local || remote;
 
@@ -168,7 +166,6 @@ export class GlobalStateSynchroniser extends AbstractSynchroniser implements IUs
 		if (local) {
 			// update local
 			this.logService.trace('UI State: Updating local ui state...');
-			await this.backupLocal(VSBuffer.fromString(JSON.stringify(localUserData)));
 			await this.writeLocalGlobalState(local);
 			this.logService.info('UI State: Updated local ui state');
 		}
