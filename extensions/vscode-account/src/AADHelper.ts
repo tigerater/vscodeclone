@@ -22,7 +22,7 @@ interface IToken {
 	accessToken: string;
 	refreshToken: string;
 
-	accountName: string;
+	displayName: string;
 	scope: string;
 	sessionId: string; // The account id + the scope
 }
@@ -33,7 +33,6 @@ interface ITokenClaims {
 	unique_name?: string;
 	oid?: string;
 	altsecid?: string;
-	ipd?: string;
 	scp: string;
 }
 
@@ -170,11 +169,11 @@ export class AzureActiveDirectoryService {
 		}, 1000 * 30);
 	}
 
-	private convertToSession(token: IToken): vscode.AuthenticationSession {
+	private convertToSession(token: IToken): vscode.Session {
 		return {
 			id: token.sessionId,
 			accessToken: token.accessToken,
-			accountName: token.accountName,
+			displayName: token.displayName,
 			scopes: token.scope.split(' ')
 		};
 	}
@@ -188,7 +187,7 @@ export class AzureActiveDirectoryService {
 		}
 	}
 
-	get sessions(): vscode.AuthenticationSession[] {
+	get sessions(): vscode.Session[] {
 		return this._tokens.map(token => this.convertToSession(token));
 	}
 
@@ -288,7 +287,7 @@ export class AzureActiveDirectoryService {
 		});
 		vscode.env.openExternal(uri);
 
-		const timeoutPromise = new Promise((_: (value: IToken) => void, reject) => {
+		const timeoutPromise = new Promise((resolve: (value: IToken) => void, reject) => {
 			const wait = setTimeout(() => {
 				clearTimeout(wait);
 				reject('Login timed out.');
@@ -361,8 +360,8 @@ export class AzureActiveDirectoryService {
 			accessToken: json.access_token,
 			refreshToken: json.refresh_token,
 			scope,
-			sessionId: `${claims.tid}/${(claims.oid || (claims.altsecid || '' + claims.ipd || ''))}/${scope}`,
-			accountName: claims.email || claims.unique_name || 'user@example.com'
+			sessionId: claims.tid + (claims.oid || claims.altsecid) + scope,
+			displayName: claims.email || claims.unique_name || 'user@example.com'
 		};
 	}
 

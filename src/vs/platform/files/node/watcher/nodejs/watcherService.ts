@@ -35,14 +35,14 @@ export class FileWatcher extends Disposable {
 
 	private async startWatching(): Promise<void> {
 		try {
-			const { stat, symbolicLink } = await statLink(this.path);
+			const { stat, isSymbolicLink } = await statLink(this.path);
 
 			if (this.isDisposed) {
 				return;
 			}
 
 			let pathToWatch = this.path;
-			if (symbolicLink) {
+			if (isSymbolicLink) {
 				try {
 					pathToWatch = await realpath(pathToWatch);
 				} catch (error) {

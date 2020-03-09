@@ -26,6 +26,7 @@ import { resolveCommonProperties } from 'vs/platform/telemetry/node/commonProper
 import { TelemetryAppenderChannel } from 'vs/platform/telemetry/node/telemetryIpc';
 import { TelemetryService, ITelemetryServiceConfig } from 'vs/platform/telemetry/common/telemetryService';
 import { AppInsightsAppender } from 'vs/platform/telemetry/node/appInsightsAppender';
+import { ActiveWindowManager } from 'vs/code/node/activeWindowTracker';
 import { ipcRenderer } from 'electron';
 import { ILogService, LogLevel, ILoggerService } from 'vs/platform/log/common/log';
 import { LoggerChannelClient, FollowerLogService } from 'vs/platform/log/common/logIpc';
@@ -130,6 +131,9 @@ async function main(server: Server, initData: ISharedProcessInitData, configurat
 	const electronService = createChannelSender<IElectronService>(mainProcessService.getChannel('electron'), { context: configuration.windowId });
 	services.set(IElectronService, electronService);
 
+	const activeWindowManager = new ActiveWindowManager(electronService);
+	const activeWindowRouter = new StaticRouter(ctx => activeWindowManager.getActiveClientId().then(id => ctx === id));
+
 	// Files
 	const fileService = new FileService(logService);
 	services.set(IFileService, fileService);
@@ -180,8 +184,8 @@ async function main(server: Server, initData: ISharedProcessInitData, configurat
 		services.set(ICredentialsService, new SyncDescriptor(KeytarCredentialsService));
 		services.set(IUserDataAuthTokenService, new SyncDescriptor(UserDataAuthTokenService));
 		services.set(IUserDataSyncLogService, new SyncDescriptor(UserDataSyncLogService));
-		services.set(IUserDataSyncUtilService, new UserDataSyncUtilServiceClient(server.getChannel('userDataSyncUtil', client => client.ctx !== 'main')));
-		services.set(IGlobalExtensionEnablementService, new GlobalExtensionEnablementServiceClient(server.getChannel('globalExtensionEnablement', client => client.ctx !== 'main')));
+		services.set(IUserDataSyncUtilService, new UserDataSyncUtilServiceClient(server.getChannel('userDataSyncUtil', activeWindowRouter)));
+		services.set(IGlobalExtensionEnablementService, new GlobalExtensionEnablementServiceClient(server.getChannel('globalExtensionEnablement', activeWindowRouter)));
 		services.set(IUserDataSyncStoreService, new SyncDescriptor(UserDataSyncStoreService));
 		services.set(ISettingsSyncService, new SyncDescriptor(SettingsSynchroniser));
 		services.set(IUserDataSyncService, new SyncDescriptor(UserDataSyncService));
