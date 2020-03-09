@@ -96,7 +96,7 @@ export class CompositeBar extends Widget implements ICompositeBar {
 		const actionBarDiv = parent.appendChild($('.composite-bar'));
 
 		this.compositeSwitcherBar = this._register(new ActionBar(actionBarDiv, {
-			actionViewItemProvider: (action: IAction) => {
+			actionViewItemProvider: (action: Action) => {
 				if (action instanceof CompositeOverflowActivityAction) {
 					return this.compositeOverflowActionViewItem;
 				}

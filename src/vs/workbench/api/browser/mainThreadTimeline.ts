@@ -9,12 +9,12 @@ import { URI } from 'vs/base/common/uri';
 import { ILogService } from 'vs/platform/log/common/log';
 import { MainContext, MainThreadTimelineShape, IExtHostContext, ExtHostTimelineShape, ExtHostContext } from 'vs/workbench/api/common/extHost.protocol';
 import { extHostNamedCustomer } from 'vs/workbench/api/common/extHostCustomers';
-import { ITimelineService, TimelineItem, TimelineProviderDescriptor, TimelineChangeEvent } from 'vs/workbench/contrib/timeline/common/timeline';
+import { ITimelineService, TimelineItem, TimelineProviderDescriptor } from 'vs/workbench/contrib/timeline/common/timeline';
 
 @extHostNamedCustomer(MainContext.MainThreadTimeline)
 export class MainThreadTimeline implements MainThreadTimelineShape {
 	private readonly _proxy: ExtHostTimelineShape;
-	private readonly _providerEmitters = new Map<string, Emitter<TimelineChangeEvent>>();
+	private readonly _providerEmitters = new Map<string, Emitter<URI | undefined>>();
 
 	constructor(
 		context: IExtHostContext,
@@ -29,41 +29,41 @@ export class MainThreadTimeline implements MainThreadTimelineShape {
 	}
 
 	$registerTimelineProvider(provider: TimelineProviderDescriptor): void {
-		this.logService.trace(`MainThreadTimeline#registerTimelineProvider: id=${provider.id}`);
+		this.logService.trace(`MainThreadTimeline#registerTimelineProvider: source=${provider.source}`);
 
 		const proxy = this._proxy;
 
 		const emitters = this._providerEmitters;
-		let onDidChange = emitters.get(provider.id);
+		let onDidChange = emitters.get(provider.source);
 		if (onDidChange === undefined) {
-			onDidChange = new Emitter<TimelineChangeEvent>();
-			emitters.set(provider.id, onDidChange);
+			onDidChange = new Emitter<URI | undefined>();
+			emitters.set(provider.source, onDidChange);
 		}
 
 		this._timelineService.registerTimelineProvider({
 			...provider,
 			onDidChange: onDidChange.event,
 			provideTimeline(uri: URI, token: CancellationToken) {
-				return proxy.$getTimeline(provider.id, uri, token);
+				return proxy.$getTimeline(provider.source, uri, token);
 			},
 			dispose() {
-				emitters.delete(provider.id);
+				emitters.delete(provider.source);
 				onDidChange?.dispose();
 			}
 		});
 	}
 
-	$unregisterTimelineProvider(id: string): void {
-		this.logService.trace(`MainThreadTimeline#unregisterTimelineProvider: id=${id}`);
+	$unregisterTimelineProvider(source: string): void {
+		this.logService.trace(`MainThreadTimeline#unregisterTimelineProvider: source=${source}`);
 
-		this._timelineService.unregisterTimelineProvider(id);
+		this._timelineService.unregisterTimelineProvider(source);
 	}
 
-	$emitTimelineChangeEvent(e: TimelineChangeEvent): void {
-		this.logService.trace(`MainThreadTimeline#emitChangeEvent: id=${e.id}, uri=${e.uri?.toString(true)}`);
+	$emitTimelineChangeEvent(source: string, uri: URI | undefined): void {
+		this.logService.trace(`MainThreadTimeline#emitChangeEvent: source=${source}, uri=${uri?.toString(true)}`);
 
-		const emitter = this._providerEmitters.get(e.id!);
-		emitter?.fire(e);
+		const emitter = this._providerEmitters.get(source);
+		emitter?.fire(uri);
 	}
 
 	dispose(): void {

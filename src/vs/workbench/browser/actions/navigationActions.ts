@@ -63,7 +63,7 @@ abstract class BaseNavigationAction extends Action {
 		return true;
 	}
 
-	protected async navigateToPanel(): Promise<IPanel | boolean> {
+	protected navigateToPanel(): IPanel | boolean {
 		if (!this.layoutService.isVisible(Parts.PANEL_PART)) {
 			return false;
 		}
@@ -75,7 +75,7 @@ abstract class BaseNavigationAction extends Action {
 
 		const activePanelId = activePanel.getId();
 
-		const res = await this.panelService.openPanel(activePanelId, true);
+		const res = this.panelService.openPanel(activePanelId, true);
 		if (!res) {
 			return false;
 		}
@@ -191,7 +191,7 @@ class NavigateRightAction extends BaseNavigationAction {
 		}
 
 		if (!isPanelPositionDown) {
-			return this.navigateToPanel();
+			return Promise.resolve(this.navigateToPanel());
 		}
 
 		if (!isSidebarPositionLeft) {
@@ -270,7 +270,7 @@ class NavigateDownAction extends BaseNavigationAction {
 		}
 
 		if (isPanelPositionDown) {
-			return this.navigateToPanel();
+			return Promise.resolve(this.navigateToPanel());
 		}
 
 		return Promise.resolve(false);

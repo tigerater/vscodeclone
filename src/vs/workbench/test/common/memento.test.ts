@@ -7,7 +7,7 @@ import * as assert from 'assert';
 
 import { StorageScope, IStorageService } from 'vs/platform/storage/common/storage';
 import { Memento } from 'vs/workbench/common/memento';
-import { TestStorageService } from 'vs/workbench/test/common/workbenchTestServices';
+import { TestStorageService } from 'vs/workbench/test/workbenchTestServices';
 
 suite('Memento', () => {
 	let context: StorageScope | undefined = undefined;

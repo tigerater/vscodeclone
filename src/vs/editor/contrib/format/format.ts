@@ -178,8 +178,9 @@ export async function formatDocumentRangeWithProvider(
 
 	if (isCodeEditor(editorOrModel)) {
 		// use editor to apply edits
-		FormattingEdit.execute(editorOrModel, edits, true);
+		FormattingEdit.execute(editorOrModel, edits);
 		alertFormattingEdits(edits);
+		editorOrModel.pushUndoStop();
 		editorOrModel.revealPositionInCenterIfOutsideViewport(editorOrModel.getPosition(), ScrollType.Immediate);
 
 	} else {
@@ -264,10 +265,11 @@ export async function formatDocumentWithProvider(
 
 	if (isCodeEditor(editorOrModel)) {
 		// use editor to apply edits
-		FormattingEdit.execute(editorOrModel, edits, mode !== FormattingMode.Silent);
+		FormattingEdit.execute(editorOrModel, edits);
 
 		if (mode !== FormattingMode.Silent) {
 			alertFormattingEdits(edits);
+			editorOrModel.pushUndoStop();
 			editorOrModel.revealPositionInCenterIfOutsideViewport(editorOrModel.getPosition(), ScrollType.Immediate);
 		}
 

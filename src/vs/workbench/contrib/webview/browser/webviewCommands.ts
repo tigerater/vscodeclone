@@ -4,103 +4,40 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Action } from 'vs/base/common/actions';
-import { KeyCode, KeyMod } from 'vs/base/common/keyCodes';
+import { Command } from 'vs/editor/browser/editorExtensions';
 import * as nls from 'vs/nls';
-import { Action2 } from 'vs/platform/actions/common/actions';
-import { ContextKeyExpr } from 'vs/platform/contextkey/common/contextkey';
 import { ServicesAccessor } from 'vs/platform/instantiation/common/instantiation';
-import { KeybindingWeight } from 'vs/platform/keybinding/common/keybindingsRegistry';
-import { KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_FOCUSED, KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_VISIBLE } from 'vs/workbench/contrib/webview/browser/webview';
-import { WebviewEditor } from 'vs/workbench/contrib/webview/browser/webviewEditor';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
+import { WebviewEditor } from 'vs/workbench/contrib/webview/browser/webviewEditor';
 
-export class ShowWebViewEditorFindWidgetAction extends Action2 {
+export class ShowWebViewEditorFindWidgetCommand extends Command {
 	public static readonly ID = 'editor.action.webvieweditor.showFind';
-	public static readonly LABEL = nls.localize('editor.action.webvieweditor.showFind', "Show find");
 
-	constructor(contextKeyExpr: ContextKeyExpr) {
-		super({
-			id: ShowWebViewEditorFindWidgetAction.ID,
-			title: ShowWebViewEditorFindWidgetAction.LABEL,
-			precondition: contextKeyExpr,
-			keybinding: {
-				when: contextKeyExpr,
-				primary: KeyMod.CtrlCmd | KeyCode.KEY_F,
-				weight: KeybindingWeight.EditorContrib
-			}
-		});
-	}
-
-	public run(accessor: ServicesAccessor): void {
+	public runCommand(accessor: ServicesAccessor): void {
 		getActiveWebviewEditor(accessor)?.showFind();
 	}
 }
 
-export class HideWebViewEditorFindCommand extends Action2 {
+export class HideWebViewEditorFindCommand extends Command {
 	public static readonly ID = 'editor.action.webvieweditor.hideFind';
-	public static readonly LABEL = nls.localize('editor.action.webvieweditor.hideFind', "Stop find");
 
-	constructor(contextKeyExpr: ContextKeyExpr) {
-		const precondition = ContextKeyExpr.and(contextKeyExpr, KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_VISIBLE);
-		super({
-			id: HideWebViewEditorFindCommand.ID,
-			title: HideWebViewEditorFindCommand.LABEL,
-			precondition: precondition,
-			keybinding: {
-				when: precondition,
-				primary: KeyCode.Escape,
-				weight: KeybindingWeight.EditorContrib
-			}
-		});
-	}
-
-	public run(accessor: ServicesAccessor): void {
+	public runCommand(accessor: ServicesAccessor): void {
 		getActiveWebviewEditor(accessor)?.hideFind();
 	}
 }
 
-export class WebViewEditorFindNextCommand extends Action2 {
+export class WebViewEditorFindNextCommand extends Command {
 	public static readonly ID = 'editor.action.webvieweditor.findNext';
-	public static readonly LABEL = nls.localize('editor.action.webvieweditor.findNext', 'Find next');
 
-	constructor(contextKeyExpr: ContextKeyExpr) {
-		const precondition = ContextKeyExpr.and(contextKeyExpr, KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_FOCUSED);
-		super({
-			id: WebViewEditorFindNextCommand.ID,
-			title: WebViewEditorFindNextCommand.LABEL,
-			precondition: precondition,
-			keybinding: {
-				when: precondition,
-				primary: KeyCode.Enter,
-				weight: KeybindingWeight.EditorContrib
-			}
-		});
-	}
-
-	public run(accessor: ServicesAccessor): void {
+	public runCommand(accessor: ServicesAccessor): void {
 		getActiveWebviewEditor(accessor)?.find(false);
 	}
 }
 
-export class WebViewEditorFindPreviousCommand extends Action2 {
+export class WebViewEditorFindPreviousCommand extends Command {
 	public static readonly ID = 'editor.action.webvieweditor.findPrevious';
-	public static readonly LABEL = nls.localize('editor.action.webvieweditor.findPrevious', 'Find previous');
 
-	constructor(contextKeyExpr: ContextKeyExpr) {
-		const precondition = ContextKeyExpr.and(contextKeyExpr, KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_FOCUSED);
-		super({
-			id: WebViewEditorFindPreviousCommand.ID,
-			title: WebViewEditorFindPreviousCommand.LABEL,
-			precondition: precondition,
-			keybinding: {
-				when: precondition,
-				primary: KeyMod.Shift | KeyCode.Enter,
-				weight: KeybindingWeight.EditorContrib
-			}
-		});
-	}
-
-	public run(accessor: ServicesAccessor): void {
+	public runCommand(accessor: ServicesAccessor): void {
 		getActiveWebviewEditor(accessor)?.find(true);
 	}
 }

@@ -615,10 +615,6 @@
                 ]
             },
             {
-                "target": "{**/api/**.test.ts,}",
-                "restrictions": "{**/vs/**,assert,sinon,crypto,vscode}"
-            },
-            {
                 "target": "{**/**.test.ts,**/test/**}",
                 "restrictions": "{**/vs/**,assert,sinon,crypto}"
             },
