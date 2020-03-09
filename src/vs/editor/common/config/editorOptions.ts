@@ -8,6 +8,7 @@ import * as platform from 'vs/base/common/platform';
 import { ScrollbarVisibility } from 'vs/base/common/scrollable';
 import { FontInfo } from 'vs/editor/common/config/fontInfo';
 import { Constants } from 'vs/base/common/uint';
+// import { Constants as MinimapConstants } from 'vs/editor/browser/viewParts/minimap/minimapCharSheet';
 import { USUAL_WORD_SEPARATORS } from 'vs/editor/common/model/wordHelper';
 import { AccessibilitySupport } from 'vs/platform/accessibility/common/accessibility';
 import { IConfigurationPropertySchema } from 'vs/platform/configuration/common/configurationRegistry';
@@ -672,6 +673,7 @@ export interface IEnvironmentalOptions {
 	readonly fontInfo: FontInfo;
 	readonly extraEditorClassName: string;
 	readonly isDominatedByLongLines: boolean;
+	readonly maxLineNumber: number;
 	readonly lineNumbersDigitCount: number;
 	readonly emptySelectionClipboard: boolean;
 	readonly pixelRatio: number;
@@ -1685,6 +1687,13 @@ export interface EditorLayoutInfo {
 	 * The width of the minimap
 	 */
 	readonly minimapWidth: number;
+	readonly minimapIsSampling: boolean;
+	readonly minimapScale: number;
+	readonly minimapLineHeight: number;
+	readonly minimapCanvasInnerWidth: number;
+	readonly minimapCanvasInnerHeight: number;
+	readonly minimapCanvasOuterWidth: number;
+	readonly minimapCanvasOuterHeight: number;
 
 	/**
 	 * Minimap render type
@@ -1718,6 +1727,7 @@ export interface EditorLayoutInfoComputerEnv {
 	outerWidth: number;
 	outerHeight: number;
 	lineHeight: number;
+	maxLineNumber: number;
 	lineNumbersDigitCount: number;
 	typicalHalfwidthCharacterWidth: number;
 	maxDigitWidth: number;
@@ -1741,6 +1751,7 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 			outerWidth: env.outerWidth,
 			outerHeight: env.outerHeight,
 			lineHeight: env.fontInfo.lineHeight,
+			maxLineNumber: env.maxLineNumber,
 			lineNumbersDigitCount: env.lineNumbersDigitCount,
 			typicalHalfwidthCharacterWidth: env.fontInfo.typicalHalfwidthCharacterWidth,
 			maxDigitWidth: env.fontInfo.maxDigitWidth,
@@ -1760,12 +1771,14 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 		const showGlyphMargin = options.get(EditorOption.glyphMargin);
 		const showLineNumbers = (options.get(EditorOption.lineNumbers).renderType !== RenderLineNumbersType.Off);
 		const lineNumbersMinChars = options.get(EditorOption.lineNumbersMinChars) | 0;
+		const scrollBeyondLastLine = options.get(EditorOption.scrollBeyondLastLine);
 		const minimap = options.get(EditorOption.minimap);
 		const minimapEnabled = minimap.enabled;
 		const minimapSide = minimap.side;
 		const minimapRenderCharacters = minimap.renderCharacters;
-		const minimapScale = (pixelRatio >= 2 ? Math.round(minimap.scale * 2) : minimap.scale);
+		let minimapScale = (pixelRatio >= 2 ? Math.round(minimap.scale * 2) : minimap.scale);
 		const minimapMaxColumn = minimap.maxColumn | 0;
+		const minimapEntireDocument = minimap.entireDocument;
 
 		const scrollbar = options.get(EditorOption.scrollbar);
 		const verticalScrollbarWidth = scrollbar.verticalScrollbarSize | 0;
@@ -1805,19 +1818,51 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 
 		const remainingWidth = outerWidth - glyphMarginWidth - lineNumbersWidth - lineDecorationsWidth;
 
+		const baseCharHeight = minimapRenderCharacters ? 2 : 3;
 		let renderMinimap: RenderMinimap;
 		let minimapLeft: number;
 		let minimapWidth: number;
+		let minimapCanvasInnerWidth: number;
+		let minimapCanvasInnerHeight = Math.floor(pixelRatio * outerHeight);
+		let minimapCanvasOuterWidth: number;
+		const minimapCanvasOuterHeight = minimapCanvasInnerHeight / pixelRatio;
+		let minimapIsSampling = false;
+		let minimapLineHeight = baseCharHeight * minimapScale;
 		let contentWidth: number;
 		if (!minimapEnabled) {
 			minimapLeft = 0;
 			minimapWidth = 0;
+			minimapCanvasInnerWidth = 0;
+			minimapCanvasOuterWidth = 0;
+			minimapLineHeight = 1;
 			renderMinimap = RenderMinimap.None;
 			contentWidth = remainingWidth;
 		} else {
-			// The minimapScale is also the pixel width of each character. Adjust
-			// for the pixel ratio of the screen.
-			const minimapCharWidth = minimapScale / pixelRatio;
+			let minimapCharWidth = minimapScale / pixelRatio;
+			let minimapWidthMultiplier: number = 1;
+
+			if (minimapEntireDocument) {
+				const modelLineCount = env.maxLineNumber;
+				const extraLinesBeyondLastLine = scrollBeyondLastLine ? (outerHeight / lineHeight - 1) : 0;
+				const desiredRatio = (modelLineCount + extraLinesBeyondLastLine) / (pixelRatio * outerHeight);
+				const minimapLineCount = Math.floor(modelLineCount / desiredRatio);
+				const ratio = modelLineCount / minimapLineCount;
+
+				if (ratio > 1) {
+					minimapIsSampling = true;
+					minimapScale = 1;
+					minimapLineHeight = 1;
+					minimapCharWidth = minimapScale / pixelRatio;
+				} else {
+					const configuredFontScale = minimapScale;
+					minimapLineHeight = Math.max(1, Math.floor(1 / desiredRatio));
+					minimapScale = Math.min(4, Math.max(1, Math.floor(minimapLineHeight / baseCharHeight)));
+					minimapWidthMultiplier = Math.min(1, minimapScale / configuredFontScale);
+					minimapCharWidth = minimapScale / pixelRatio / minimapWidthMultiplier;
+					minimapCanvasInnerHeight = Math.ceil((modelLineCount + extraLinesBeyondLastLine) * minimapLineHeight);
+				}
+			}
+
 			renderMinimap = minimapRenderCharacters ? RenderMinimap.Text : RenderMinimap.Blocks;
 
 			// Given:
@@ -1849,6 +1894,10 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 			} else {
 				minimapLeft = outerWidth - minimapWidth - verticalScrollbarWidth;
 			}
+
+			minimapCanvasInnerWidth = Math.floor(pixelRatio * minimapWidth);
+			minimapCanvasOuterWidth = minimapCanvasInnerWidth / pixelRatio;
+			minimapCanvasInnerWidth = Math.floor(minimapCanvasInnerWidth * minimapWidthMultiplier);
 		}
 
 		// (leaving 2px for the cursor to have space after the last character)
@@ -1875,6 +1924,13 @@ export class EditorLayoutInfoComputer extends ComputedEditorOption<EditorOption.
 			renderMinimap: renderMinimap,
 			minimapLeft: minimapLeft,
 			minimapWidth: minimapWidth,
+			minimapIsSampling: minimapIsSampling,
+			minimapScale: minimapScale,
+			minimapLineHeight: minimapLineHeight,
+			minimapCanvasInnerWidth: minimapCanvasInnerWidth,
+			minimapCanvasInnerHeight: minimapCanvasInnerHeight,
+			minimapCanvasOuterWidth: minimapCanvasOuterWidth,
+			minimapCanvasOuterHeight: minimapCanvasOuterHeight,
 
 			viewportColumn: viewportColumn,
 
@@ -1995,6 +2051,10 @@ export interface IEditorMinimapOptions {
 	 * Relative size of the font in the minimap. Defaults to 1.
 	 */
 	scale?: number;
+	/**
+	* Minimap covers entire document.
+	*/
+	entireDocument?: boolean;
 }
 
 export type EditorMinimapOptions = Readonly<Required<IEditorMinimapOptions>>;
@@ -2009,6 +2069,7 @@ class EditorMinimap extends BaseEditorOption<EditorOption.minimap, EditorMinimap
 			renderCharacters: true,
 			maxColumn: 120,
 			scale: 1,
+			entireDocument: false,
 		};
 		super(
 			EditorOption.minimap, 'minimap', defaults,
@@ -2047,6 +2108,11 @@ class EditorMinimap extends BaseEditorOption<EditorOption.minimap, EditorMinimap
 					default: defaults.maxColumn,
 					description: nls.localize('minimap.maxColumn', "Limit the width of the minimap to render at most a certain number of columns.")
 				},
+				'editor.minimap.entireDocument': {
+					type: 'boolean',
+					default: defaults.entireDocument,
+					description: nls.localize('minimap.entireDocument', "Show entire document in the minimap.")
+				},
 			}
 		);
 	}
@@ -2063,6 +2129,7 @@ class EditorMinimap extends BaseEditorOption<EditorOption.minimap, EditorMinimap
 			renderCharacters: EditorBooleanOption.boolean(input.renderCharacters, this.defaultValue.renderCharacters),
 			scale: EditorIntOption.clampedInt(input.scale, 1, 1, 3),
 			maxColumn: EditorIntOption.clampedInt(input.maxColumn, this.defaultValue.maxColumn, 1, 10000),
+			entireDocument: EditorBooleanOption.boolean(input.entireDocument, this.defaultValue.entireDocument),
 		};
 	}
 }

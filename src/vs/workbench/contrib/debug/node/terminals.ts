@@ -94,8 +94,7 @@ export function prepareCommand(args: DebugProtocol.RunInTerminalRequestArguments
 	}
 
 	let quote: (s: string) => string;
-	// begin command with a space to avoid polluting shell history
-	let command = ' ';
+	let command = '';
 
 	switch (shellType) {
 
