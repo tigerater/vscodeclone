@@ -306,16 +306,7 @@ export async function main(argv: ParsedArgs): Promise<void> {
 	await Promise.all<void | undefined>([environmentService.appSettingsHome.fsPath, environmentService.extensionsPath]
 		.map((path): undefined | Promise<void> => path ? mkdirp(path) : undefined));
 
-	// Files
-	const fileService = new FileService(logService);
-	disposables.add(fileService);
-	services.set(IFileService, fileService);
-
-	const diskFileSystemProvider = new DiskFileSystemProvider(logService);
-	disposables.add(diskFileSystemProvider);
-	fileService.registerProvider(Schemas.file, diskFileSystemProvider);
-
-	const configurationService = new ConfigurationService(environmentService.settingsResource, fileService);
+	const configurationService = new ConfigurationService(environmentService.settingsResource);
 	disposables.add(configurationService);
 	await configurationService.initialize();
 
@@ -324,6 +315,15 @@ export async function main(argv: ParsedArgs): Promise<void> {
 	services.set(IConfigurationService, configurationService);
 	services.set(IStateService, new SyncDescriptor(StateService));
 	services.set(IProductService, { _serviceBrand: undefined, ...product });
+
+	// Files
+	const fileService = new FileService(logService);
+	disposables.add(fileService);
+	services.set(IFileService, fileService);
+
+	const diskFileSystemProvider = new DiskFileSystemProvider(logService);
+	disposables.add(diskFileSystemProvider);
+	fileService.registerProvider(Schemas.file, diskFileSystemProvider);
 
 	const instantiationService: IInstantiationService = new InstantiationService(services);
 

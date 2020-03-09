@@ -68,7 +68,6 @@ suite('Files - TextFileService', () => {
 		assert.ok(accessor.textFileService.isDirty(untitled.resource));
 
 		untitled.dispose();
-		model.dispose();
 	});
 
 	test('save - file', async function () {

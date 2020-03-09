@@ -26,7 +26,6 @@ export const Context = {
 	MakesTextEdit: new RawContextKey('suggestionMakesTextEdit', true),
 	AcceptSuggestionsOnEnter: new RawContextKey<boolean>('acceptSuggestionOnEnter', true),
 	HasInsertAndReplaceRange: new RawContextKey('suggestionHasInsertAndReplaceRange', false),
-	CanResolve: new RawContextKey('suggestionCanResolve', false),
 };
 
 export const suggestWidgetStatusbarMenu = new MenuId('suggestWidgetStatusBar');
@@ -35,11 +34,8 @@ export class CompletionItem {
 
 	_brand!: 'ISuggestionItem';
 
-	private static readonly _defaultResolve = () => Promise.resolve();
-
 	readonly resolve: (token: CancellationToken) => Promise<void>;
 	isResolved: boolean = false;
-
 
 	//
 	readonly editStart: IPosition;
@@ -91,7 +87,7 @@ export class CompletionItem {
 		// create the suggestion resolver
 		const { resolveCompletionItem } = provider;
 		if (typeof resolveCompletionItem !== 'function') {
-			this.resolve = CompletionItem._defaultResolve;
+			this.resolve = () => Promise.resolve();
 			this.isResolved = true;
 		} else {
 			let cached: Promise<void> | undefined;

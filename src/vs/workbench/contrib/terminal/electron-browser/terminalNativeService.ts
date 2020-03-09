@@ -44,16 +44,17 @@ export class TerminalNativeService implements ITerminalNativeService {
 		// Complete when wait marker file is deleted
 		return new Promise<void>(resolve => {
 			let running = false;
-			const interval = setInterval(async () => {
+			const interval = setInterval(() => {
 				if (!running) {
 					running = true;
-					const exists = await this._fileService.exists(path);
-					running = false;
+					this._fileService.exists(path).then(exists => {
+						running = false;
 
-					if (!exists) {
-						clearInterval(interval);
-						resolve(undefined);
-					}
+						if (!exists) {
+							clearInterval(interval);
+							resolve(undefined);
+						}
+					});
 				}
 			}, 1000);
 		});
