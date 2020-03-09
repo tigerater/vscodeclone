@@ -494,13 +494,14 @@ export class SettingsEditor2 extends BaseEditor {
 	}
 
 	switchToSettingsFile(): Promise<IEditorPane | undefined> {
-		const query = parseQuery(this.searchWidget.getValue()).query;
-		return this.openSettingsFile({ query });
+		const query = parseQuery(this.searchWidget.getValue());
+		return this.openSettingsFile(query.query);
 	}
 
-	private async openSettingsFile(options?: ISettingsEditorOptions): Promise<IEditorPane | undefined> {
+	private async openSettingsFile(query?: string): Promise<IEditorPane | undefined> {
 		const currentSettingsTarget = this.settingsTargetsWidget.settingsTarget;
 
+		const options: ISettingsEditorOptions = { query };
 		if (currentSettingsTarget === ConfigurationTarget.USER_LOCAL) {
 			return this.preferencesService.openGlobalSettings(true, options);
 		} else if (currentSettingsTarget === ConfigurationTarget.USER_REMOTE) {
@@ -659,7 +660,7 @@ export class SettingsEditor2 extends BaseEditor {
 		this.settingRenderers = this.instantiationService.createInstance(SettingTreeRenderers);
 		this._register(this.settingRenderers.onDidChangeSetting(e => this.onDidChangeSetting(e.key, e.value, e.type)));
 		this._register(this.settingRenderers.onDidOpenSettings(settingKey => {
-			this.openSettingsFile({ editSetting: settingKey });
+			this.openSettingsFile(settingKey);
 		}));
 		this._register(this.settingRenderers.onDidClickSettingLink(settingName => this.onDidClickSetting(settingName)));
 		this._register(this.settingRenderers.onDidFocusSetting(element => {
