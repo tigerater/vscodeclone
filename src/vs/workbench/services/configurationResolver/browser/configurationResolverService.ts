@@ -340,7 +340,7 @@ export class ConfigurationResolverService extends BaseConfigurationResolverServi
 		@IWorkspaceContextService workspaceContextService: IWorkspaceContextService,
 		@IQuickInputService quickInputService: IQuickInputService
 	) {
-		super(Object.create(null), editorService, environmentService, configurationService, commandService, workspaceContextService, quickInputService);
+		super(environmentService.configuration.userEnv, editorService, environmentService, configurationService, commandService, workspaceContextService, quickInputService);
 	}
 }
 

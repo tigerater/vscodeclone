@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { EnvironmentService } from 'vs/platform/environment/node/environmentService';
+import { IWindowConfiguration } from 'vs/platform/windows/common/windows';
 import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
 import { memoize } from 'vs/base/common/decorators';
 import { URI } from 'vs/base/common/uri';
@@ -11,18 +12,8 @@ import { Schemas } from 'vs/base/common/network';
 import { toBackupWorkspaceResource } from 'vs/workbench/services/backup/electron-browser/backup';
 import { join } from 'vs/base/common/path';
 import product from 'vs/platform/product/common/product';
-import { INativeWindowConfiguration } from 'vs/platform/windows/node/window';
 
-export interface INativeWorkbenchEnvironmentService extends IWorkbenchEnvironmentService {
-
-	readonly configuration: INativeWindowConfiguration;
-
-	log?: string;
-	cliPath: string;
-	disableCrashReporter: boolean;
-}
-
-export class NativeWorkbenchEnvironmentService extends EnvironmentService implements INativeWorkbenchEnvironmentService {
+export class NativeWorkbenchEnvironmentService extends EnvironmentService implements IWorkbenchEnvironmentService {
 
 	_serviceBrand: undefined;
 
@@ -46,7 +37,7 @@ export class NativeWorkbenchEnvironmentService extends EnvironmentService implem
 	get logFile(): URI { return URI.file(join(this.logsPath, `renderer${this.windowId}.log`)); }
 
 	constructor(
-		readonly configuration: INativeWindowConfiguration,
+		readonly configuration: IWindowConfiguration,
 		execPath: string,
 		private readonly windowId: number
 	) {

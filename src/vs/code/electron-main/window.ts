@@ -14,11 +14,10 @@ import { ILogService } from 'vs/platform/log/common/log';
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { parseArgs, OPTIONS } from 'vs/platform/environment/node/argv';
 import product from 'vs/platform/product/common/product';
-import { IWindowSettings, MenuBarVisibility, ReadyState, getTitleBarStyle, getMenuBarVisibility } from 'vs/platform/windows/common/windows';
+import { IWindowSettings, MenuBarVisibility, IWindowConfiguration, ReadyState, getTitleBarStyle, getMenuBarVisibility } from 'vs/platform/windows/common/windows';
 import { Disposable, toDisposable } from 'vs/base/common/lifecycle';
 import { isLinux, isMacintosh, isWindows } from 'vs/base/common/platform';
 import { ICodeWindow, IWindowState, WindowMode } from 'vs/platform/windows/electron-main/windows';
-import { INativeWindowConfiguration } from 'vs/platform/windows/node/window';
 import { IWorkspaceIdentifier } from 'vs/platform/workspaces/common/workspaces';
 import { IWorkspacesMainService } from 'vs/platform/workspaces/electron-main/workspacesMainService';
 import { IBackupMainService } from 'vs/platform/backup/electron-main/backup';
@@ -86,7 +85,7 @@ export class CodeWindow extends Disposable implements ICodeWindow {
 
 	private readonly whenReadyCallbacks: { (window: ICodeWindow): void }[];
 
-	private pendingLoadConfig?: INativeWindowConfiguration;
+	private pendingLoadConfig?: IWindowConfiguration;
 
 	private marketplaceHeadersPromise: Promise<object>;
 
@@ -232,8 +231,8 @@ export class CodeWindow extends Disposable implements ICodeWindow {
 		this.registerListeners();
 	}
 
-	private currentConfig: INativeWindowConfiguration | undefined;
-	get config(): INativeWindowConfiguration | undefined { return this.currentConfig; }
+	private currentConfig: IWindowConfiguration | undefined;
+	get config(): IWindowConfiguration | undefined { return this.currentConfig; }
 
 	private _id: number;
 	get id(): number { return this._id; }
@@ -553,7 +552,7 @@ export class CodeWindow extends Disposable implements ICodeWindow {
 		}
 	}
 
-	load(config: INativeWindowConfiguration, isReload?: boolean, disableExtensions?: boolean): void {
+	load(config: IWindowConfiguration, isReload?: boolean, disableExtensions?: boolean): void {
 
 		// If this is the first time the window is loaded, we associate the paths
 		// directly with the window because we assume the loading will just work
@@ -613,7 +612,7 @@ export class CodeWindow extends Disposable implements ICodeWindow {
 		this._onLoad.fire();
 	}
 
-	reload(configurationIn?: INativeWindowConfiguration, cli?: ParsedArgs): void {
+	reload(configurationIn?: IWindowConfiguration, cli?: ParsedArgs): void {
 
 		// If config is not provided, copy our current one
 		const configuration = configurationIn ? configurationIn : objects.mixin({}, this.currentConfig);
@@ -640,7 +639,7 @@ export class CodeWindow extends Disposable implements ICodeWindow {
 		this.load(configuration, true, disableExtensions);
 	}
 
-	private getUrl(windowConfiguration: INativeWindowConfiguration): string {
+	private getUrl(windowConfiguration: IWindowConfiguration): string {
 
 		// Set window ID
 		windowConfiguration.windowId = this._win.id;

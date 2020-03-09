@@ -17,7 +17,6 @@ import { resolveWorkbenchCommonProperties } from 'vs/platform/telemetry/node/wor
 import { TelemetryService as BaseTelemetryService, ITelemetryServiceConfig } from 'vs/platform/telemetry/common/telemetryService';
 import { registerSingleton } from 'vs/platform/instantiation/common/extensions';
 import { ClassifiedEvent, StrictPropertyCheck, GDPRClassification } from 'vs/platform/telemetry/common/gdprTypings';
-import { INativeWorkbenchEnvironmentService } from 'vs/workbench/services/environment/electron-browser/environmentService';
 
 export class TelemetryService extends Disposable implements ITelemetryService {
 
@@ -26,7 +25,7 @@ export class TelemetryService extends Disposable implements ITelemetryService {
 	private impl: ITelemetryService;
 
 	constructor(
-		@IWorkbenchEnvironmentService environmentService: INativeWorkbenchEnvironmentService,
+		@IWorkbenchEnvironmentService environmentService: IWorkbenchEnvironmentService,
 		@IProductService productService: IProductService,
 		@ISharedProcessService sharedProcessService: ISharedProcessService,
 		@ILogService logService: ILogService,
@@ -39,7 +38,7 @@ export class TelemetryService extends Disposable implements ITelemetryService {
 			const channel = sharedProcessService.getChannel('telemetryAppender');
 			const config: ITelemetryServiceConfig = {
 				appender: combinedAppender(new TelemetryAppenderClient(channel), new LogAppender(logService)),
-				commonProperties: resolveWorkbenchCommonProperties(storageService, productService.commit, productService.version, environmentService.configuration.machineId, productService.msftInternalDomains, environmentService.installSourcePath, environmentService.configuration.remoteAuthority),
+				commonProperties: resolveWorkbenchCommonProperties(storageService, productService.commit, productService.version, environmentService.configuration.machineId!, productService.msftInternalDomains, environmentService.installSourcePath, environmentService.configuration.remoteAuthority),
 				piiPaths: environmentService.extensionsPath ? [environmentService.appRoot, environmentService.extensionsPath] : [environmentService.appRoot]
 			};
 

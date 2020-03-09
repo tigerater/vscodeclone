@@ -124,7 +124,10 @@ export class EnvironmentService implements IEnvironmentService {
 	get userDataSyncLogResource(): URI { return URI.file(path.join(this.logsPath, 'userDataSync.log')); }
 
 	@memoize
-	get machineSettingsResource(): URI { return resources.joinPath(URI.file(path.join(this.userDataPath, 'Machine')), 'settings.json'); }
+	get machineSettingsHome(): URI { return URI.file(path.join(this.userDataPath, 'Machine')); }
+
+	@memoize
+	get machineSettingsResource(): URI { return resources.joinPath(this.machineSettingsHome, 'settings.json'); }
 
 	@memoize
 	get globalStorageHome(): string { return path.join(this.appSettingsHome.fsPath, 'globalStorage'); }
@@ -244,6 +247,10 @@ export class EnvironmentService implements IEnvironmentService {
 	get isBuilt(): boolean { return !process.env['VSCODE_DEV']; }
 	get verbose(): boolean { return !!this._args.verbose; }
 	get log(): string | undefined { return this._args.log; }
+
+	get wait(): boolean { return !!this._args.wait; }
+
+	get status(): boolean { return !!this._args.status; }
 
 	@memoize
 	get mainIPCHandle(): string { return getIPCHandle(this.userDataPath, 'main'); }

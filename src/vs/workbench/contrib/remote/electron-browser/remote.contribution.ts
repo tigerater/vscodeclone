@@ -38,7 +38,6 @@ import { IHostService } from 'vs/workbench/services/host/browser/host';
 import { RemoteConnectionState, Deprecated_RemoteAuthorityContext, RemoteFileDialogContext } from 'vs/workbench/browser/contextkeys';
 import { IDownloadService } from 'vs/platform/download/common/download';
 import { OpenLocalFileFolderCommand, OpenLocalFileCommand, OpenLocalFolderCommand, SaveLocalFileCommand } from 'vs/workbench/services/dialogs/browser/simpleFileDialog';
-import { INativeWorkbenchEnvironmentService } from 'vs/workbench/services/environment/electron-browser/environmentService';
 
 const WINDOW_ACTIONS_COMMAND_ID = 'workbench.action.remote.showMenu';
 const CLOSE_REMOTE_COMMAND_ID = 'workbench.action.remote.close';
@@ -332,7 +331,7 @@ class RemoteTelemetryEnablementUpdater extends Disposable implements IWorkbenchC
 
 class RemoteEmptyWorkbenchPresentation extends Disposable implements IWorkbenchContribution {
 	constructor(
-		@IWorkbenchEnvironmentService environmentService: INativeWorkbenchEnvironmentService,
+		@IWorkbenchEnvironmentService environmentService: IWorkbenchEnvironmentService,
 		@IRemoteAuthorityResolverService remoteAuthorityResolverService: IRemoteAuthorityResolverService,
 		@IConfigurationService configurationService: IConfigurationService,
 		@ICommandService commandService: ICommandService,

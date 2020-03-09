@@ -3,8 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { OpenContext, IWindowOpenable, IOpenEmptyWindowOptions } from 'vs/platform/windows/common/windows';
-import { INativeWindowConfiguration } from 'vs/platform/windows/node/window';
+import { OpenContext, IWindowConfiguration, IWindowOpenable, IOpenEmptyWindowOptions } from 'vs/platform/windows/common/windows';
 import { ParsedArgs } from 'vs/platform/environment/common/environment';
 import { Event } from 'vs/base/common/event';
 import { createDecorator } from 'vs/platform/instantiation/common/instantiation';
@@ -40,7 +39,7 @@ export interface ICodeWindow extends IDisposable {
 
 	readonly id: number;
 	readonly win: BrowserWindow;
-	readonly config: INativeWindowConfiguration | undefined;
+	readonly config: IWindowConfiguration | undefined;
 
 	readonly openedFolderUri?: URI;
 	readonly openedWorkspace?: IWorkspaceIdentifier;
@@ -61,8 +60,8 @@ export interface ICodeWindow extends IDisposable {
 
 	addTabbedWindow(window: ICodeWindow): void;
 
-	load(config: INativeWindowConfiguration, isReload?: boolean): void;
-	reload(configuration?: INativeWindowConfiguration, cli?: ParsedArgs): void;
+	load(config: IWindowConfiguration, isReload?: boolean): void;
+	reload(configuration?: IWindowConfiguration, cli?: ParsedArgs): void;
 
 	focus(): void;
 	close(): void;
