@@ -112,12 +112,30 @@ export class OpenResultsInEditorAction extends Action {
 	}
 }
 
+
+export class ReRunSearchEditorSearchAction extends Action {
+
+	static readonly ID = 'searchEditor.rerunSerach';
+	static readonly LABEL = localize('search.rerunSearch', "Rerun Search in Editor");
+
+	constructor(id: string, label: string,
+		@IEditorService private readonly editorService: IEditorService) {
+		super(id, label);
+	}
+
+	async run() {
+		const input = this.editorService.activeEditor;
+		if (input instanceof SearchEditorInput) {
+			await (this.editorService.activeControl as SearchEditor).runSearch(false, true);
+		}
+	}
+}
+
 const openNewSearchEditor =
 	async (accessor: ServicesAccessor) => {
 		const editorService = accessor.get(IEditorService);
 		const telemetryService = accessor.get(ITelemetryService);
 		const instantiationService = accessor.get(IInstantiationService);
-		const configurationService = accessor.get(IConfigurationService);
 
 		const activeEditor = editorService.activeTextEditorWidget;
 		let activeModel: ICodeEditor | undefined;
@@ -144,11 +162,7 @@ const openNewSearchEditor =
 		telemetryService.publicLog2('searchEditor/openNewSearchEditor');
 
 		const input = instantiationService.invokeFunction(getOrMakeSearchEditorInput, { config: { query: selected } });
-		const editor = await editorService.openEditor(input, { pinned: true }) as SearchEditor;
-
-		if (selected && configurationService.getValue<ISearchConfigurationProperties>('search').searchOnType) {
-			editor.runSearch(true, true);
-		}
+		await editorService.openEditor(input, { pinned: true });
 	};
 
 export const createEditorFromSearchResult =

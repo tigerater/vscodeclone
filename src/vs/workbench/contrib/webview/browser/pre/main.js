@@ -232,23 +232,23 @@
 		 * @param {MouseEvent} event
 		 */
 		const handleAuxClick =
-			(event) => {
-				// Prevent middle clicks opening a broken link in the browser
-				if (!event.view || !event.view.document) {
-					return;
-				}
+		(event) => {
+			// Prevent middle clicks opening a broken link in the browser
+			if (!event.view || !event.view.document) {
+				return;
+			}
 
-				if (event.button === 1) {
-					let node = /** @type {any} */ (event.target);
-					while (node) {
-						if (node.tagName && node.tagName.toLowerCase() === 'a' && node.href) {
-							event.preventDefault();
-							break;
-						}
-						node = node.parentNode;
+			if (event.button === 1) {
+				let node = /** @type {any} */ (event.target);
+				while (node) {
+					if (node.tagName && node.tagName.toLowerCase() === 'a' && node.href) {
+						event.preventDefault();
+						break;
 					}
+					node = node.parentNode;
 				}
-			};
+			}
+		};
 
 		/**
 		 * @param {KeyboardEvent} e
@@ -449,10 +449,6 @@
 					}, 0);
 				});
 
-				/**
-				 * @param {Document} contentDocument
-				 * @param {Window} contentWindow
-				 */
 				const onLoad = (contentDocument, contentWindow) => {
 					if (contentDocument && contentDocument.body) {
 						// Workaround for https://github.com/Microsoft/vscode/issues/12865
@@ -496,12 +492,10 @@
 					}, 200);
 
 					newFrame.contentWindow.addEventListener('load', function (e) {
-						const contentDocument = /** @type {Document} */ (e.target);
-
 						if (loadTimeout) {
 							clearTimeout(loadTimeout);
 							loadTimeout = undefined;
-							onLoad(contentDocument, this);
+							onLoad(e.target, this);
 						}
 					});
 
@@ -545,13 +539,6 @@
 				initData.initialScrollProgress = progress;
 			});
 
-			host.onMessage('execCommand', (_event, data) => {
-				const target = getActiveFrame();
-				if (!target) {
-					return;
-				}
-				target.contentDocument.execCommand(data);
-			});
 
 			trackFocus({
 				onFocus: () => host.postMessage('did-focus'),

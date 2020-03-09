@@ -119,11 +119,16 @@ export class CallStackView extends ViewPane {
 				this.pauseMessageLabel.title = thread.stoppedDetails.text || '';
 				dom.toggleClass(this.pauseMessageLabel, 'exception', thread.stoppedDetails.reason === 'exception');
 				this.pauseMessage.hidden = false;
-				this.updateActions();
+				if (this.toolbar) {
+					this.toolbar.setActions([])();
+				}
 
 			} else {
 				this.pauseMessage.hidden = true;
-				this.updateActions();
+				if (this.toolbar) {
+					const collapseAction = new CollapseAction(this.tree, true, 'explorer-action codicon-collapse-all');
+					this.toolbar.setActions([collapseAction])();
+				}
 			}
 
 			this.needsRefresh = false;
@@ -148,17 +153,9 @@ export class CallStackView extends ViewPane {
 		this.pauseMessageLabel = dom.append(this.pauseMessage, $('span.label'));
 	}
 
-	getActions(): IAction[] {
-		if (this.pauseMessage.hidden) {
-			return [new CollapseAction(this.tree, true, 'explorer-action codicon-collapse-all')];
-		}
-
-		return [];
-	}
-
 	renderBody(container: HTMLElement): void {
 		super.renderBody(container);
-		dom.addClass(this.element, 'debug-pane');
+
 		dom.addClass(container, 'debug-call-stack');
 		const treeContainer = renderViewTree(container);
 
@@ -296,6 +293,12 @@ export class CallStackView extends ViewPane {
 			if (s.parentSession) {
 				// Auto expand sessions that have sub sessions
 				this.parentSessionToExpand.add(s.parentSession);
+			}
+		}));
+
+		this._register(this.viewDescriptorService.onDidChangeLocation(({ views, from, to }) => {
+			if (views.some(v => v.id === this.id)) {
+				this.tree.updateOptions({ overrideStyles: { listBackground: this.getBackgroundColor() } });
 			}
 		}));
 	}
