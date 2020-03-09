@@ -19,7 +19,6 @@ import { WordSelectionRangeProvider } from 'vs/editor/contrib/smartSelect/wordSe
 import { TestTextResourcePropertiesService } from 'vs/editor/test/common/services/modelService.test';
 import { TestThemeService } from 'vs/platform/theme/test/common/testThemeService';
 import { NullLogService } from 'vs/platform/log/common/log';
-import { UndoRedoService } from 'vs/platform/undoRedo/common/undoRedoService';
 
 class MockJSMode extends MockMode {
 
@@ -48,7 +47,7 @@ suite('SmartSelect', () => {
 
 	setup(() => {
 		const configurationService = new TestConfigurationService();
-		modelService = new ModelServiceImpl(configurationService, new TestTextResourcePropertiesService(configurationService), new TestThemeService(), new NullLogService(), new UndoRedoService());
+		modelService = new ModelServiceImpl(configurationService, new TestTextResourcePropertiesService(configurationService), new TestThemeService(), new NullLogService());
 		mode = new MockJSMode();
 	});
 

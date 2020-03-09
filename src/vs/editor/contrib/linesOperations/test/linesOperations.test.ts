@@ -317,7 +317,7 @@ suite('Editor Contrib - Line Operations', () => {
 					assert.equal(model.getLineContent(1), 'one');
 					assert.deepEqual(editor.getSelection(), new Selection(1, 1, 1, 1));
 
-					CoreEditingCommands.Undo.runEditorCommand(null, editor, null);
+					editor.trigger('keyboard', Handler.Undo, {});
 					assert.equal(model.getLineContent(1), 'Typing some text here on line one');
 					assert.deepEqual(editor.getSelection(), new Selection(1, 31, 1, 31));
 				});
@@ -447,7 +447,7 @@ suite('Editor Contrib - Line Operations', () => {
 					assert.equal(model.getLineContent(1), 'hello my dear world');
 					assert.deepEqual(editor.getSelection(), new Selection(1, 14, 1, 14));
 
-					CoreEditingCommands.Undo.runEditorCommand(null, editor, null);
+					editor.trigger('keyboard', Handler.Undo, {});
 					assert.equal(model.getLineContent(1), 'hello my dear');
 					assert.deepEqual(editor.getSelection(), new Selection(1, 14, 1, 14));
 				});
@@ -815,13 +815,13 @@ suite('Editor Contrib - Line Operations', () => {
 					new Selection(2, 4, 2, 4)
 				]);
 
-				CoreEditingCommands.Undo.runEditorCommand(null, editor, null);
+				editor.trigger('tests', Handler.Undo, {});
 				assert.deepEqual(editor.getSelections(), [
 					new Selection(1, 3, 1, 3),
 					new Selection(1, 6, 1, 6),
 					new Selection(3, 4, 3, 4)
 				]);
-				CoreEditingCommands.Redo.runEditorCommand(null, editor, null);
+				editor.trigger('tests', Handler.Redo, {});
 				assert.deepEqual(editor.getSelections(), [
 					new Selection(1, 3, 1, 3),
 					new Selection(2, 4, 2, 4)

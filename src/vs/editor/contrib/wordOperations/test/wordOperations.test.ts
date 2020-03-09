@@ -13,7 +13,6 @@ import { CursorWordEndLeft, CursorWordEndLeftSelect, CursorWordEndRight, CursorW
 import { withTestCodeEditor } from 'vs/editor/test/browser/testCodeEditor';
 import { Handler } from 'vs/editor/common/editorCommon';
 import { Cursor } from 'vs/editor/common/controller/cursor';
-import { CoreEditingCommands } from 'vs/editor/browser/controller/coreCommands';
 
 suite('WordOperations', () => {
 
@@ -217,7 +216,7 @@ suite('WordOperations', () => {
 
 			assert.equal(editor.getValue(), 'foo qbar baz');
 
-			CoreEditingCommands.Undo.runEditorCommand(null, editor, null);
+			cursorCommand(cursor, Handler.Undo, {});
 			assert.equal(editor.getValue(), 'foo bar baz');
 		});
 	});

@@ -18,8 +18,6 @@ import { URI } from 'vs/base/common/uri';
 import { createTextBufferFactory } from 'vs/editor/common/model/textModel';
 import { ITextResourcePropertiesService } from 'vs/editor/common/services/textResourceConfigurationService';
 import { TestTextResourcePropertiesService } from 'vs/workbench/test/browser/workbenchTestServices';
-import { IUndoRedoService } from 'vs/platform/undoRedo/common/undoRedo';
-import { UndoRedoService } from 'vs/platform/undoRedo/common/undoRedoService';
 
 class MyEditorModel extends EditorModel { }
 class MyTextEditorModel extends BaseTextEditorModel {
@@ -74,7 +72,6 @@ suite('Workbench editor model', () => {
 	function stubModelService(instantiationService: TestInstantiationService): IModelService {
 		instantiationService.stub(IConfigurationService, new TestConfigurationService());
 		instantiationService.stub(ITextResourcePropertiesService, new TestTextResourcePropertiesService(instantiationService.get(IConfigurationService)));
-		instantiationService.stub(IUndoRedoService, new UndoRedoService());
 		return instantiationService.createInstance(ModelServiceImpl);
 	}
 });

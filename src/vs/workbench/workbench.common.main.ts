@@ -57,7 +57,6 @@ import 'vs/workbench/browser/parts/views/views';
 
 //#region --- workbench services
 
-import 'vs/platform/undoRedo/common/undoRedoService';
 import 'vs/workbench/services/extensions/browser/extensionUrlHandler';
 import 'vs/workbench/services/bulkEdit/browser/bulkEditService';
 import 'vs/workbench/services/keybinding/common/keybindingEditing';

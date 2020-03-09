@@ -84,7 +84,6 @@ export function withTestCodeEditor(text: string | string[] | null, options: Test
 	}
 
 	let editor = <TestCodeEditor>createTestCodeEditor(options);
-	editor.getCursor()!.setHasFocus(true);
 	callback(editor, editor.getCursor()!);
 
 	editor.dispose();

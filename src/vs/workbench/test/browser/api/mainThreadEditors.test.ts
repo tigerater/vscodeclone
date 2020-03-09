@@ -41,7 +41,6 @@ import { IWorkspaceContextService } from 'vs/platform/workspace/common/workspace
 import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
 import { ILabelService } from 'vs/platform/label/common/label';
 import { IWorkingCopyFileService } from 'vs/workbench/services/workingCopy/common/workingCopyFileService';
-import { UndoRedoService } from 'vs/platform/undoRedo/common/undoRedoService';
 
 suite('MainThreadEditors', () => {
 
@@ -64,7 +63,7 @@ suite('MainThreadEditors', () => {
 
 
 		const configService = new TestConfigurationService();
-		modelService = new ModelServiceImpl(configService, new TestTextResourcePropertiesService(configService), new TestThemeService(), new NullLogService(), new UndoRedoService());
+		modelService = new ModelServiceImpl(configService, new TestTextResourcePropertiesService(configService), new TestThemeService(), new NullLogService());
 
 
 		const services = new ServiceCollection();

@@ -16,7 +16,7 @@ export interface IUndoRedoElement {
 	/**
 	 * None, one or multiple resources that this undo/redo element impacts.
 	 */
-	readonly resources: readonly URI[];
+	readonly resources: URI[];
 
 	/**
 	 * The label of the undo/redo element.
@@ -43,7 +43,7 @@ export interface IUndoRedoElement {
 	 * Invalidate the edits concerning `resource`.
 	 * i.e. the undo/redo stack for that particular resource has been destroyed.
 	 */
-	invalidate(resource: URI): void;
+	invalidate(resource: URI): boolean;
 }
 
 export interface IUndoRedoService {
