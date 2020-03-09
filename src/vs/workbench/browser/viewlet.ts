@@ -165,16 +165,17 @@ export class ShowViewletAction extends Action {
 		this.enabled = !!this.viewletService && !!this.editorGroupService;
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 
 		// Pass focus to viewlet if not open or focused
 		if (this.otherViewletShowing() || !this.sidebarHasFocus()) {
-			await this.viewletService.openViewlet(this.viewletId, true);
-			return;
+			return this.viewletService.openViewlet(this.viewletId, true);
 		}
 
 		// Otherwise pass focus to editor group
 		this.editorGroupService.activeGroup.focus();
+
+		return Promise.resolve(true);
 	}
 
 	private otherViewletShowing(): boolean {

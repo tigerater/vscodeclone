@@ -306,7 +306,7 @@ suite('EditorService', () => {
 
 			layout(): void { }
 
-			createEditor(): void { }
+			createEditor(): any { }
 		}
 
 		const ed = instantiationService.createInstance(MyEditor, 'my.editor');
