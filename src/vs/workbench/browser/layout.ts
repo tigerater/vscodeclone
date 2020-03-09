@@ -122,6 +122,8 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 
 	private workbenchGrid!: SerializableGrid<ISerializableView>;
 
+	private editorWidgetSet = new Set<IEditor>();
+
 	private disposed: boolean | undefined;
 
 	private titleBarPartView!: ISerializableView;
@@ -196,8 +198,7 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 			wasSideBarVisible: false,
 			wasPanelVisible: false,
 			transitionDisposables: new DisposableStore(),
-			setNotificationsFilter: false,
-			editorWidgetSet: new Set<IEditor>()
+			setNotificationsFilter: false
 		},
 
 	};
@@ -707,21 +708,15 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
 				editor.updateOptions({ lineNumbers });
 			};
 
-			const editorWidgetSet = this.state.zenMode.editorWidgetSet;
 			if (!lineNumbers) {
 				// Reset line numbers on all editors visible and non-visible
-				for (const editor of editorWidgetSet) {
+				for (const editor of this.editorWidgetSet) {
 					setEditorLineNumbers(editor);
 				}
-				editorWidgetSet.clear();
+				this.editorWidgetSet.clear();
 			} else {
 				this.editorService.visibleTextEditorWidgets.forEach(editor => {
-					if (!editorWidgetSet.has(editor)) {
-						editorWidgetSet.add(editor);
-						this.state.zenMode.transitionDisposables.add(editor.onDidDispose(() => {
-							editorWidgetSet.delete(editor);
-						}));
-					}
+					this.editorWidgetSet.add(editor);
 					setEditorLineNumbers(editor);
 				});
 			}

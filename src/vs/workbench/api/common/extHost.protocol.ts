@@ -174,14 +174,12 @@ export interface MainThreadDialogOpenOptions {
 	canSelectFolders?: boolean;
 	canSelectMany?: boolean;
 	filters?: { [name: string]: string[]; };
-	title?: string;
 }
 
 export interface MainThreadDialogSaveOptions {
 	defaultUri?: UriComponents;
 	saveLabel?: string;
 	filters?: { [name: string]: string[]; };
-	title?: string;
 }
 
 export interface MainThreadDiaglogsShape extends IDisposable {

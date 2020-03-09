@@ -67,22 +67,22 @@ export interface IUntitledTextEditorModelManager {
 	/**
 	 * Events for when untitled text editors change (e.g. getting dirty, saved or reverted).
 	 */
-	readonly onDidChangeDirty: Event<IUntitledTextEditorModel>;
+	readonly onDidChangeDirty: Event<URI>;
 
 	/**
 	 * Events for when untitled text editor encodings change.
 	 */
-	readonly onDidChangeEncoding: Event<IUntitledTextEditorModel>;
+	readonly onDidChangeEncoding: Event<URI>;
 
 	/**
 	 * Events for when untitled text editor labels change.
 	 */
-	readonly onDidChangeLabel: Event<IUntitledTextEditorModel>;
+	readonly onDidChangeLabel: Event<URI>;
 
 	/**
 	 * Events for when untitled text editors are disposed.
 	 */
-	readonly onDidDispose: Event<IUntitledTextEditorModel>;
+	readonly onDidDisposeModel: Event<URI>;
 
 	/**
 	 * Creates a new untitled editor model with the provided options. If the `untitledResource`
@@ -117,16 +117,16 @@ export class UntitledTextEditorService extends Disposable implements IUntitledTe
 
 	_serviceBrand: undefined;
 
-	private readonly _onDidChangeDirty = this._register(new Emitter<IUntitledTextEditorModel>());
+	private readonly _onDidChangeDirty = this._register(new Emitter<URI>());
 	readonly onDidChangeDirty = this._onDidChangeDirty.event;
 
-	private readonly _onDidChangeEncoding = this._register(new Emitter<IUntitledTextEditorModel>());
+	private readonly _onDidChangeEncoding = this._register(new Emitter<URI>());
 	readonly onDidChangeEncoding = this._onDidChangeEncoding.event;
 
-	private readonly _onDidDispose = this._register(new Emitter<IUntitledTextEditorModel>());
-	readonly onDidDispose = this._onDidDispose.event;
+	private readonly _onDidDisposeModel = this._register(new Emitter<URI>());
+	readonly onDidDisposeModel = this._onDidDisposeModel.event;
 
-	private readonly _onDidChangeLabel = this._register(new Emitter<IUntitledTextEditorModel>());
+	private readonly _onDidChangeLabel = this._register(new Emitter<URI>());
 	readonly onDidChangeLabel = this._onDidChangeLabel.event;
 
 	private readonly mapResourceToModel = new ResourceMap<UntitledTextEditorModel>();
@@ -220,10 +220,10 @@ export class UntitledTextEditorService extends Disposable implements IUntitledTe
 
 	private registerModel(model: UntitledTextEditorModel): void {
 		const modelDisposables = new DisposableStore();
-		modelDisposables.add(model.onDidChangeDirty(() => this._onDidChangeDirty.fire(model)));
-		modelDisposables.add(model.onDidChangeName(() => this._onDidChangeLabel.fire(model)));
-		modelDisposables.add(model.onDidChangeEncoding(() => this._onDidChangeEncoding.fire(model)));
-		modelDisposables.add(model.onDispose(() => this._onDidDispose.fire(model)));
+		modelDisposables.add(model.onDidChangeDirty(() => this._onDidChangeDirty.fire(model.resource)));
+		modelDisposables.add(model.onDidChangeName(() => this._onDidChangeLabel.fire(model.resource)));
+		modelDisposables.add(model.onDidChangeEncoding(() => this._onDidChangeEncoding.fire(model.resource)));
+		modelDisposables.add(model.onDispose(() => this._onDidDisposeModel.fire(model.resource)));
 
 		// Remove from cache on dispose
 		Event.once(model.onDispose)(() => {
