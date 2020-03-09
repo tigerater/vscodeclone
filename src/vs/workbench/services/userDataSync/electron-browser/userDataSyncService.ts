@@ -49,8 +49,8 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 		return this.channel.call('sync');
 	}
 
-	accept(source: SyncSource, content: string): Promise<void> {
-		return this.channel.call('accept', [source, content]);
+	resolveConflictsAndContinueSync(content: string, remote: boolean): Promise<void> {
+		return this.channel.call('resolveConflictsAndContinueSync', [content, remote]);
 	}
 
 	reset(): Promise<void> {
@@ -82,8 +82,8 @@ export class UserDataSyncService extends Disposable implements IUserDataSyncServ
 		return this.channel.call('hasLocalData');
 	}
 
-	getRemoteContent(source: SyncSource, preview: boolean): Promise<string | null> {
-		return this.channel.call('getRemoteContent', [source, preview]);
+	getRemoteContent(source: SyncSource): Promise<string | null> {
+		return this.channel.call('getRemoteContent', [source]);
 	}
 
 	isFirstTimeSyncAndHasUserData(): Promise<boolean> {

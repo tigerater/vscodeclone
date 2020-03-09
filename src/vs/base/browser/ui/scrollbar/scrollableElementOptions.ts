@@ -56,13 +56,6 @@ export interface ScrollableElementCreationOptions {
 	 */
 	fastScrollSensitivity?: number;
 	/**
-	 * Whether the scrollable will only scroll along the predominant axis when scrolling both
-	 * vertically and horizontally at the same time.
-	 * Prevents horizontal drift when scrolling vertically on a trackpad.
-	 * Defaults to true.
-	 */
-	scrollPredominantAxis?: boolean;
-	/**
 	 * Height for vertical arrows (top/bottom) and width for horizontal arrows (left/right).
 	 * Defaults to 11.
 	 */
@@ -120,7 +113,6 @@ export interface ScrollableElementChangeOptions {
 	handleMouseWheel?: boolean;
 	mouseWheelScrollSensitivity?: number;
 	fastScrollSensitivity: number;
-	scrollPredominantAxis: boolean;
 }
 
 export interface ScrollableElementResolvedOptions {
@@ -133,7 +125,6 @@ export interface ScrollableElementResolvedOptions {
 	alwaysConsumeMouseWheel: boolean;
 	mouseWheelScrollSensitivity: number;
 	fastScrollSensitivity: number;
-	scrollPredominantAxis: boolean;
 	mouseWheelSmoothScroll: boolean;
 	arrowSize: number;
 	listenOnDomNode: HTMLElement | null;

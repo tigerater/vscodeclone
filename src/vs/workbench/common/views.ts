@@ -21,6 +21,7 @@ import { flatten } from 'vs/base/common/arrays';
 import { SyncDescriptor } from 'vs/platform/instantiation/common/descriptors';
 
 export const TEST_VIEW_CONTAINER_ID = 'workbench.view.extension.test';
+export const FocusedViewContext = new RawContextKey<string>('focusedView', '');
 
 export namespace Extensions {
 	export const ViewContainersRegistry = 'workbench.registry.view.containers';
@@ -340,12 +341,6 @@ export interface IView {
 
 	readonly id: string;
 
-	isVisible(): boolean;
-
-	isBodyVisible(): boolean;
-
-	setExpanded(expanded: boolean): boolean;
-
 }
 
 export interface IViewsViewlet extends IViewlet {
@@ -357,26 +352,12 @@ export interface IViewsViewlet extends IViewlet {
 export const IViewsService = createDecorator<IViewsService>('viewsService');
 
 export interface IViewsService {
-
 	_serviceBrand: undefined;
 
-	readonly onDidChangeViewVisibility: Event<{ id: string, visible: boolean }>;
+	getActiveViewWithId(id: string): IView | null;
 
-	isViewVisible(id: string): boolean;
-
-	getActiveViewWithId<T extends IView>(id: string): T | null;
-
-	openView<T extends IView>(id: string, focus?: boolean): Promise<T | null>;
-
-	closeView(id: string): void;
-
+	openView(id: string, focus?: boolean): Promise<IView | null>;
 }
-
-/**
- * View Contexts
- */
-export const FocusedViewContext = new RawContextKey<string>('focusedView', '');
-export function getVisbileViewContextKey(viewId: string): string { return `${viewId}.visible`; }
 
 export const IViewDescriptorService = createDecorator<IViewDescriptorService>('viewDescriptorService');
 
@@ -531,12 +512,6 @@ export interface IEditableData {
 }
 
 export interface IViewPaneContainer {
-	onDidAddViews: Event<IView[]>;
-	onDidRemoveViews: Event<IView[]>;
-	onDidChangeViewVisibility: Event<IView>;
-
-	readonly views: IView[];
-
 	setVisible(visible: boolean): void;
 	isVisible(): boolean;
 	focus(): void;
