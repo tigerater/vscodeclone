@@ -17,10 +17,10 @@ const playwright = require('playwright');
 // opts
 const defaultReporterName = process.platform === 'win32' ? 'list' : 'spec';
 const optimist = require('optimist')
-	.describe('grep', 'only run tests matching <pattern>').alias('grep', 'g').alias('grep', 'f').string('grep')
+	// .describe('grep', 'only run tests matching <pattern>').alias('grep', 'g').alias('grep', 'f').string('grep')
+	// .describe('build', 'run with build output (out-build)').boolean('build')
 	.describe('run', 'only run tests matching <relative_file_path>').string('run')
 	.describe('glob', 'only run tests matching <glob_pattern>').string('glob')
-	.describe('build', 'run with build output (out-build)').boolean('build')
 	.describe('debug', 'do not run browsers headless').boolean('debug')
 	.describe('browser', 'browsers in which tests should run').string('browser').default('browser', ['chromium'])
 	.describe('reporter', 'the mocha reporter').string('reporter').default('reporter', defaultReporterName)
@@ -84,7 +84,7 @@ const testModules = (async function () {
 		// glob patterns (--glob)
 		const defaultGlob = '**/*.test.js';
 		const pattern = argv.glob || defaultGlob
-		isDefaultModules = argv.glob === defaultGlob;
+		isDefaultModules = pattern === defaultGlob;
 
 		promise = new Promise((resolve, reject) => {
 			glob(pattern, { cwd: out }, (err, files) => {
@@ -210,22 +210,12 @@ class EchoRunner extends events.EventEmitter {
 
 testModules.then(async modules => {
 
-	// run tests in selected browsers
-	const browserTypes = Array.isArray(argv.browser)
-		? argv.browser : [argv.browser];
-
-	const promises = browserTypes.map(async browserType => {
-		try {
-			return await runTestsInBrowser(modules, browserType);
-		} catch (err) {
-			console.error(err);
-			process.exit(1);
-		}
-	});
+	const browserTypes = Array.isArray(argv.browser) ? argv.browser : [argv.browser];
+	const promises = browserTypes.map(browserType => runTestsInBrowser(modules, browserType));
+	const messages = await Promise.all(promises);
 
 	// aftermath
 	let didFail = false;
-	const messages = await Promise.all(promises);
 	for (let msg of messages) {
 		if (msg) {
 			didFail = true;
