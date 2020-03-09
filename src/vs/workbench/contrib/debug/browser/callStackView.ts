@@ -298,6 +298,12 @@ export class CallStackView extends ViewPane {
 				this.parentSessionToExpand.add(s.parentSession);
 			}
 		}));
+
+		this._register(this.viewDescriptorService.onDidChangeLocation(({ views, from, to }) => {
+			if (views.some(v => v.id === this.id)) {
+				this.tree.updateOptions({ overrideStyles: { listBackground: this.getBackgroundColor() } });
+			}
+		}));
 	}
 
 	layoutBody(height: number, width: number): void {
