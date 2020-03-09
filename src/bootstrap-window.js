@@ -31,7 +31,7 @@ exports.load = function (modulePaths, resultCallback, options) {
 
 	const args = parseURLQueryArgs();
 	/**
-	 * // configuration: INativeWindowConfiguration
+	 * // configuration: IWindowConfiguration
 	 * @type {{
 	 * zoomLevel?: number,
 	 * extensionDevelopmentPath?: string[],

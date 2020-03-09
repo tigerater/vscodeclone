@@ -14,7 +14,6 @@ import { assign } from 'vs/base/common/objects';
 import { IWorkbenchIssueService } from 'vs/workbench/contrib/issue/electron-browser/issue';
 import { ExtensionType } from 'vs/platform/extensions/common/extensions';
 import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
-import { INativeWorkbenchEnvironmentService } from 'vs/workbench/services/environment/electron-browser/environmentService';
 
 export class WorkbenchIssueService implements IWorkbenchIssueService {
 	_serviceBrand: undefined;
@@ -24,7 +23,7 @@ export class WorkbenchIssueService implements IWorkbenchIssueService {
 		@IThemeService private readonly themeService: IThemeService,
 		@IExtensionManagementService private readonly extensionManagementService: IExtensionManagementService,
 		@IWorkbenchExtensionEnablementService private readonly extensionEnablementService: IWorkbenchExtensionEnablementService,
-		@IWorkbenchEnvironmentService private readonly environmentService: INativeWorkbenchEnvironmentService
+		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService
 	) { }
 
 	openReporter(dataOverrides: Partial<IssueReporterData> = {}): Promise<void> {
