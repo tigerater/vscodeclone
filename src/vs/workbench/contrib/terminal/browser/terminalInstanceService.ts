@@ -6,18 +6,16 @@
 import { ITerminalInstanceService } from 'vs/workbench/contrib/terminal/browser/terminal';
 import { IWindowsShellHelper, ITerminalChildProcess, IDefaultShellAndArgsRequest } from 'vs/workbench/contrib/terminal/common/terminal';
 import { Terminal as XTermTerminal } from 'xterm';
-import { SearchAddon as XTermSearchAddon } from 'xterm-addon-search';
-import { Unicode11Addon as XTermUnicode11Addon } from 'xterm-addon-unicode11';
 import { WebLinksAddon as XTermWebLinksAddon } from 'xterm-addon-web-links';
+import { SearchAddon as XTermSearchAddon } from 'xterm-addon-search';
 import { WebglAddon as XTermWebglAddon } from 'xterm-addon-webgl';
 import { IProcessEnvironment } from 'vs/base/common/platform';
 import { Emitter, Event } from 'vs/base/common/event';
 import { registerSingleton } from 'vs/platform/instantiation/common/extensions';
 
 let Terminal: typeof XTermTerminal;
-let SearchAddon: typeof XTermSearchAddon;
-let Unicode11Addon: typeof XTermUnicode11Addon;
 let WebLinksAddon: typeof XTermWebLinksAddon;
+let SearchAddon: typeof XTermSearchAddon;
 let WebglAddon: typeof XTermWebglAddon;
 
 export class TerminalInstanceService implements ITerminalInstanceService {
@@ -33,25 +31,18 @@ export class TerminalInstanceService implements ITerminalInstanceService {
 		return Terminal;
 	}
 
-	public async getXtermSearchConstructor(): Promise<typeof XTermSearchAddon> {
-		if (!SearchAddon) {
-			SearchAddon = (await import('xterm-addon-search')).SearchAddon;
-		}
-		return SearchAddon;
-	}
-
-	public async getXtermUnicode11Constructor(): Promise<typeof XTermUnicode11Addon> {
-		if (!Unicode11Addon) {
-			Unicode11Addon = (await import('xterm-addon-unicode11')).Unicode11Addon;
-		}
-		return Unicode11Addon;
-	}
-
 	public async getXtermWebLinksConstructor(): Promise<typeof XTermWebLinksAddon> {
 		if (!WebLinksAddon) {
 			WebLinksAddon = (await import('xterm-addon-web-links')).WebLinksAddon;
 		}
 		return WebLinksAddon;
+	}
+
+	public async getXtermSearchConstructor(): Promise<typeof XTermSearchAddon> {
+		if (!SearchAddon) {
+			SearchAddon = (await import('xterm-addon-search')).SearchAddon;
+		}
+		return SearchAddon;
 	}
 
 	public async getXtermWebglConstructor(): Promise<typeof XTermWebglAddon> {

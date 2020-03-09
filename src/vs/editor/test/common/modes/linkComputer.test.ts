@@ -216,11 +216,4 @@ suite('Editor Modes - Link Computer', () => {
 			'     https://portal.azure.com            '
 		);
 	});
-
-	test('issue #67022: Space as end of hyperlink isn\'t always good idea', () => {
-		assertLink(
-			'aa  https://foo.bar/[this is foo site]  aa',
-			'    https://foo.bar/[this is foo site]    '
-		);
-	});
 });

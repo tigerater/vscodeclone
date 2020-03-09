@@ -121,7 +121,7 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 		private readonly onDidChangeTypeScriptVersion: (version: TypeScriptVersion) => void,
 		public readonly pluginManager: PluginManager,
 		private readonly logDirectoryProvider: LogDirectoryProvider,
-		allModeIds: readonly string[]
+		allModeIds: string[]
 	) {
 		super();
 		this.pathSeparator = path.sep;

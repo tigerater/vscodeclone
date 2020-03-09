@@ -20,14 +20,8 @@ export class MainThreadAuthenticationProvider {
 		public readonly displayName: string
 	) { }
 
-	async getSessions(): Promise<ReadonlyArray<modes.AuthenticationSession>> {
-		return (await this._proxy.$getSessions(this.id)).map(session => {
-			return {
-				id: session.id,
-				accountName: session.accountName,
-				accessToken: () => this._proxy.$getSessionAccessToken(this.id, session.id)
-			};
-		});
+	getSessions(): Promise<ReadonlyArray<modes.AuthenticationSession>> {
+		return this._proxy.$getSessions(this.id);
 	}
 
 	login(scopes: string[]): Promise<modes.AuthenticationSession> {

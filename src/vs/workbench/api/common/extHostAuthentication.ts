@@ -29,26 +29,12 @@ export class AuthenticationProviderWrapper implements vscode.AuthenticationProvi
 	}
 
 	async getSessions(): Promise<ReadonlyArray<vscode.AuthenticationSession>> {
-		return (await this._provider.getSessions()).map(session => {
-			return {
-				id: session.id,
-				accountName: session.accountName,
-				scopes: session.scopes,
-				accessToken: async () => {
-					const isAllowed = await this._proxy.$getSessionsPrompt(
-						this._provider.id,
-						this.displayName,
-						ExtensionIdentifier.toKey(this._requestingExtension.identifier),
-						this._requestingExtension.displayName || this._requestingExtension.name);
+		const isAllowed = await this._proxy.$getSessionsPrompt(this._provider.id, this.displayName, ExtensionIdentifier.toKey(this._requestingExtension.identifier), this._requestingExtension.displayName || this._requestingExtension.name);
+		if (!isAllowed) {
+			throw new Error('User did not consent to session access.');
+		}
 
-					if (!isAllowed) {
-						throw new Error('User did not consent to token access.');
-					}
-
-					return session.accessToken();
-				}
-			};
-		});
+		return this._provider.getSessions();
 	}
 
 	async login(scopes: string[]): Promise<vscode.AuthenticationSession> {
@@ -110,7 +96,7 @@ export class ExtHostAuthentication implements ExtHostAuthenticationShape {
 			return Promise.resolve(authProvider.login(scopes));
 		}
 
-		throw new Error(`Unable to find authentication provider with handle: ${providerId}`);
+		throw new Error(`Unable to find authentication provider with handle: ${0}`);
 	}
 
 	$logout(providerId: string, sessionId: string): Promise<void> {
@@ -119,7 +105,7 @@ export class ExtHostAuthentication implements ExtHostAuthenticationShape {
 			return Promise.resolve(authProvider.logout(sessionId));
 		}
 
-		throw new Error(`Unable to find authentication provider with handle: ${providerId}`);
+		throw new Error(`Unable to find authentication provider with handle: ${0}`);
 	}
 
 	$getSessions(providerId: string): Promise<ReadonlyArray<modes.AuthenticationSession>> {
@@ -128,21 +114,6 @@ export class ExtHostAuthentication implements ExtHostAuthenticationShape {
 			return Promise.resolve(authProvider.getSessions());
 		}
 
-		throw new Error(`Unable to find authentication provider with handle: ${providerId}`);
-	}
-
-	async $getSessionAccessToken(providerId: string, sessionId: string): Promise<string> {
-		const authProvider = this._authenticationProviders.get(providerId);
-		if (authProvider) {
-			const sessions = await authProvider.getSessions();
-			const session = sessions.find(session => session.id === sessionId);
-			if (session) {
-				return session.accessToken();
-			}
-
-			throw new Error(`Unable to find session with id: ${sessionId}`);
-		}
-
-		throw new Error(`Unable to find authentication provider with handle: ${providerId}`);
+		throw new Error(`Unable to find authentication provider with handle: ${0}`);
 	}
 }

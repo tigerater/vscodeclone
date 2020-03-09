@@ -491,7 +491,7 @@ export class Menubar {
 				}).length > 0;
 
 				if (!success) {
-					this.workspacesHistoryMainService.removeRecentlyOpened([revivedUri]);
+					this.workspacesHistoryMainService.removeFromRecentlyOpened([revivedUri]);
 				}
 			}
 		}, false));

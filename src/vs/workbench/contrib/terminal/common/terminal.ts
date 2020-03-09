@@ -122,7 +122,6 @@ export interface ITerminalConfiguration {
 	experimentalRefreshOnResume: boolean;
 	experimentalUseTitleEvent: boolean;
 	enableFileLinks: boolean;
-	unicodeVersion: '6' | '11';
 }
 
 export interface ITerminalConfigHelper {

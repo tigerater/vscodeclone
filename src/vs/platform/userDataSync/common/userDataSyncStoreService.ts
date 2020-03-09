@@ -49,12 +49,12 @@ export class UserDataSyncStoreService extends Disposable implements IUserDataSyn
 		}
 
 		if (!isSuccess(context)) {
-			throw new UserDataSyncStoreError('Server returned ' + context.res.statusCode, UserDataSyncErrorCode.Unknown, source);
+			throw new Error('Server returned ' + context.res.statusCode);
 		}
 
 		const ref = context.res.headers['etag'];
 		if (!ref) {
-			throw new UserDataSyncStoreError('Server did not return the ref', UserDataSyncErrorCode.NoRef, source);
+			throw new Error('Server did not return the ref');
 		}
 		const content = await asText(context);
 		return { ref, content };
@@ -74,12 +74,12 @@ export class UserDataSyncStoreService extends Disposable implements IUserDataSyn
 		const context = await this.request({ type: 'POST', url, data, headers }, source, CancellationToken.None);
 
 		if (!isSuccess(context)) {
-			throw new UserDataSyncStoreError('Server returned ' + context.res.statusCode, UserDataSyncErrorCode.Unknown, source);
+			throw new Error('Server returned ' + context.res.statusCode);
 		}
 
 		const newRef = context.res.headers['etag'];
 		if (!newRef) {
-			throw new UserDataSyncStoreError('Server did not return the ref', UserDataSyncErrorCode.NoRef, source);
+			throw new Error('Server did not return the ref');
 		}
 		return newRef;
 	}
@@ -95,14 +95,14 @@ export class UserDataSyncStoreService extends Disposable implements IUserDataSyn
 		const context = await this.request({ type: 'DELETE', url, headers }, undefined, CancellationToken.None);
 
 		if (!isSuccess(context)) {
-			throw new UserDataSyncStoreError('Server returned ' + context.res.statusCode, UserDataSyncErrorCode.Unknown);
+			throw new Error('Server returned ' + context.res.statusCode);
 		}
 	}
 
 	private async request(options: IRequestOptions, source: SyncSource | undefined, token: CancellationToken): Promise<IRequestContext> {
 		const authToken = await this.authTokenService.getToken();
 		if (!authToken) {
-			throw new UserDataSyncStoreError('No Auth Token Available', UserDataSyncErrorCode.Unauthorized, source);
+			throw new Error('No Auth Token Available.');
 		}
 		options.headers = options.headers || {};
 		options.headers['authorization'] = `Bearer ${authToken}`;
@@ -118,7 +118,7 @@ export class UserDataSyncStoreService extends Disposable implements IUserDataSyn
 		}
 
 		if (context.res.statusCode === 401) {
-			throw new UserDataSyncStoreError(`Request '${options.url?.toString()}' failed because of Unauthorized (401).`, UserDataSyncErrorCode.Unauthorized, source);
+			throw new UserDataSyncStoreError(`Request '${options.url?.toString()}' failed because of Unauthorized (401).`, UserDataSyncErrorCode.Unauthroized, source);
 		}
 
 		if (context.res.statusCode === 403) {
