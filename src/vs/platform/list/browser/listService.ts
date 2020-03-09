@@ -26,7 +26,7 @@ import { attachListStyler, computeStyles, defaultListStyles, IColorMapping } fro
 import { IThemeService } from 'vs/platform/theme/common/themeService';
 import { InputFocusedContextKey } from 'vs/platform/contextkey/common/contextkeys';
 import { ObjectTree, IObjectTreeOptions, ICompressibleTreeRenderer, CompressibleObjectTree, ICompressibleObjectTreeOptions } from 'vs/base/browser/ui/tree/objectTree';
-import { ITreeRenderer, IAsyncDataSource, IDataSource } from 'vs/base/browser/ui/tree/tree';
+import { ITreeEvent, ITreeRenderer, IAsyncDataSource, IDataSource, ITreeMouseEvent } from 'vs/base/browser/ui/tree/tree';
 import { AsyncDataTree, IAsyncDataTreeOptions, CompressibleAsyncDataTree, ITreeCompressionDelegate, ICompressibleAsyncDataTreeOptions } from 'vs/base/browser/ui/tree/asyncDataTree';
 import { DataTree, IDataTreeOptions } from 'vs/base/browser/ui/tree/dataTree';
 import { IKeyboardNavigationEventFilter, IAbstractTreeOptions, RenderIndentGuides } from 'vs/base/browser/ui/tree/abstractTree';
@@ -298,7 +298,7 @@ export class WorkbenchList<T> extends List<T> {
 			this.updateStyles(options.overrideStyles);
 		}
 
-		this.disposables.add(this.onDidChangeSelection(() => {
+		this.disposables.add(this.onSelectionChange(() => {
 			const selection = this.getSelection();
 			const focus = this.getFocus();
 
@@ -306,7 +306,7 @@ export class WorkbenchList<T> extends List<T> {
 			this.listMultiSelection.set(selection.length > 1);
 			this.listDoubleSelection.set(selection.length === 2);
 		}));
-		this.disposables.add(this.onDidChangeFocus(() => {
+		this.disposables.add(this.onFocusChange(() => {
 			const selection = this.getSelection();
 			const focus = this.getFocus();
 
@@ -618,10 +618,9 @@ export interface IOpenEvent<T> {
 	browserEvent?: UIEvent;
 }
 
-export interface IResourceNavigatorOptions {
+export interface ITreeResourceNavigatorOptions {
 	readonly openOnFocus?: boolean;
 	readonly openOnSelection?: boolean;
-	readonly openOnSingleClick?: boolean;
 }
 
 export interface SelectionKeyboardEvent extends KeyboardEvent {
@@ -635,45 +634,16 @@ export function getSelectionKeyboardEvent(typeArg = 'keydown', preserveFocus?: b
 	return e;
 }
 
-export abstract class ResourceNavigator<T> extends Disposable {
+export class TreeResourceNavigator<T, TFilterData> extends Disposable {
 
-	static createListResourceNavigator<T>(list: WorkbenchList<T> | WorkbenchPagedList<T>, options?: IResourceNavigatorOptions): ResourceNavigator<number> {
-		return new class extends ResourceNavigator<number> {
-			constructor() {
-				super(list, options);
-			}
-		}();
-	}
-
-	static createTreeResourceNavigator<T, TFilterData>(tree: WorkbenchObjectTree<T, TFilterData> | WorkbenchCompressibleObjectTree<T, TFilterData> | WorkbenchDataTree<any, T, TFilterData> | WorkbenchAsyncDataTree<any, T, TFilterData> | WorkbenchCompressibleAsyncDataTree<any, T, TFilterData>,
-		options?: IResourceNavigatorOptions): ResourceNavigator<T> {
-		return new class extends ResourceNavigator<T> {
-			constructor() {
-				super(tree, {
-					...{
-						openOnSingleClick: tree.openOnSingleClick
-					},
-					...(options || {})
-				});
-			}
-		}();
-	}
-
-	private readonly options: IResourceNavigatorOptions;
+	private options: ITreeResourceNavigatorOptions;
 
 	private readonly _onDidOpenResource = new Emitter<IOpenEvent<T | null>>();
 	readonly onDidOpenResource: Event<IOpenEvent<T | null>> = this._onDidOpenResource.event;
 
 	constructor(
-		private readonly treeOrList: {
-			getFocus(): (T | null)[],
-			getSelection(): (T | null)[],
-			setSelection(elements: (T | null)[], browserEvent?: UIEvent): void,
-			onDidChangeFocus: Event<{ browserEvent?: UIEvent }>,
-			onDidChangeSelection: Event<{ browserEvent?: UIEvent }>,
-			onDidOpen: Event<{ browserEvent?: UIEvent }>,
-		},
-		options?: IResourceNavigatorOptions
+		private tree: WorkbenchObjectTree<T, TFilterData> | WorkbenchCompressibleObjectTree<T, TFilterData> | WorkbenchDataTree<any, T, TFilterData> | WorkbenchAsyncDataTree<any, T, TFilterData> | WorkbenchCompressibleAsyncDataTree<any, T, TFilterData>,
+		options?: ITreeResourceNavigatorOptions
 	) {
 		super();
 
@@ -689,50 +659,50 @@ export abstract class ResourceNavigator<T> extends Disposable {
 
 	private registerListeners(): void {
 		if (this.options && this.options.openOnFocus) {
-			this._register(this.treeOrList.onDidChangeFocus(e => this.onFocus(e.browserEvent)));
+			this._register(this.tree.onDidChangeFocus(e => this.onFocus(e)));
 		}
 
 		if (this.options && this.options.openOnSelection) {
-			this._register(this.treeOrList.onDidChangeSelection(e => this.onSelection(e.browserEvent)));
+			this._register(this.tree.onDidChangeSelection(e => this.onSelection(e)));
 		}
 
-		this._register(this.treeOrList.onDidOpen(e => this.onSelection(e.browserEvent)));
+		this._register(this.tree.onDidOpen(e => this.onSelection(e)));
 	}
 
-	private onFocus(browserEvent?: UIEvent): void {
-		const focus = this.treeOrList.getFocus();
-		this.treeOrList.setSelection(focus, browserEvent);
+	private onFocus(e: ITreeEvent<T | null>): void {
+		const focus = this.tree.getFocus();
+		this.tree.setSelection(focus as T[], e.browserEvent);
 
-		if (!browserEvent) {
+		if (!e.browserEvent) {
 			return;
 		}
 
-		const isMouseEvent = browserEvent && browserEvent instanceof MouseEvent;
+		const isMouseEvent = e.browserEvent && e.browserEvent instanceof MouseEvent;
 
 		if (!isMouseEvent) {
-			const preserveFocus = (browserEvent instanceof KeyboardEvent && typeof (<SelectionKeyboardEvent>browserEvent).preserveFocus === 'boolean') ?
-				!!(<SelectionKeyboardEvent>browserEvent).preserveFocus :
+			const preserveFocus = (e.browserEvent instanceof KeyboardEvent && typeof (<SelectionKeyboardEvent>e.browserEvent).preserveFocus === 'boolean') ?
+				!!(<SelectionKeyboardEvent>e.browserEvent).preserveFocus :
 				true;
 
-			this.open(preserveFocus, false, false, browserEvent);
+			this.open(preserveFocus, false, false, e.browserEvent);
 		}
 	}
 
-	private onSelection(browserEvent?: MouseEvent | UIEvent): void {
-		if (!browserEvent || browserEvent.type === 'contextmenu') {
+	private onSelection(e: ITreeEvent<T | null> | ITreeMouseEvent<T | null>, doubleClick = false): void {
+		if (!e.browserEvent || e.browserEvent.type === 'contextmenu') {
 			return;
 		}
 
-		const isKeyboardEvent = browserEvent instanceof KeyboardEvent;
-		const isMiddleClick = browserEvent instanceof MouseEvent ? browserEvent.button === 1 : false;
-		const isDoubleClick = browserEvent.detail === 2;
-		const preserveFocus = (browserEvent instanceof KeyboardEvent && typeof (<SelectionKeyboardEvent>browserEvent).preserveFocus === 'boolean') ?
-			!!(<SelectionKeyboardEvent>browserEvent).preserveFocus :
+		const isKeyboardEvent = e.browserEvent instanceof KeyboardEvent;
+		const isMiddleClick = e.browserEvent instanceof MouseEvent ? e.browserEvent.button === 1 : false;
+		const isDoubleClick = e.browserEvent.detail === 2;
+		const preserveFocus = (e.browserEvent instanceof KeyboardEvent && typeof (<SelectionKeyboardEvent>e.browserEvent).preserveFocus === 'boolean') ?
+			!!(<SelectionKeyboardEvent>e.browserEvent).preserveFocus :
 			!isDoubleClick;
 
-		if (this.options.openOnSingleClick || isDoubleClick || isKeyboardEvent) {
-			const sideBySide = browserEvent instanceof MouseEvent && (browserEvent.ctrlKey || browserEvent.metaKey || browserEvent.altKey);
-			this.open(preserveFocus, isDoubleClick || isMiddleClick, sideBySide, browserEvent);
+		if (this.tree.openOnSingleClick || isDoubleClick || isKeyboardEvent) {
+			const sideBySide = e.browserEvent instanceof MouseEvent && (e.browserEvent.ctrlKey || e.browserEvent.metaKey || e.browserEvent.altKey);
+			this.open(preserveFocus, isDoubleClick || isMiddleClick, sideBySide, e.browserEvent);
 		}
 	}
 
@@ -744,7 +714,7 @@ export abstract class ResourceNavigator<T> extends Disposable {
 				revealIfVisible: true
 			},
 			sideBySide,
-			element: this.treeOrList.getSelection()[0],
+			element: this.tree.getSelection()[0],
 			browserEvent
 		});
 	}

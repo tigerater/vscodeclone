@@ -184,7 +184,11 @@ suite('EditorSimpleWorker', () => {
 			'and now we are done'
 		]);
 
-		let words: string[] = [...model.words(/[a-z]+/img)];
+		let words: string[] = [];
+
+		for (let iter = model.createWordIterator(/[a-z]+/img), e = iter.next(); !e.done; e = iter.next()) {
+			words.push(e.value);
+		}
 
 		assert.deepEqual(words, ['one', 'line', 'two', 'line', 'past', 'empty', 'single', 'and', 'now', 'we', 'are', 'done']);
 	});

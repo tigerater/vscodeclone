@@ -8,8 +8,8 @@ import { addClass, isAncestor, trackFocus } from 'vs/base/browser/dom';
 import { WorkbenchList } from 'vs/platform/list/browser/listService';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { IListOptions } from 'vs/base/browser/ui/list/listWidget';
-import { Themable, NOTIFICATIONS_LINKS, NOTIFICATIONS_BACKGROUND, NOTIFICATIONS_FOREGROUND, NOTIFICATIONS_ERROR_ICON_FOREGROUND, NOTIFICATIONS_WARNING_ICON_FOREGROUND, NOTIFICATIONS_INFO_ICON_FOREGROUND } from 'vs/workbench/common/theme';
-import { IThemeService, registerThemingParticipant, IColorTheme, ICssStyleCollector } from 'vs/platform/theme/common/themeService';
+import { NOTIFICATIONS_LINKS, NOTIFICATIONS_BACKGROUND, NOTIFICATIONS_FOREGROUND, NOTIFICATIONS_ERROR_ICON_FOREGROUND, NOTIFICATIONS_WARNING_ICON_FOREGROUND, NOTIFICATIONS_INFO_ICON_FOREGROUND } from 'vs/workbench/common/theme';
+import { IThemeService, registerThemingParticipant, IColorTheme, ICssStyleCollector, Themable } from 'vs/platform/theme/common/themeService';
 import { contrastBorder, focusBorder } from 'vs/platform/theme/common/colorRegistry';
 import { INotificationViewItem } from 'vs/workbench/common/notifications';
 import { NotificationsListDelegate, NotificationRenderer } from 'vs/workbench/browser/parts/notifications/notificationsViewer';
@@ -125,7 +125,7 @@ export class NotificationsList extends Themable {
 		// Only allow for focus in notifications, as the
 		// selection is too strong over the contents of
 		// the notification
-		this._register(list.onDidChangeSelection(e => {
+		this._register(list.onSelectionChange(e => {
 			if (e.indexes.length > 0) {
 				list.setSelection([]);
 			}

@@ -5,7 +5,7 @@
 
 import { URI } from 'vs/base/common/uri';
 import { CharCode } from 'vs/base/common/charCode';
-import { FIN } from './iterator';
+import { Iterator, IteratorResult, FIN } from './iterator';
 
 /**
  * @deprecated ES6: use `[...SetOrMap.values()]`
