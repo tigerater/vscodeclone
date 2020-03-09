@@ -182,8 +182,7 @@ class DesktopMain extends Disposable {
 		serviceCollection.set(IWorkbenchEnvironmentService, this.environmentService);
 		serviceCollection.set(IElectronEnvironmentService, new ElectronEnvironmentService(
 			this.configuration.windowId,
-			this.environmentService.sharedIPCHandle,
-			this.environmentService
+			this.environmentService.sharedIPCHandle
 		));
 
 		// Product
