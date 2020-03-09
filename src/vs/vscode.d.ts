@@ -1806,7 +1806,7 @@ declare module 'vscode' {
 		placeHolder?: string;
 
 		/**
-		 * Controls if a password input is shown. Password input hides the typed text.
+		 * Set to `true` to show a password prompt that will not show the typed value.
 		 */
 		password?: boolean;
 
