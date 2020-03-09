@@ -265,8 +265,7 @@ function markNodes(languageService, options) {
                 return;
             }
             if (ts.isExportDeclaration(node)) {
-                if (!node.exportClause && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
-                    // export * from "foo";
+                if (node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
                     setColor(node, 2 /* Black */);
                     enqueueImport(node, node.moduleSpecifier.text);
                 }

@@ -7,7 +7,7 @@ import 'vs/css!./media/views';
 import { Event, Emitter } from 'vs/base/common/event';
 import { IDisposable, Disposable, toDisposable } from 'vs/base/common/lifecycle';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
-import { IAction, ActionRunner, Action } from 'vs/base/common/actions';
+import { IAction, IActionViewItem, ActionRunner, Action } from 'vs/base/common/actions';
 import { IKeybindingService } from 'vs/platform/keybinding/common/keybinding';
 import { IContextMenuService } from 'vs/platform/contextview/browser/contextView';
 import { IMenuService, MenuId, MenuItemAction } from 'vs/platform/actions/common/actions';
@@ -50,6 +50,7 @@ export class CustomTreeViewPane extends ViewPane {
 
 	constructor(
 		options: IViewletViewOptions,
+		@INotificationService private readonly notificationService: INotificationService,
 		@IKeybindingService keybindingService: IKeybindingService,
 		@IContextMenuService contextMenuService: IContextMenuService,
 		@IConfigurationService configurationService: IConfigurationService,
@@ -93,6 +94,10 @@ export class CustomTreeViewPane extends ViewPane {
 
 	getSecondaryActions(): IAction[] {
 		return [...super.getSecondaryActions(), ...this.treeView.getSecondaryActions()];
+	}
+
+	getActionViewItem(action: IAction): IActionViewItem | undefined {
+		return action instanceof MenuItemAction ? new ContextAwareMenuEntryActionViewItem(action, this.keybindingService, this.notificationService, this.contextMenuService) : undefined;
 	}
 
 	getOptimalWidth(): number {

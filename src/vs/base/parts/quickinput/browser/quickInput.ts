@@ -948,7 +948,7 @@ export class QuickInputController extends Disposable {
 
 	private idPrefix: string;
 	private ui: QuickInputUI | undefined;
-	private dimension?: dom.IDimension;
+	private dimension?: dom.Dimension;
 	private titleBarOffset?: number;
 	private comboboxAccessibility = false;
 	private enabled = true;
@@ -1487,7 +1487,7 @@ export class QuickInputController extends Disposable {
 		return Promise.resolve(undefined);
 	}
 
-	layout(dimension: dom.IDimension, titleBarOffset: number): void {
+	layout(dimension: dom.Dimension, titleBarOffset: number): void {
 		this.dimension = dimension;
 		this.titleBarOffset = titleBarOffset;
 		this.updateLayout();
