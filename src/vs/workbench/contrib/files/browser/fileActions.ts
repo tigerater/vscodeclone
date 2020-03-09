@@ -100,7 +100,7 @@ export class NewFileAction extends Action {
 		}));
 	}
 
-	run(): Promise<void> {
+	run(): Promise<any> {
 		return this.commandService.executeCommand(NEW_FILE_COMMAND_ID);
 	}
 }
@@ -122,7 +122,7 @@ export class NewFolderAction extends Action {
 		}));
 	}
 
-	run(): Promise<void> {
+	run(): Promise<any> {
 		return this.commandService.executeCommand(NEW_FOLDER_COMMAND_ID);
 	}
 }
@@ -140,8 +140,8 @@ export class GlobalNewUntitledFileAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
-		await this.editorService.openEditor({ options: { pinned: true } }); // untitled are always pinned
+	run(): Promise<any> {
+		return this.editorService.openEditor({ options: { pinned: true } }); // untitled are always pinned
 	}
 }
 
@@ -436,7 +436,7 @@ export function incrementFileName(name: string, isFolder: boolean, incrementalNa
 
 	// folder.1=>folder.2
 	if (isFolder && name.match(/(\d+)$/)) {
-		return name.replace(/(\d+)$/, (match, ...groups) => {
+		return name.replace(/(\d+)$/, (match: string, ...groups: any[]) => {
 			let number = parseInt(groups[0]);
 			return number < maxNumber
 				? strings.pad(number + 1, groups[0].length)
@@ -446,7 +446,7 @@ export function incrementFileName(name: string, isFolder: boolean, incrementalNa
 
 	// 1.folder=>2.folder
 	if (isFolder && name.match(/^(\d+)/)) {
-		return name.replace(/^(\d+)(.*)$/, (match, ...groups) => {
+		return name.replace(/^(\d+)(.*)$/, (match: string, ...groups: any[]) => {
 			let number = parseInt(groups[0]);
 			return number < maxNumber
 				? strings.pad(number + 1, groups[0].length) + groups[1]
@@ -474,7 +474,7 @@ export class GlobalCompareResourcesAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	async run(): Promise<any> {
 		const activeInput = this.editorService.activeEditor;
 		const activeResource = activeInput ? activeInput.resource : undefined;
 		if (activeResource) {
@@ -520,7 +520,7 @@ export class ToggleAutoSaveAction extends Action {
 		super(id, label);
 	}
 
-	run(): Promise<void> {
+	run(): Promise<any> {
 		return this.filesConfigurationService.toggleAutoSave();
 	}
 }
@@ -543,7 +543,7 @@ export abstract class BaseSaveAllAction extends Action {
 		this.registerListeners();
 	}
 
-	protected abstract doRun(context: unknown): Promise<void>;
+	protected abstract doRun(context: any): Promise<any>;
 
 	private registerListeners(): void {
 
@@ -559,7 +559,7 @@ export abstract class BaseSaveAllAction extends Action {
 		}
 	}
 
-	async run(context?: unknown): Promise<void> {
+	async run(context?: any): Promise<void> {
 		try {
 			await this.doRun(context);
 		} catch (error) {
@@ -577,7 +577,7 @@ export class SaveAllAction extends BaseSaveAllAction {
 		return 'explorer-action codicon-save-all';
 	}
 
-	protected doRun(): Promise<void> {
+	protected doRun(context: any): Promise<any> {
 		return this.commandService.executeCommand(SAVE_ALL_COMMAND_ID);
 	}
 }
@@ -591,7 +591,7 @@ export class SaveAllInGroupAction extends BaseSaveAllAction {
 		return 'explorer-action codicon-save-all';
 	}
 
-	protected doRun(context: unknown): Promise<void> {
+	protected doRun(context: any): Promise<any> {
 		return this.commandService.executeCommand(SAVE_ALL_IN_GROUP_COMMAND_ID, {}, context);
 	}
 }
@@ -605,7 +605,7 @@ export class CloseGroupAction extends Action {
 		super(id, label, 'codicon-close-all');
 	}
 
-	run(context?: unknown): Promise<void> {
+	run(context?: any): Promise<any> {
 		return this.commandService.executeCommand(CLOSE_EDITORS_AND_GROUP_COMMAND_ID, {}, context);
 	}
 }
@@ -623,8 +623,8 @@ export class FocusFilesExplorer extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
-		await this.viewletService.openViewlet(VIEWLET_ID, true);
+	run(): Promise<any> {
+		return this.viewletService.openViewlet(VIEWLET_ID, true);
 	}
 }
 
@@ -643,13 +643,15 @@ export class ShowActiveFileInExplorer extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	async run(): Promise<any> {
 		const resource = toResource(this.editorService.activeEditor, { supportSideBySide: SideBySideEditor.MASTER });
 		if (resource) {
 			this.commandService.executeCommand(REVEAL_IN_EXPLORER_COMMAND_ID, resource);
 		} else {
 			this.notificationService.info(nls.localize('openFileToShow', "Open a file first to show it in the explorer"));
 		}
+
+		return true;
 	}
 }
 
@@ -670,7 +672,7 @@ export class CollapseExplorerView extends Action {
 		}));
 	}
 
-	async run(): Promise<void> {
+	async run(): Promise<any> {
 		const explorerViewlet = (await this.viewletService.openViewlet(VIEWLET_ID))?.getViewPaneContainer() as ExplorerViewPaneContainer;
 		const explorerView = explorerViewlet.getExplorerView();
 		if (explorerView) {
@@ -697,7 +699,7 @@ export class RefreshExplorerView extends Action {
 		}));
 	}
 
-	async run(): Promise<void> {
+	async run(): Promise<any> {
 		await this.viewletService.openViewlet(VIEWLET_ID);
 		this.explorerService.refresh();
 	}
@@ -719,7 +721,7 @@ export class ShowOpenedFileInNewWindow extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	async run(): Promise<any> {
 		const fileResource = toResource(this.editorService.activeEditor, { supportSideBySide: SideBySideEditor.MASTER });
 		if (fileResource) {
 			if (this.fileService.canHandleResource(fileResource)) {
@@ -730,6 +732,8 @@ export class ShowOpenedFileInNewWindow extends Action {
 		} else {
 			this.notificationService.info(nls.localize('openFileToShowInNewWindow.nofile', "Open a file first to open in new window"));
 		}
+
+		return true;
 	}
 }
 
@@ -813,7 +817,7 @@ export class CompareWithClipboardAction extends Action {
 		this.enabled = true;
 	}
 
-	async run(): Promise<void> {
+	async run(): Promise<any> {
 		const resource = toResource(this.editorService.activeEditor, { supportSideBySide: SideBySideEditor.MASTER });
 		if (resource && (this.fileService.canHandleResource(resource) || resource.scheme === Schemas.untitled)) {
 			if (!this.registrationDisposal) {
@@ -824,11 +828,13 @@ export class CompareWithClipboardAction extends Action {
 			const name = resources.basename(resource);
 			const editorLabel = nls.localize('clipboardComparisonLabel', "Clipboard ↔ {0}", name);
 
-			await this.editorService.openEditor({ leftResource: resource.with({ scheme: CompareWithClipboardAction.SCHEME }), rightResource: resource, label: editorLabel }).finally(() => {
+			return this.editorService.openEditor({ leftResource: resource.with({ scheme: CompareWithClipboardAction.SCHEME }), rightResource: resource, label: editorLabel }).finally(() => {
 				dispose(this.registrationDisposal);
 				this.registrationDisposal = undefined;
 			});
 		}
+
+		return true;
 	}
 
 	dispose(): void {
@@ -853,7 +859,7 @@ class ClipboardContentProvider implements ITextModelContentProvider {
 	}
 }
 
-function onErrorWithRetry(notificationService: INotificationService, error: unknown, retry: () => Promise<unknown>): void {
+function onErrorWithRetry(notificationService: INotificationService, error: any, retry: () => Promise<any>): void {
 	notificationService.prompt(Severity.Error, toErrorMessage(error, false),
 		[{
 			label: nls.localize('retry', "Retry"),

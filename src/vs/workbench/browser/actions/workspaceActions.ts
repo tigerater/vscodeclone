@@ -37,7 +37,7 @@ export class OpenFileAction extends Action {
 		super(id, label);
 	}
 
-	run(event?: unknown, data?: ITelemetryData): Promise<void> {
+	run(event?: any, data?: ITelemetryData): Promise<any> {
 		return this.dialogService.pickFileAndOpen({ forceNewWindow: false, telemetryExtraData: data });
 	}
 }
@@ -55,7 +55,7 @@ export class OpenFolderAction extends Action {
 		super(id, label);
 	}
 
-	run(event?: unknown, data?: ITelemetryData): Promise<void> {
+	run(event?: any, data?: ITelemetryData): Promise<any> {
 		return this.dialogService.pickFolderAndOpen({ forceNewWindow: false, telemetryExtraData: data });
 	}
 }
@@ -73,7 +73,7 @@ export class OpenFileFolderAction extends Action {
 		super(id, label);
 	}
 
-	run(event?: unknown, data?: ITelemetryData): Promise<void> {
+	run(event?: any, data?: ITelemetryData): Promise<any> {
 		return this.dialogService.pickFileFolderAndOpen({ forceNewWindow: false, telemetryExtraData: data });
 	}
 }
@@ -91,7 +91,7 @@ export class OpenWorkspaceAction extends Action {
 		super(id, label);
 	}
 
-	run(event?: unknown, data?: ITelemetryData): Promise<void> {
+	run(event?: any, data?: ITelemetryData): Promise<any> {
 		return this.dialogService.pickWorkspaceAndOpen({ telemetryExtraData: data });
 	}
 }
@@ -139,11 +139,12 @@ export class OpenWorkspaceConfigFileAction extends Action {
 		this.enabled = !!this.workspaceContextService.getWorkspace().configuration;
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 		const configuration = this.workspaceContextService.getWorkspace().configuration;
 		if (configuration) {
-			await this.editorService.openEditor({ resource: configuration });
+			return this.editorService.openEditor({ resource: configuration });
 		}
+		return Promise.resolve();
 	}
 }
 
@@ -160,7 +161,7 @@ export class AddRootFolderAction extends Action {
 		super(id, label);
 	}
 
-	run(): Promise<void> {
+	run(): Promise<any> {
 		return this.commandService.executeCommand(ADD_ROOT_FOLDER_COMMAND_ID);
 	}
 }
@@ -180,7 +181,7 @@ export class GlobalRemoveRootFolderAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	async run(): Promise<any> {
 		const state = this.contextService.getWorkbenchState();
 
 		// Workspace / Folder
@@ -190,6 +191,8 @@ export class GlobalRemoveRootFolderAction extends Action {
 				await this.workspaceEditingService.removeFolders([folder.uri]);
 			}
 		}
+
+		return true;
 	}
 }
 
@@ -208,7 +211,7 @@ export class SaveWorkspaceAsAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	async run(): Promise<any> {
 		const configPathUri = await this.workspaceEditingService.pickNewWorkspacePath();
 		if (configPathUri && hasWorkspaceFileExtension(configPathUri)) {
 			switch (this.contextService.getWorkbenchState()) {
@@ -240,7 +243,7 @@ export class DuplicateWorkspaceInNewWindowAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	async run(): Promise<any> {
 		const folders = this.workspaceContextService.getWorkspace().folders;
 		const remoteAuthority = this.environmentService.configuration.remoteAuthority;
 

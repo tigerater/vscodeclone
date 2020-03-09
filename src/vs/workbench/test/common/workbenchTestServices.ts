@@ -35,20 +35,14 @@ export class TestTextResourcePropertiesService implements ITextResourcePropertie
 }
 
 export class TestContextService implements IWorkspaceContextService {
-
 	_serviceBrand: undefined;
 
 	private workspace: Workspace;
 	private options: any;
 
 	private readonly _onDidChangeWorkspaceName: Emitter<void>;
-	get onDidChangeWorkspaceName(): Event<void> { return this._onDidChangeWorkspaceName.event; }
-
 	private readonly _onDidChangeWorkspaceFolders: Emitter<IWorkspaceFoldersChangeEvent>;
-	get onDidChangeWorkspaceFolders(): Event<IWorkspaceFoldersChangeEvent> { return this._onDidChangeWorkspaceFolders.event; }
-
 	private readonly _onDidChangeWorkbenchState: Emitter<WorkbenchState>;
-	get onDidChangeWorkbenchState(): Event<WorkbenchState> { return this._onDidChangeWorkbenchState.event; }
 
 	constructor(workspace: any = TestWorkspace, options: any = null) {
 		this.workspace = workspace;
@@ -56,6 +50,18 @@ export class TestContextService implements IWorkspaceContextService {
 		this._onDidChangeWorkspaceName = new Emitter<void>();
 		this._onDidChangeWorkspaceFolders = new Emitter<IWorkspaceFoldersChangeEvent>();
 		this._onDidChangeWorkbenchState = new Emitter<WorkbenchState>();
+	}
+
+	get onDidChangeWorkspaceName(): Event<void> {
+		return this._onDidChangeWorkspaceName.event;
+	}
+
+	get onDidChangeWorkspaceFolders(): Event<IWorkspaceFoldersChangeEvent> {
+		return this._onDidChangeWorkspaceFolders.event;
+	}
+
+	get onDidChangeWorkbenchState(): Event<WorkbenchState> {
+		return this._onDidChangeWorkbenchState.event;
 	}
 
 	getFolders(): IWorkspaceFolder[] {
@@ -94,7 +100,9 @@ export class TestContextService implements IWorkspaceContextService {
 		return this.options;
 	}
 
-	updateOptions() { }
+	updateOptions() {
+
+	}
 
 	isInsideWorkspace(resource: URI): boolean {
 		if (resource && this.workspace) {
