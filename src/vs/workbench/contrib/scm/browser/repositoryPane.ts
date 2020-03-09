@@ -615,7 +615,7 @@ export class RepositoryPane extends ViewPane {
 	protected contextKeyService: IContextKeyService;
 	private commitTemplate = '';
 
-	shouldShowWelcome() { return true; }
+	isEmpty() { return true; }
 
 	constructor(
 		readonly repository: ISCMRepository,
