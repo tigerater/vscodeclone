@@ -345,7 +345,7 @@ export class NotificationTemplateRenderer extends Disposable {
 		this.renderProgress(notification);
 
 		// Label Change Events
-		this.inputDisposables.add(notification.onDidChangeLabel(event => {
+		this.inputDisposables.add(notification.onDidLabelChange(event => {
 			switch (event.kind) {
 				case NotificationViewItemLabelKind.SEVERITY:
 					this.renderSeverity(notification);
