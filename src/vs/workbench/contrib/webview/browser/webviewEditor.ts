@@ -15,7 +15,7 @@ import { IThemeService } from 'vs/platform/theme/common/themeService';
 import { BaseEditor } from 'vs/workbench/browser/parts/editor/baseEditor';
 import { EditorPart } from 'vs/workbench/browser/parts/editor/editorPart';
 import { EditorInput, EditorOptions } from 'vs/workbench/common/editor';
-import { KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_VISIBLE, WebviewEditorOverlay } from 'vs/workbench/contrib/webview/browser/webview';
+import { KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_VISIBLE, Webview, WebviewEditorOverlay } from 'vs/workbench/contrib/webview/browser/webview';
 import { WebviewInput } from 'vs/workbench/contrib/webview/browser/webviewEditorInput';
 import { IEditorGroup, IEditorGroupsService } from 'vs/workbench/services/editor/common/editorGroupsService';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
@@ -71,33 +71,31 @@ export class WebviewEditor extends BaseEditor {
 	}
 
 	public showFind() {
-		if (this.webview) {
-			this.webview.showFind();
+		this.withWebview(webview => {
+			webview.showFind();
 			this._findWidgetVisible.set(true);
-		}
+		});
 	}
 
 	public hideFind() {
 		this._findWidgetVisible.reset();
-		this.webview?.hideFind();
+		this.withWebview(webview => webview.hideFind());
 	}
 
 	public find(previous: boolean) {
-		this.webview?.runFindAction(previous);
-	}
-
-	public selectAll() {
-		this.webview?.selectAll();
+		this.withWebview(webview => {
+			webview.runFindAction(previous);
+		});
 	}
 
 	public reload() {
-		this.webview?.reload();
+		this.withWebview(webview => webview.reload());
 	}
 
 	public layout(dimension: DOM.Dimension): void {
 		this._dimension = dimension;
-		if (this.webview) {
-			this.synchronizeWebviewContainerDimensions(this.webview, dimension);
+		if (this.input && this.input instanceof WebviewInput) {
+			this.synchronizeWebviewContainerDimensions(this.input.webview, dimension);
 		}
 	}
 
@@ -111,19 +109,22 @@ export class WebviewEditor extends BaseEditor {
 				}
 			});
 		}
-		this.webview?.focus();
+		this.withWebview(webview => webview.focus());
 	}
 
-	public get webview(): WebviewEditorOverlay | undefined {
-		return this.input instanceof WebviewInput ? this.input.webview : undefined;
+	public withWebview(f: (element: Webview) => void): void {
+		if (this.input && this.input instanceof WebviewInput) {
+			f(this.input.webview);
+		}
 	}
 
 	protected setEditorVisible(visible: boolean, group: IEditorGroup | undefined): void {
-		if (this.input instanceof WebviewInput && this.webview) {
+		if (this.input instanceof WebviewInput) {
+			const webview = this.input.webview;
 			if (visible) {
-				this.webview.claim(this);
+				webview.claim(this);
 			} else {
-				this.webview.release(this);
+				webview.release(this);
 			}
 			this.claimWebview(this.input);
 		}
@@ -131,8 +132,8 @@ export class WebviewEditor extends BaseEditor {
 	}
 
 	public clearInput() {
-		if (this.webview) {
-			this.webview.release(this);
+		if (this.input && this.input instanceof WebviewInput) {
+			this.input.webview.release(this);
 			this._webviewVisibleDisposables.clear();
 		}
 
@@ -144,8 +145,8 @@ export class WebviewEditor extends BaseEditor {
 			return;
 		}
 
-		if (this.webview) {
-			this.webview.release(this);
+		if (this.input && this.input instanceof WebviewInput) {
+			this.input.webview.release(this);
 		}
 
 		await super.setInput(input, options, token);
@@ -188,11 +189,15 @@ export class WebviewEditor extends BaseEditor {
 		}
 
 		this._webviewVisibleDisposables.add(DOM.addDisposableListener(window, DOM.EventType.DRAG_START, () => {
-			this.webview?.windowDidDragStart();
+			if (this.input instanceof WebviewInput) {
+				this.input.webview.windowDidDragStart();
+			}
 		}));
 
 		const onDragEnd = () => {
-			this.webview?.windowDidDragEnd();
+			if (this.input instanceof WebviewInput) {
+				this.input.webview.windowDidDragEnd();
+			}
 		};
 		this._webviewVisibleDisposables.add(DOM.addDisposableListener(window, DOM.EventType.DRAG_END, onDragEnd));
 		this._webviewVisibleDisposables.add(DOM.addDisposableListener(window, DOM.EventType.MOUSE_MOVE, currentEvent => {

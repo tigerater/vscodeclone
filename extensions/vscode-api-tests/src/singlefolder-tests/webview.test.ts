@@ -3,12 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as assert from 'assert';
 import 'mocha';
-import * as os from 'os';
-import { join } from 'path';
+import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { closeAllEditors, conditionalTest, delay, disposeAll } from '../utils';
+import { join } from 'path';
+import { closeAllEditors, disposeAll, conditionalTest } from '../utils';
 
 const webviewId = 'myWebview';
 
@@ -333,30 +332,8 @@ suite('Webview tests', () => {
 		webview.webview.postMessage({ value: 1 });
 		await firstResponse;
 		assert.strictEqual(webview.viewColumn, vscode.ViewColumn.One);
+
 	});
-
-	if (os.platform() === 'darwin') {
-		test('webview can copy text from webview', async () => {
-			const expectedText = `webview text from: ${Date.now()}!`;
-
-			const webview = _register(vscode.window.createWebviewPanel(webviewId, 'title', { viewColumn: vscode.ViewColumn.One }, { enableScripts: true, retainContextWhenHidden: true }));
-			const ready = getMesssage(webview);
-
-
-			webview.webview.html = createHtmlDocumentWithBody(/*html*/`
-			<b>${expectedText}</b>
-			<script>
-				const vscode = acquireVsCodeApi();
-				document.execCommand('selectAll');
-				vscode.postMessage({ type: 'ready' });
-			</script>`);
-			await ready;
-
-			await vscode.commands.executeCommand('editor.action.webvieweditor.copy');
-			await delay(200); // Make sure copy has time to reach webview
-			assert.strictEqual(await vscode.env.clipboard.readText(), expectedText);
-		});
-	}
 });
 
 function createHtmlDocumentWithBody(body: string): string {
