@@ -17,13 +17,14 @@
 	"main": "./out/extension.js",
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
-		"compile": "gulp compile-extension:vscode-account",
-		"watch": "gulp watch-extension:vscode-account"
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./"
 	},
 	"devDependencies": {
 		"typescript": "^3.7.4",
 		"tslint": "^5.12.1",
 		"@types/node": "^10.12.21",
-		"@types/keytar": "^4.0.1"
+		"@types/keytar": "^4.0.1",
+		"@types/vscode": "^1.41.0"
 	}
 }
