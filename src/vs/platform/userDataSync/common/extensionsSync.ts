@@ -190,7 +190,7 @@ export class ExtensionsSynchroniser extends AbstractSynchroniser implements IUse
 		const hasChanges = added.length || removed.length || updated.length || remote;
 
 		if (!hasChanges) {
-			this.logService.info('Extensions: No changes found during synchronizing extensions.');
+			this.logService.trace('Extensions: No changes found during synchronizing extensions.');
 		}
 
 		if (added.length || removed.length || updated.length) {
@@ -295,7 +295,7 @@ export class ExtensionsSynchroniser extends AbstractSynchroniser implements IUse
 
 	private async getLocalExtensions(): Promise<ISyncExtension[]> {
 		const installedExtensions = await this.extensionManagementService.getInstalled();
-		const disabledExtensions = await this.extensionEnablementService.getDisabledExtensions();
+		const disabledExtensions = await this.extensionEnablementService.getDisabledExtensionsAsync();
 		return installedExtensions
 			.map(({ identifier }) => ({ identifier, enabled: !disabledExtensions.some(disabledExtension => areSameExtensions(disabledExtension, identifier)) }));
 	}
