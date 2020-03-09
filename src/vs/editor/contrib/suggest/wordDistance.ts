@@ -35,23 +35,14 @@ export abstract class WordDistance {
 			return WordDistance.None;
 		}
 
-		const [ranges] = await new BracketSelectionRangeProvider().provideSelectionRanges(model, [position]);
-		if (ranges.length === 0) {
+		const ranges = await new BracketSelectionRangeProvider().provideSelectionRanges(model, [position]);
+		if (!ranges || ranges.length === 0 || ranges[0].length === 0) {
 			return WordDistance.None;
 		}
-
-		const wordRanges = await service.computeWordRanges(model.uri, ranges[0].range);
-		if (!wordRanges) {
-			return WordDistance.None;
-		}
-
-		// remove current word
-		const wordUntilPos = model.getWordUntilPosition(position);
-		delete wordRanges[wordUntilPos.word];
-
+		const wordRanges = await service.computeWordRanges(model.uri, ranges[0][0].range);
 		return new class extends WordDistance {
 			distance(anchor: IPosition, suggestion: CompletionItem) {
-				if (!position.equals(editor.getPosition())) {
+				if (!wordRanges || !position.equals(editor.getPosition())) {
 					return 0;
 				}
 				if (suggestion.kind === CompletionItemKind.Keyword) {
@@ -65,7 +56,7 @@ export abstract class WordDistance {
 				let idx = binarySearch(wordLines, Range.fromPositions(anchor), Range.compareRangesUsingStarts);
 				let bestWordRange = idx >= 0 ? wordLines[idx] : wordLines[Math.max(0, ~idx - 1)];
 				let blockDistance = ranges.length;
-				for (const range of ranges) {
+				for (const range of ranges[0]) {
 					if (!Range.containsRange(range.range, bestWordRange)) {
 						break;
 					}

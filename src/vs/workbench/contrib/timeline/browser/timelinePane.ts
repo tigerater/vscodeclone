@@ -294,10 +294,7 @@ export class TimelinePane extends ViewPane {
 		const renderer = this.instantiationService.createInstance(TimelineTreeRenderer);
 		this._tree = <WorkbenchObjectTree<TreeElement, FuzzyScore>>this.instantiationService.createInstance(WorkbenchObjectTree, 'TimelinePane', this._treeElement, new TimelineListVirtualDelegate(), [renderer], {
 			identityProvider: new TimelineIdentityProvider(),
-			keyboardNavigationLabelProvider: new TimelineKeyboardNavigationLabelProvider(),
-			overrideStyles: {
-				listBackground: this.getBackgroundColor()
-			}
+			keyboardNavigationLabelProvider: new TimelineKeyboardNavigationLabelProvider()
 		});
 
 		const customTreeNavigator = new TreeResourceNavigator(this._tree, { openOnFocus: false, openOnSelection: false });
