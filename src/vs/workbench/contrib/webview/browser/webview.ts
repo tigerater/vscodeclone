@@ -36,17 +36,17 @@ export interface WebviewIcons {
 export interface IWebviewService {
 	_serviceBrand: undefined;
 
-	createWebviewElement(
+	createWebview(
 		id: string,
 		options: WebviewOptions,
 		contentOptions: WebviewContentOptions,
 	): WebviewElement;
 
-	createWebviewOverlay(
+	createWebviewEditorOverlay(
 		id: string,
 		options: WebviewOptions,
 		contentOptions: WebviewContentOptions,
-	): WebviewOverlay;
+	): WebviewEditorOverlay;
 
 	setIcons(id: string, value: WebviewIcons | undefined): void;
 }
@@ -71,6 +71,7 @@ export interface WebviewExtensionDescription {
 }
 
 export interface Webview extends IDisposable {
+
 	html: string;
 	contentOptions: WebviewContentOptions;
 	extension: WebviewExtensionDescription | undefined;
@@ -100,21 +101,13 @@ export interface Webview extends IDisposable {
 	windowDidDragEnd(): void;
 }
 
-/**
- * Basic webview rendered in the dom
- */
 export interface WebviewElement extends Webview {
 	mountTo(parent: HTMLElement): void;
 }
 
-/**
- * Dynamically created webview drawn over another element.
- */
-export interface WebviewOverlay extends Webview {
+export interface WebviewEditorOverlay extends Webview {
 	readonly container: HTMLElement;
 	options: WebviewOptions;
-
-	readonly onDispose: Event<void>;
 
 	claim(owner: any): void;
 	release(owner: any): void;

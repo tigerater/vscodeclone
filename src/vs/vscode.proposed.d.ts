@@ -107,7 +107,7 @@ declare module 'vscode' {
 	export interface TunnelDescription {
 		remoteAddress: { port: number, host: string };
 		//The complete local address(ex. localhost:1234)
-		localAddress: { port: number, host: string } | string;
+		localAddress: string;
 	}
 
 	export interface Tunnel extends TunnelDescription {
@@ -1227,11 +1227,9 @@ declare module 'vscode' {
 		/**
 		 * Save the resource.
 		 *
-		 * @param cancellation Token that signals the save is no longer required (for example, if another save was triggered).
-		 *
 		 * @return Thenable signaling that the save has completed.
 		 */
-		save(cancellation: CancellationToken): Thenable<void>;
+		save(): Thenable<void>;
 
 		/**
 		 * Save the existing resource at a new path.
@@ -1674,11 +1672,6 @@ declare module 'vscode' {
 		 * @return The uri of the resource.
 		 */
 		asExtensionUri(relativePath: string): Uri;
-
-		/**
-		 *
-		 */
-		readonly extensionUri: Uri;
 	}
 
 	export interface Extension<T> {
@@ -1689,11 +1682,6 @@ declare module 'vscode' {
 		 * @return The uri of the resource.
 		 */
 		asExtensionUri(relativePath: string): Uri;
-
-		/**
-		 *
-		 */
-		readonly extensionUri: Uri;
 	}
 
 	//#endregion

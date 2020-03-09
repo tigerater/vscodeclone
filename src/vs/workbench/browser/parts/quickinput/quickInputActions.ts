@@ -3,6 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-.codicon-wrench-subaction {
-	opacity: 0.5;
-}
+import { QuickPickManyToggle, QuickPickBack } from 'vs/workbench/browser/parts/quickinput/quickInput';
+import { KeybindingsRegistry } from 'vs/platform/keybinding/common/keybindingsRegistry';
+
+KeybindingsRegistry.registerCommandAndKeybindingRule(QuickPickManyToggle);
+KeybindingsRegistry.registerCommandAndKeybindingRule(QuickPickBack);

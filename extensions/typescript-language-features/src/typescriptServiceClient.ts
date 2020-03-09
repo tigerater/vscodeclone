@@ -108,7 +108,6 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 	private serverState: ServerState.State = ServerState.None;
 	private lastStart: number;
 	private numberRestarts: number;
-	private _isPromptingAfterCrash = false;
 	private isRestarting: boolean = false;
 	private hasServerFatallyCrashedTooManyTimes = false;
 	private readonly loadingIndicator = new ServerInitializingIndicator();
@@ -324,12 +323,12 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 		}
 
 		const apiVersion = version.apiVersion || API.defaultVersion;
+		this.onDidChangeTypeScriptVersion(version);
 		let mytoken = ++this.token;
 		const handle = this.typescriptServerSpawner.spawn(version, this.configuration, this.pluginManager, {
 			onFatalError: (command, err) => this.fatalError(command, err),
 		});
 		this.serverState = new ServerState.Running(handle, apiVersion, undefined, true);
-		this.onDidChangeTypeScriptVersion(version);
 		this.lastStart = Date.now();
 
 		/* __GDPR__
@@ -516,6 +515,14 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 	private serviceExited(restart: boolean): void {
 		this.loadingIndicator.reset();
 
+		enum MessageAction {
+			reportIssue
+		}
+
+		interface MyMessageItem extends vscode.MessageItem {
+			id: MessageAction;
+		}
+
 		const previousState = this.serverState;
 		this.serverState = ServerState.None;
 
@@ -523,22 +530,19 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 			const diff = Date.now() - this.lastStart;
 			this.numberRestarts++;
 			let startService = true;
-
-			const reportIssueItem: vscode.MessageItem = {
-				title: localize('serverDiedReportIssue', 'Report Issue'),
-			};
-			let prompt: Thenable<undefined | vscode.MessageItem> | undefined = undefined;
-
 			if (this.numberRestarts > 5) {
+				let prompt: Thenable<MyMessageItem | undefined> | undefined = undefined;
 				this.numberRestarts = 0;
 				if (diff < 10 * 1000 /* 10 seconds */) {
 					this.lastStart = Date.now();
 					startService = false;
 					this.hasServerFatallyCrashedTooManyTimes = true;
-					prompt = vscode.window.showErrorMessage(
+					prompt = vscode.window.showErrorMessage<MyMessageItem>(
 						localize('serverDiedAfterStart', 'The TypeScript language service died 5 times right after it got started. The service will not be restarted.'),
-						reportIssueItem);
-
+						{
+							title: localize('serverDiedReportIssue', 'Report Issue'),
+							id: MessageAction.reportIssue,
+						});
 					/* __GDPR__
 						"serviceExited" : {
 							"${include}": [
@@ -549,32 +553,25 @@ export default class TypeScriptServiceClient extends Disposable implements IType
 					this.logTelemetry('serviceExited');
 				} else if (diff < 60 * 1000 * 5 /* 5 Minutes */) {
 					this.lastStart = Date.now();
-					prompt = vscode.window.showWarningMessage(
+					prompt = vscode.window.showWarningMessage<MyMessageItem>(
 						localize('serverDied', 'The TypeScript language service died unexpectedly 5 times in the last 5 Minutes.'),
-						reportIssueItem);
+						{
+							title: localize('serverDiedReportIssue', 'Report Issue'),
+							id: MessageAction.reportIssue
+						});
 				}
-			} else if (['vscode-insiders', 'code-oss'].includes(vscode.env.uriScheme)) {
-				// Prompt after a single restart
-				if (!this._isPromptingAfterCrash && previousState.type === ServerState.Type.Errored && previousState.error instanceof TypeScriptServerError) {
-					this.numberRestarts = 0;
-					this._isPromptingAfterCrash = true;
-					prompt = vscode.window.showWarningMessage(
-						localize('serverDiedOnce', 'The TypeScript language service died unexpectedly.'),
-						reportIssueItem);
+				if (prompt) {
+					prompt.then(item => {
+						if (item?.id === MessageAction.reportIssue) {
+							const args = previousState.type === ServerState.Type.Errored && previousState.error instanceof TypeScriptServerError
+								? getReportIssueArgsForError(previousState.error)
+								: undefined;
+							return vscode.commands.executeCommand('workbench.action.openIssueReporter', args);
+						}
+						return undefined;
+					});
 				}
 			}
-
-			prompt?.then(item => {
-				this._isPromptingAfterCrash = false;
-
-				if (item === reportIssueItem) {
-					const args = previousState.type === ServerState.Type.Errored && previousState.error instanceof TypeScriptServerError
-						? getReportIssueArgsForError(previousState.error)
-						: undefined;
-					vscode.commands.executeCommand('workbench.action.openIssueReporter', args);
-				}
-			});
-
 			if (startService) {
 				this.startService(true);
 			}

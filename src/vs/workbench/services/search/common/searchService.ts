@@ -20,7 +20,6 @@ import { IExtensionService } from 'vs/workbench/services/extensions/common/exten
 import { deserializeSearchError, FileMatch, ICachedSearchStats, IFileMatch, IFileQuery, IFileSearchStats, IFolderQuery, IProgressMessage, ISearchComplete, ISearchEngineStats, ISearchProgressItem, ISearchQuery, ISearchResultProvider, ISearchService, ITextQuery, pathIncludedInQuery, QueryType, SearchError, SearchErrorCode, SearchProviderType, isFileMatch, isProgressMessage } from 'vs/workbench/services/search/common/search';
 import { addContextToEditorMatches, editorMatchesToTextSearchResults } from 'vs/workbench/services/search/common/searchHelpers';
 import { registerSingleton } from 'vs/platform/instantiation/common/extensions';
-import { DeferredPromise } from 'vs/base/test/common/utils';
 
 export class SearchService extends Disposable implements ISearchService {
 
@@ -29,9 +28,6 @@ export class SearchService extends Disposable implements ISearchService {
 	protected diskSearch: ISearchResultProvider | null = null;
 	private readonly fileSearchProviders = new Map<string, ISearchResultProvider>();
 	private readonly textSearchProviders = new Map<string, ISearchResultProvider>();
-
-	private deferredFileSearchesByScheme = new Map<string, DeferredPromise<ISearchResultProvider>>();
-	private deferredTextSearchesByScheme = new Map<string, DeferredPromise<ISearchResultProvider>>();
 
 	constructor(
 		private readonly modelService: IModelService,
@@ -46,23 +42,15 @@ export class SearchService extends Disposable implements ISearchService {
 
 	registerSearchResultProvider(scheme: string, type: SearchProviderType, provider: ISearchResultProvider): IDisposable {
 		let list: Map<string, ISearchResultProvider>;
-		let deferredMap: Map<string, DeferredPromise<ISearchResultProvider>>;
 		if (type === SearchProviderType.file) {
 			list = this.fileSearchProviders;
-			deferredMap = this.deferredFileSearchesByScheme;
 		} else if (type === SearchProviderType.text) {
 			list = this.textSearchProviders;
-			deferredMap = this.deferredTextSearchesByScheme;
 		} else {
 			throw new Error('Unknown SearchProviderType');
 		}
 
 		list.set(scheme, provider);
-
-		if (deferredMap.has(scheme)) {
-			deferredMap.get(scheme)!.complete(provider);
-			deferredMap.delete(scheme);
-		}
 
 		return toDisposable(() => {
 			list.delete(scheme);
@@ -173,41 +161,24 @@ export class SearchService extends Disposable implements ISearchService {
 		return schemes;
 	}
 
-	private async waitForProvider(queryType: QueryType, scheme: string): Promise<ISearchResultProvider> {
-		let deferredMap: Map<string, DeferredPromise<ISearchResultProvider>> = queryType === QueryType.File ?
-			this.deferredFileSearchesByScheme :
-			this.deferredTextSearchesByScheme;
-
-		if (deferredMap.has(scheme)) {
-			return deferredMap.get(scheme)!.p;
-		} else {
-			const deferred = new DeferredPromise<ISearchResultProvider>();
-			deferredMap.set(scheme, deferred);
-			return deferred.p;
-		}
-	}
-
-	private async searchWithProviders(query: ISearchQuery, onProviderProgress: (progress: ISearchProgressItem) => void, token?: CancellationToken) {
+	private searchWithProviders(query: ISearchQuery, onProviderProgress: (progress: ISearchProgressItem) => void, token?: CancellationToken) {
 		const e2eSW = StopWatch.create(false);
 
 		const diskSearchQueries: IFolderQuery[] = [];
 		const searchPs: Promise<ISearchComplete>[] = [];
 
 		const fqs = this.groupFolderQueriesByScheme(query);
-		await Promise.all(keys(fqs).map(async scheme => {
+		keys(fqs).forEach(scheme => {
 			const schemeFQs = fqs.get(scheme)!;
-			let provider = query.type === QueryType.File ?
+			const provider = query.type === QueryType.File ?
 				this.fileSearchProviders.get(scheme) :
 				this.textSearchProviders.get(scheme);
 
 			if (!provider && scheme === 'file') {
 				diskSearchQueries.push(...schemeFQs);
+			} else if (!provider) {
+				console.warn('No search provider registered for scheme: ' + scheme);
 			} else {
-				if (!provider) {
-					console.warn(`No search provider registered for scheme: ${scheme}, waiting`);
-					provider = await this.waitForProvider(query.type, scheme);
-				}
-
 				const oneSchemeQuery: ISearchQuery = {
 					...query,
 					...{
@@ -219,7 +190,7 @@ export class SearchService extends Disposable implements ISearchService {
 					provider.fileSearch(<IFileQuery>oneSchemeQuery, token) :
 					provider.textSearch(<ITextQuery>oneSchemeQuery, onProviderProgress, token));
 			}
-		}));
+		});
 
 		const diskSearchExtraFileResources = query.extraFileResources && query.extraFileResources.filter(res => res.scheme === Schemas.file);
 
