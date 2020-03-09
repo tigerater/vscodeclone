@@ -314,7 +314,6 @@ class ViewsExtensionHandler implements IWorkbenchContribution {
 					[id, `${id}.state`, { mergeViewWithContainerWhenSingleView: true }]
 				),
 				hideIfEmpty: true,
-				order,
 				icon,
 			}, ViewContainerLocation.Sidebar);
 

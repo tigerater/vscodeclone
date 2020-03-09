@@ -213,48 +213,48 @@ export class ConsoleLogService extends AbstractLogService implements ILogService
 	}
 }
 
-export class LogServiceAdapter extends AbstractLogService implements ILogService {
+export class ConsoleLogInMainService extends AbstractLogService implements ILogService {
 
 	_serviceBrand: undefined;
 
-	constructor(private readonly adapter: { consoleLog: (type: string, args: any[]) => void }, logLevel: LogLevel = DEFAULT_LOG_LEVEL) {
+	constructor(private readonly client: LoggerChannelClient, logLevel: LogLevel = DEFAULT_LOG_LEVEL) {
 		super();
 		this.setLevel(logLevel);
 	}
 
 	trace(message: string, ...args: any[]): void {
 		if (this.getLevel() <= LogLevel.Trace) {
-			this.adapter.consoleLog('trace', [this.extractMessage(message), ...args]);
+			this.client.consoleLog('trace', [this.extractMessage(message), ...args]);
 		}
 	}
 
 	debug(message: string, ...args: any[]): void {
 		if (this.getLevel() <= LogLevel.Debug) {
-			this.adapter.consoleLog('debug', [this.extractMessage(message), ...args]);
+			this.client.consoleLog('debug', [this.extractMessage(message), ...args]);
 		}
 	}
 
 	info(message: string, ...args: any[]): void {
 		if (this.getLevel() <= LogLevel.Info) {
-			this.adapter.consoleLog('info', [this.extractMessage(message), ...args]);
+			this.client.consoleLog('info', [this.extractMessage(message), ...args]);
 		}
 	}
 
 	warn(message: string | Error, ...args: any[]): void {
 		if (this.getLevel() <= LogLevel.Warning) {
-			this.adapter.consoleLog('warn', [this.extractMessage(message), ...args]);
+			this.client.consoleLog('warn', [this.extractMessage(message), ...args]);
 		}
 	}
 
 	error(message: string | Error, ...args: any[]): void {
 		if (this.getLevel() <= LogLevel.Error) {
-			this.adapter.consoleLog('error', [this.extractMessage(message), ...args]);
+			this.client.consoleLog('error', [this.extractMessage(message), ...args]);
 		}
 	}
 
 	critical(message: string | Error, ...args: any[]): void {
 		if (this.getLevel() <= LogLevel.Critical) {
-			this.adapter.consoleLog('critical', [this.extractMessage(message), ...args]);
+			this.client.consoleLog('critical', [this.extractMessage(message), ...args]);
 		}
 	}
 
@@ -272,15 +272,6 @@ export class LogServiceAdapter extends AbstractLogService implements ILogService
 
 	flush(): void {
 		// noop
-	}
-}
-
-export class ConsoleLogInMainService extends LogServiceAdapter implements ILogService {
-
-	_serviceBrand: undefined;
-
-	constructor(client: LoggerChannelClient, logLevel: LogLevel = DEFAULT_LOG_LEVEL) {
-		super({ consoleLog: (type, args) => client.consoleLog(type, args) }, logLevel);
 	}
 }
 

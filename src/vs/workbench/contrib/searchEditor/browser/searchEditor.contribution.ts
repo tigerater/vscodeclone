@@ -74,10 +74,7 @@ class SearchEditorContribution implements IWorkbenchContribution {
 				return undefined;
 			}
 
-			if (endsWith(resource.path, '.code-search')) {
-				this.telemetryService.publicLog2('searchEditor/openSavedSearchEditor');
-			}
-
+			this.telemetryService.publicLog2('searchEditor/openSavedSearchEditor');
 			const input = instantiationService.invokeFunction(getOrMakeSearchEditorInput, { uri: resource });
 			const opened = editorService.openEditor(input, { ...options, pinned: resource.scheme === SearchEditorConstants.SearchEditorScheme, ignoreOverrides: true }, group);
 			return { override: Promise.resolve(opened) };

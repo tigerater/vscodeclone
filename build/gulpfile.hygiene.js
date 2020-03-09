@@ -33,7 +33,6 @@ const all = [
 	'scripts/**/*',
 	'src/**/*',
 	'test/**/*',
-	'!test/**/out/**',
 	'!**/node_modules/**'
 ];
 
@@ -54,7 +53,7 @@ const indentationFilter = [
 	'!src/vs/base/common/marked/marked.js',
 	'!src/vs/base/node/terminateProcess.sh',
 	'!src/vs/base/node/cpuUsage.sh',
-	'!test/unit/assert.js',
+	'!test/assert.js',
 
 	// except specific folders
 	'!test/automation/out/**',
@@ -83,7 +82,7 @@ const indentationFilter = [
 	'!src/vs/*/**/*.d.ts',
 	'!src/typings/**/*.d.ts',
 	'!extensions/**/*.d.ts',
-	'!**/*.{svg,exe,png,bmp,scpt,bat,cmd,cur,ttf,woff,eot,md,ps1,template,yaml,yml,d.ts.recipe,ico,icns,plist}',
+	'!**/*.{svg,exe,png,bmp,scpt,bat,cmd,cur,ttf,woff,eot,md,ps1,template,yaml,yml,d.ts.recipe,ico,icns}',
 	'!build/{lib,download}/**/*.js',
 	'!build/**/*.sh',
 	'!build/azure-pipelines/**/*.js',

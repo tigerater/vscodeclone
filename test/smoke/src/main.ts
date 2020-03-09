@@ -317,10 +317,10 @@ describe(`VSCode Smoke Tests (${opts.web ? 'Web' : 'Electron'})`, () => {
 		setupDataCSSTests();
 		setupDataEditorTests();
 		setupDataStatusbarTests(!!opts.web);
-		if (!opts.web) { setupDataExtensionTests(); }
+		setupDataExtensionTests();
 		setupTerminalTests();
 		if (!opts.web) { setupDataMultirootTests(); }
-		if (!opts.web) { setupDataLocalizationTests(); }
+		setupDataLocalizationTests();
 		if (!opts.web) { setupLaunchTests(); }
 	}
 });
