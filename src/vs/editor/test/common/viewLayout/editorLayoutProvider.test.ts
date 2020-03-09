@@ -50,6 +50,7 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			maxColumn: input.minimapMaxColumn,
 			showSlider: 'mouseover',
 			scale: 1,
+			entireDocument: false
 		};
 		options._write(EditorOption.minimap, minimapOptions);
 		const scrollbarOptions: InternalEditorScrollbarOptions = {
@@ -77,6 +78,7 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			outerWidth: input.outerWidth,
 			outerHeight: input.outerHeight,
 			lineHeight: input.lineHeight,
+			maxLineNumber: Math.pow(10, input.lineNumbersDigitCount) - 1,
 			lineNumbersDigitCount: input.lineNumbersDigitCount,
 			typicalHalfwidthCharacterWidth: input.typicalHalfwidthCharacterWidth,
 			maxDigitWidth: input.maxDigitWidth,
@@ -125,6 +127,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.None,
 			minimapLeft: 0,
 			minimapWidth: 0,
+			minimapLineHeight: 1,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 98,
 
 			verticalScrollbarWidth: 0,
@@ -179,6 +183,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.None,
 			minimapLeft: 0,
 			minimapWidth: 0,
+			minimapLineHeight: 1,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 97,
 
 			verticalScrollbarWidth: 11,
@@ -233,6 +239,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.None,
 			minimapLeft: 0,
 			minimapWidth: 0,
+			minimapLineHeight: 1,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 88,
 
 			verticalScrollbarWidth: 0,
@@ -287,6 +295,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.None,
 			minimapLeft: 0,
 			minimapWidth: 0,
+			minimapLineHeight: 1,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 88,
 
 			verticalScrollbarWidth: 0,
@@ -341,6 +351,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.None,
 			minimapLeft: 0,
 			minimapWidth: 0,
+			minimapLineHeight: 1,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 88,
 
 			verticalScrollbarWidth: 0,
@@ -395,6 +407,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.None,
 			minimapLeft: 0,
 			minimapWidth: 0,
+			minimapLineHeight: 1,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 83,
 
 			verticalScrollbarWidth: 0,
@@ -449,6 +463,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.None,
 			minimapLeft: 0,
 			minimapWidth: 0,
+			minimapLineHeight: 1,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 83,
 
 			verticalScrollbarWidth: 0,
@@ -503,6 +519,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.None,
 			minimapLeft: 0,
 			minimapWidth: 0,
+			minimapLineHeight: 1,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 82,
 
 			verticalScrollbarWidth: 0,
@@ -557,6 +575,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.None,
 			minimapLeft: 0,
 			minimapWidth: 0,
+			minimapLineHeight: 1,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 171,
 
 			verticalScrollbarWidth: 0,
@@ -611,6 +631,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.None,
 			minimapLeft: 0,
 			minimapWidth: 0,
+			minimapLineHeight: 1,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 169,
 
 			verticalScrollbarWidth: 0,
@@ -665,6 +687,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.Text,
 			minimapLeft: 903,
 			minimapWidth: 97,
+			minimapLineHeight: 2,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 89,
 
 			verticalScrollbarWidth: 0,
@@ -719,6 +743,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.Text,
 			minimapLeft: 903,
 			minimapWidth: 97,
+			minimapLineHeight: 4,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 89,
 
 			verticalScrollbarWidth: 0,
@@ -773,6 +799,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.Text,
 			minimapLeft: 945,
 			minimapWidth: 55,
+			minimapLineHeight: 4,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 93,
 
 			verticalScrollbarWidth: 0,
@@ -827,6 +855,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.Text,
 			minimapLeft: 0,
 			minimapWidth: 55,
+			minimapLineHeight: 4,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 93,
 
 			verticalScrollbarWidth: 0,
@@ -881,6 +911,8 @@ suite('Editor ViewLayout - EditorLayoutProvider', () => {
 			renderMinimap: RenderMinimap.Text,
 			minimapLeft: 1096,
 			minimapWidth: 91,
+			minimapLineHeight: 4,
+			minimapWidthMultiplier: 1,
 			viewportColumn: 83,
 
 			verticalScrollbarWidth: 14,
