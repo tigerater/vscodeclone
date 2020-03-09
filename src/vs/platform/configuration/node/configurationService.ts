@@ -26,7 +26,7 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
 
 	constructor(
 		private readonly settingsResource: URI,
-		fileService: IFileService
+		@IFileService fileService: IFileService
 	) {
 		super();
 		this.userConfiguration = this._register(new UserSettings(this.settingsResource, undefined, fileService));
