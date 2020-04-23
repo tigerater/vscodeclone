@@ -165,7 +165,6 @@ export enum CellFoldingState {
 
 export interface FoldingRegionDelegate {
 	onDidFoldingRegionChanged: Event<void>;
-	getCellIndex(cell: CellViewModel): number;
-	getFoldingStartIndex(index: number): number;
-	getFoldingState(index: number): CellFoldingState;
+	getFoldingStartIndex(cell: CellViewModel): number;
+	getFoldingState(cell: CellViewModel): CellFoldingState;
 }

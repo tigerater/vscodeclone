@@ -251,30 +251,43 @@ export class NotebookViewModel extends Disposable implements FoldingRegionDelega
 			this._updateFoldingRanges();
 		}));
 	}
+	getFoldingStartIndex(cell: CellViewModel): number {
+		const modelIndex = this.viewCells.indexOf(cell);
+		if (modelIndex < 0) {
+			return -1;
+		}
 
-	getFoldingStartIndex(index: number): number {
-		const range = this._foldingModel.regions.findRange(index + 1);
+		const range = this._foldingModel.regions.findRange(modelIndex + 1);
 		const startIndex = this._foldingModel.regions.getStartLineNumber(range) - 1;
 		return startIndex;
 	}
 
-	getFoldingState(index: number): CellFoldingState {
-		const range = this._foldingModel.regions.findRange(index + 1);
+	getFoldingState(cell: CellViewModel): CellFoldingState {
+		const modelIndex = this.viewCells.indexOf(cell);
+		if (modelIndex < 0) {
+			return -1;
+		}
+
+		const range = this._foldingModel.regions.findRange(modelIndex + 1);
 		const startIndex = this._foldingModel.regions.getStartLineNumber(range) - 1;
 
-		if (startIndex !== index) {
+		if (startIndex !== modelIndex) {
 			return CellFoldingState.None;
 		}
 
 		return this._foldingModel.regions.isCollapsed(range) ? CellFoldingState.Collapsed : CellFoldingState.Expanded;
 	}
 
-	setFoldingState(index: number, state: CellFoldingState): void {
+	setFoldingState(cell: CellViewModel, state: CellFoldingState): void {
+		const modelIndex = this.viewCells.indexOf(cell);
+		if (modelIndex < 0) {
+			return;
+		}
 
-		const range = this._foldingModel.regions.findRange(index + 1);
+		const range = this._foldingModel.regions.findRange(modelIndex + 1);
 		const startIndex = this._foldingModel.regions.getStartLineNumber(range) - 1;
 
-		if (startIndex !== index) {
+		if (startIndex !== modelIndex) {
 			return;
 		}
 

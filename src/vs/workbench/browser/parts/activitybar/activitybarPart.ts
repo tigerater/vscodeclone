@@ -26,7 +26,7 @@ import { IExtensionService } from 'vs/workbench/services/extensions/common/exten
 import { URI, UriComponents } from 'vs/base/common/uri';
 import { ToggleCompositePinnedAction, ICompositeBarColors, ActivityAction, ICompositeActivity } from 'vs/workbench/browser/parts/compositeBarActions';
 import { ViewletDescriptor } from 'vs/workbench/browser/viewlet';
-import { IViewDescriptorService, IViewContainersRegistry, Extensions as ViewContainerExtensions, ViewContainer, TEST_VIEW_CONTAINER_ID, IViewContainerModel, ViewContainerLocation } from 'vs/workbench/common/views';
+import { IViewDescriptorService, IViewContainersRegistry, Extensions as ViewContainerExtensions, ViewContainer, TEST_VIEW_CONTAINER_ID, IViewDescriptorCollection, ViewContainerLocation } from 'vs/workbench/common/views';
 import { IContextKeyService, ContextKeyExpr } from 'vs/platform/contextkey/common/contextkey';
 import { IViewlet } from 'vs/workbench/common/viewlet';
 import { isUndefinedOrNull, assertIsDefined, isString } from 'vs/base/common/types';
@@ -42,6 +42,7 @@ import { IStorageKeysSyncRegistryService } from 'vs/platform/userDataSync/common
 import { getUserDataSyncStore } from 'vs/platform/userDataSync/common/userDataSync';
 import { IProductService } from 'vs/platform/product/common/productService';
 import { Before2D } from 'vs/workbench/browser/dnd';
+import { Codicon } from 'vs/base/common/codicons';
 
 interface IPlaceholderViewlet {
 	id: string;
@@ -216,8 +217,8 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		if (viewletDescriptor) {
 			const viewContainer = this.getViewContainer(viewletDescriptor.id);
 			if (viewContainer?.hideIfEmpty) {
-				const viewContainerModel = this.viewDescriptorService.getViewContainerModel(viewContainer);
-				if (viewContainerModel.activeViewDescriptors.length === 0) {
+				const viewDescriptors = this.viewDescriptorService.getViewDescriptors(viewContainer);
+				if (viewDescriptors.activeViewDescriptors.length === 0) {
 					this.hideComposite(viewletDescriptor.id); // Update the composite bar by hiding
 				}
 			}
@@ -416,14 +417,14 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		this.globalActivityAction = new ActivityAction({
 			id: 'workbench.actions.manage',
 			name: nls.localize('manage', "Manage"),
-			cssClass: 'codicon-settings-gear'
+			cssClass: Codicon.gear.classNames
 		});
 
 		if (getUserDataSyncStore(this.productService, this.configurationService)) {
 			const profileAction = new ActivityAction({
 				id: 'workbench.actions.accounts',
 				name: nls.localize('accounts', "Accounts"),
-				cssClass: 'codicon-account'
+				cssClass: Codicon.account.classNames
 			});
 
 			this.globalActivityActionBar.push(profileAction);
@@ -478,14 +479,9 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		for (const viewlet of viewlets) {
 			this.enableCompositeActions(viewlet);
 			const viewContainer = this.getViewContainer(viewlet.id)!;
-			const viewContainerModel = this.viewDescriptorService.getViewContainerModel(viewContainer);
-			this.onDidChangeActiveViews(viewlet, viewContainerModel, viewContainer.hideIfEmpty);
-
-			const disposables = new DisposableStore();
-			disposables.add(viewContainerModel.onDidChangeActiveViewDescriptors(() => this.onDidChangeActiveViews(viewlet, viewContainerModel, viewContainer.hideIfEmpty)));
-			disposables.add(viewContainerModel.onDidChangeContainerInfo(() => this.updateActivity(viewlet, viewContainerModel)));
-
-			this.viewletDisposables.set(viewlet.id, disposables);
+			const viewDescriptors = this.viewDescriptorService.getViewDescriptors(viewContainer);
+			this.onDidChangeActiveViews(viewlet, viewDescriptors, viewContainer.hideIfEmpty);
+			this.viewletDisposables.set(viewlet.id, viewDescriptors.onDidChangeActiveViews(() => this.onDidChangeActiveViews(viewlet, viewDescriptors, viewContainer.hideIfEmpty)));
 		}
 	}
 
@@ -499,14 +495,17 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		this.hideComposite(viewletId);
 	}
 
-	private updateActivity(viewlet: ViewletDescriptor, viewContainerModel: IViewContainerModel): void {
-		const icon = viewContainerModel.icon;
+	private updateActivity(viewlet: ViewletDescriptor, viewDescriptors: IViewDescriptorCollection): void {
+		const viewDescriptor = viewDescriptors.activeViewDescriptors[0];
+
+		// Use the viewlet icon if any view inside belongs to it statically
+		const shouldUseViewletIcon = viewDescriptors.allViewDescriptors.some(v => this.viewDescriptorService.getDefaultContainer(v.id)?.id === viewlet.id);
 
 		const activity: IActivity = {
 			id: viewlet.id,
-			name: viewContainerModel.title,
-			cssClass: isString(icon) ? icon : undefined,
-			iconUrl: icon instanceof URI ? icon : undefined,
+			name: shouldUseViewletIcon ? viewlet.name : viewDescriptor.name,
+			cssClass: shouldUseViewletIcon ? viewlet.cssClass : (isString(viewDescriptor.containerIcon) ? viewDescriptor.containerIcon : (viewDescriptor.containerIcon === undefined ? Codicon.window.classNames : undefined)),
+			iconUrl: shouldUseViewletIcon ? viewlet.iconUrl : (viewDescriptor.containerIcon instanceof URI ? viewDescriptor.containerIcon : undefined),
 			keybindingId: viewlet.keybindingId
 		};
 
@@ -518,7 +517,7 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		}
 	}
 
-	private onDidChangeActiveViews(viewlet: ViewletDescriptor, viewDescriptors: IViewContainerModel, hideIfEmpty?: boolean): void {
+	private onDidChangeActiveViews(viewlet: ViewletDescriptor, viewDescriptors: IViewDescriptorCollection, hideIfEmpty?: boolean): void {
 		if (viewDescriptors.activeViewDescriptors.length) {
 			this.updateActivity(viewlet, viewDescriptors);
 			this.compositeBar.addComposite(viewlet);
@@ -646,8 +645,8 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 			if (viewlet) {
 				const views: { when: string | undefined }[] = [];
 				if (viewContainer) {
-					const viewContainerModel = this.viewDescriptorService.getViewContainerModel(viewContainer);
-					for (const { when } of viewContainerModel.allViewDescriptors) {
+					const viewDescriptors = this.viewDescriptorService.getViewDescriptors(viewContainer);
+					for (const { when } of viewDescriptors.allViewDescriptors) {
 						views.push({ when: when ? when.serialize() : undefined });
 					}
 				}

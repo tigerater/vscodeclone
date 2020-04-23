@@ -27,6 +27,7 @@ import { IQuickInputService, IQuickPickItem, IQuickPickSeparator } from 'vs/plat
 import { INotificationService } from 'vs/platform/notification/common/notification';
 import { IActivityBarService } from 'vs/workbench/services/activityBar/browser/activityBarService';
 import { IPanelService } from 'vs/workbench/services/panel/common/panelService';
+import { Codicon } from 'vs/base/common/codicons';
 
 const registry = Registry.as<IWorkbenchActionRegistry>(WorkbenchExtensions.WorkbenchActions);
 const viewCategory = nls.localize('view', "View");
@@ -144,7 +145,7 @@ export class ToggleEditorLayoutAction extends Action {
 	) {
 		super(id, label);
 
-		this.class = 'codicon-editor-layout';
+		this.class = Codicon.editorLayout.classNames;
 		this.updateEnablement();
 
 		this.registerListeners();
@@ -488,9 +489,9 @@ export class ResetViewLocationsAction extends Action {
 	async run(): Promise<void> {
 		const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
 		viewContainerRegistry.all.forEach(viewContainer => {
-			const viewContainerModel = this.viewDescriptorService.getViewContainerModel(viewContainer);
+			const viewDescriptors = this.viewDescriptorService.getViewDescriptors(viewContainer);
 
-			viewContainerModel.allViewDescriptors.forEach(viewDescriptor => {
+			viewDescriptors.allViewDescriptors.forEach(viewDescriptor => {
 				const defaultContainer = this.viewDescriptorService.getDefaultContainer(viewDescriptor.id);
 				const currentContainer = this.viewDescriptorService.getViewContainer(viewDescriptor.id);
 
@@ -583,7 +584,7 @@ export class MoveFocusedViewAction extends Action {
 
 		const currentContainer = this.viewDescriptorService.getViewContainer(focusedViewId)!;
 		const currentLocation = this.viewDescriptorService.getViewLocation(focusedViewId)!;
-		const isViewSolo = this.viewDescriptorService.getViewContainerModel(currentContainer).allViewDescriptors.length === 1;
+		const isViewSolo = this.viewDescriptorService.getViewDescriptors(currentContainer).allViewDescriptors.length === 1;
 
 		if (!(isViewSolo && currentLocation === ViewContainerLocation.Sidebar)) {
 			items.push({

@@ -18,6 +18,7 @@ import { IActivity } from 'vs/workbench/common/activity';
 import { IEditorGroupsService } from 'vs/workbench/services/editor/common/editorGroupsService';
 import { ActivePanelContext, PanelPositionContext } from 'vs/workbench/common/panel';
 import { ContextKeyExpression } from 'vs/platform/contextkey/common/contextkey';
+import { Codicon } from 'vs/base/common/codicons';
 
 export class ClosePanelAction extends Action {
 
@@ -29,7 +30,7 @@ export class ClosePanelAction extends Action {
 		name: string,
 		@IWorkbenchLayoutService private readonly layoutService: IWorkbenchLayoutService
 	) {
-		super(id, name, 'codicon-close');
+		super(id, name, Codicon.close.classNames);
 	}
 
 	async run(): Promise<void> {
@@ -199,10 +200,6 @@ export class PlaceHolderToggleCompositePinnedAction extends ToggleCompositePinne
 
 	constructor(id: string, compositeBar: ICompositeBar) {
 		super({ id, name: id, cssClass: undefined }, compositeBar);
-	}
-
-	setActivity(activity: IActivity): void {
-		this.label = activity.name;
 	}
 }
 

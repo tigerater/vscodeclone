@@ -10,6 +10,7 @@ import { withTestNotebook, TestCell } from 'vs/workbench/contrib/notebook/test/t
 import { IBulkEditService } from 'vs/editor/browser/services/bulkEditService';
 import { IUndoRedoService } from 'vs/platform/undoRedo/common/undoRedo';
 import { FoldingModel, CellFoldingState } from 'vs/workbench/contrib/notebook/browser/viewModel/foldingModel';
+import { CellViewModel } from 'vs/workbench/contrib/notebook/browser/viewModel/notebookViewModel';
 
 suite('Notebook Folding', () => {
 	const instantiationService = new TestInstantiationService();
@@ -95,7 +96,8 @@ suite('Notebook Folding', () => {
 				[['var e = 7;'], 'markdown', CellKind.Markdown, [], {}],
 			],
 			(editor, viewModel) => {
-				viewModel.setFoldingState(0, CellFoldingState.Collapsed);
+				const firstCell = viewModel.viewCells[0] as CellViewModel;
+				viewModel.setFoldingState(firstCell, CellFoldingState.Collapsed);
 				assert.deepEqual(viewModel.getHiddenRanges(), [
 					{ start: 1, length: 6 }
 				]);
@@ -116,7 +118,8 @@ suite('Notebook Folding', () => {
 				[['var e = 7;'], 'markdown', CellKind.Markdown, [], {}],
 			],
 			(editor, viewModel) => {
-				viewModel.setFoldingState(2, CellFoldingState.Collapsed);
+				const thirdCell = viewModel.viewCells[2] as CellViewModel;
+				viewModel.setFoldingState(thirdCell, CellFoldingState.Collapsed);
 				assert.deepEqual(viewModel.getHiddenRanges(), [
 					{ start: 3, length: 2 }
 				]);
@@ -137,7 +140,8 @@ suite('Notebook Folding', () => {
 				[['var e = 7;'], 'markdown', CellKind.Markdown, [], {}],
 			],
 			(editor, viewModel) => {
-				viewModel.setFoldingState(2, CellFoldingState.Collapsed);
+				const thirdCell = viewModel.viewCells[2] as CellViewModel;
+				viewModel.setFoldingState(thirdCell, CellFoldingState.Collapsed);
 				assert.deepEqual(viewModel.getHiddenRanges(), [
 					{ start: 3, length: 4 }
 				]);
@@ -160,19 +164,19 @@ suite('Notebook Folding', () => {
 				[['var e = 7;'], 'markdown', CellKind.Markdown, [], {}],
 			],
 			(editor, viewModel) => {
-				viewModel.setFoldingState(0, CellFoldingState.Collapsed);
+				viewModel.setFoldingState(viewModel.viewCells[0] as CellViewModel, CellFoldingState.Collapsed);
 				assert.deepEqual(viewModel.getHiddenRanges(), [
 					{ start: 1, length: 1 }
 				]);
 
-				viewModel.setFoldingState(5, CellFoldingState.Collapsed);
-				viewModel.setFoldingState(2, CellFoldingState.Collapsed);
+				viewModel.setFoldingState(viewModel.viewCells[5] as CellViewModel, CellFoldingState.Collapsed);
+				viewModel.setFoldingState(viewModel.viewCells[2] as CellViewModel, CellFoldingState.Collapsed);
 				assert.deepEqual(viewModel.getHiddenRanges(), [
 					{ start: 1, length: 1 },
 					{ start: 3, length: 4 }
 				]);
 
-				viewModel.setFoldingState(2, CellFoldingState.Expanded);
+				viewModel.setFoldingState(viewModel.viewCells[2] as CellViewModel, CellFoldingState.Expanded);
 				assert.deepEqual(viewModel.getHiddenRanges(), [
 					{ start: 1, length: 1 },
 					{ start: 6, length: 1 }
