@@ -87,7 +87,6 @@ export class BackLayerWebView extends Disposable {
 	element: HTMLElement;
 	webview!: WebviewElement;
 	insetMapping: Map<IOutput, { outputId: string, cell: CodeCellViewModel, cacheOffset: number | undefined }> = new Map();
-	hiddenInsetMapping: Set<IOutput> = new Set();
 	reversedInsetMapping: Map<string, IOutput> = new Map();
 	preloadsCache: Map<string, boolean> = new Map();
 	localResourceRootsCache: URI[] | undefined = undefined;
@@ -315,7 +314,6 @@ ${loaderJs}
 					for (let i = 0; i < event.data.widgets.length; i++) {
 						let widget = document.getElementById(event.data.widgets[i].id);
 						widget.style.top = event.data.widgets[i].top + 'px';
-						widget.parentNode.style.display = 'block';
 					}
 					break;
 				}
@@ -328,21 +326,9 @@ ${loaderJs}
 				observers = [];
 				break;
 			case 'clearOutput':
-				{
-					let output = document.getElementById(id);
-					document.getElementById(id).parentNode.removeChild(output);
-					// @TODO remove observer
-				}
-				break;
-			case 'hideOutput':
-				document.getElementById(id).parentNode.style.display = 'none';
-				break;
-			case 'showOutput':
-				{
-					let output = document.getElementById(id);
-					output.parentNode.style.display = 'block';
-					output.style.top = event.data.top + 'px';
-				}
+				let output = document.getElementById(id);
+				output.parentNode.removeChild(output);
+				// @TODO remove observer
 				break;
 			case 'preload':
 				let resources = event.data.resources;
@@ -429,10 +415,6 @@ ${loaderJs}
 		let outputIndex = cell.outputs.indexOf(output);
 		let outputOffset = cellTop + cell.getOutputOffset(outputIndex);
 
-		if (this.hiddenInsetMapping.has(output)) {
-			return true;
-		}
-
 		if (outputOffset === outputCache.cacheOffset) {
 			return false;
 		}
@@ -448,7 +430,6 @@ ${loaderJs}
 
 			let outputOffset = item.cellTop + item.cell.getOutputOffset(outputIndex);
 			outputCache.cacheOffset = outputOffset;
-			this.hiddenInsetMapping.delete(item.output);
 
 			return {
 				id: id,
@@ -470,21 +451,6 @@ ${loaderJs}
 	createInset(cell: CodeCellViewModel, output: IOutput, cellTop: number, offset: number, shadowContent: string, preloads: Set<number>) {
 		this.updateRendererPreloads(preloads);
 		let initialTop = cellTop + offset;
-
-		if (this.insetMapping.has(output)) {
-			let outputCache = this.insetMapping.get(output);
-
-			if (outputCache) {
-				this.hiddenInsetMapping.delete(output);
-				this.webview.sendMessage({
-					type: 'showOutput',
-					id: outputCache.outputId,
-					top: initialTop
-				});
-				return;
-			}
-		}
-
 		let outputId = UUID.generateUuid();
 
 		let message: ICreationRequestMessage = {
@@ -498,7 +464,6 @@ ${loaderJs}
 
 		this.webview.sendMessage(message);
 		this.insetMapping.set(output, { outputId: outputId, cell: cell, cacheOffset: initialTop });
-		this.hiddenInsetMapping.delete(output);
 		this.reversedInsetMapping.set(outputId, output);
 	}
 
@@ -516,22 +481,6 @@ ${loaderJs}
 		});
 		this.insetMapping.delete(output);
 		this.reversedInsetMapping.delete(id);
-	}
-
-	hideInset(output: IOutput) {
-		let outputCache = this.insetMapping.get(output);
-		if (!outputCache) {
-			return;
-		}
-
-		let id = outputCache.outputId;
-		console.log('hide inset', id);
-		this.hiddenInsetMapping.add(output);
-
-		this.webview.sendMessage({
-			type: 'hideOutput',
-			id: id
-		});
 	}
 
 	clearInsets() {

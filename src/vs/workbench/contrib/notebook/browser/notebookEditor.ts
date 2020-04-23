@@ -312,6 +312,7 @@ export class NotebookEditor extends BaseEditor implements INotebookEditor {
 	focus() {
 		super.focus();
 		this.editorFocus?.set(true);
+		this.list?.domFocus();
 	}
 
 	async setInput(input: NotebookEditorInput, options: EditorOptions | undefined, token: CancellationToken): Promise<void> {
@@ -400,54 +401,53 @@ export class NotebookEditor extends BaseEditor implements INotebookEditor {
 		}));
 
 		this.localStore.add(this.list!.onDidChangeContentHeight(() => {
-			DOM.scheduleAtNextAnimationFrame(() => {
-				const scrollTop = this.list?.scrollTop || 0;
-				const scrollHeight = this.list?.scrollHeight || 0;
-				this.webview!.element.style.height = `${scrollHeight}px`;
-				let updateItems: { cell: CodeCellViewModel, output: IOutput, cellTop: number }[] = [];
+			const scrollTop = this.list?.scrollTop || 0;
+			const scrollHeight = this.list?.scrollHeight || 0;
+			this.webview!.element.style.height = `${scrollHeight}px`;
+			let updateItems: { cell: CodeCellViewModel, output: IOutput, cellTop: number }[] = [];
 
-				if (this.webview?.insetMapping) {
-					this.webview?.insetMapping.forEach((value, key) => {
-						const cell = value.cell;
-						const viewIndex = this.list?.getViewIndex(cell);
-
-						if (viewIndex === undefined) {
-							return;
-						}
-
-						const cellTop = this.list?.getAbsoluteTopOfElement(cell) || 0;
-						if (this.webview!.shouldUpdateInset(cell, key, cellTop)) {
-							updateItems.push({
-								cell: cell,
-								output: key,
-								cellTop: cellTop
-							});
-						}
-					});
-
-					if (updateItems.length) {
-						this.webview?.updateViewScrollTop(-scrollTop, updateItems);
+			if (this.webview?.insetMapping) {
+				this.webview?.insetMapping.forEach((value, key) => {
+					const cell = value.cell;
+					const cellTop = this.list?.getAbsoluteTopOfElement(cell) || 0;
+					if (this.webview!.shouldUpdateInset(cell, key, cellTop)) {
+						updateItems.push({
+							cell: cell,
+							output: key,
+							cellTop: cellTop
+						});
 					}
+				});
+
+				if (updateItems.length) {
+					this.webview?.updateViewScrollTop(-scrollTop, updateItems);
 				}
-			});
+			}
 		}));
 
 		this.list!.attachViewModel(this.notebookViewModel);
 		this.localStore.add(this.list!.onDidRemoveOutput(output => {
 			this.removeInset(output);
 		}));
-		this.localStore.add(this.list!.onDidHideOutput(output => {
-			this.hideInset(output);
-		}));
 
 		this.list!.layout();
 
+		this.restoreTextEditorViewState(viewState);
+	}
+
+	private restoreTextEditorViewState(viewState: INotebookEditorViewState | undefined): void {
 		if (viewState?.scrollPosition !== undefined) {
 			this.list!.scrollTop = viewState!.scrollPosition.top;
 			this.list!.scrollLeft = viewState!.scrollPosition.left;
 		} else {
 			this.list!.scrollTop = 0;
 			this.list!.scrollLeft = 0;
+		}
+
+		if (typeof viewState?.focus === 'number') {
+			this.list!.setFocus([viewState.focus]);
+		} else {
+			this.list!.setFocus([0]);
 		}
 	}
 
@@ -467,6 +467,11 @@ export class NotebookEditor extends BaseEditor implements INotebookEditor {
 				}
 
 				state.cellTotalHeights = cellHeights;
+
+				const focus = this.list.getFocus()[0];
+				if (focus) {
+					state.focus = focus;
+				}
 			}
 
 			this.editorMemento.saveEditorState(this.group, input.resource, state);
@@ -587,12 +592,6 @@ export class NotebookEditor extends BaseEditor implements INotebookEditor {
 
 	//#region Cell operations
 	async layoutNotebookCell(cell: ICellViewModel, height: number): Promise<void> {
-		const viewIndex = this.list!.getViewIndex(cell);
-		if (viewIndex === undefined) {
-			// the cell is hidden
-			return;
-		}
-
 		let relayout = (cell: ICellViewModel, height: number) => {
 			this.list?.updateElementHeight2(cell, height);
 		};
@@ -842,14 +841,6 @@ export class NotebookEditor extends BaseEditor implements INotebookEditor {
 		}
 
 		this.webview!.removeInset(output);
-	}
-
-	hideInset(output: IOutput) {
-		if (!this.webview) {
-			return;
-		}
-
-		this.webview!.hideInset(output);
 	}
 
 	getOutputRenderer(): OutputRenderer {

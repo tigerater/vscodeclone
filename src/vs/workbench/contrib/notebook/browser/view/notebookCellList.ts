@@ -6,7 +6,7 @@
 import * as DOM from 'vs/base/browser/dom';
 import { IMouseWheelEvent } from 'vs/base/browser/mouseEvent';
 import { IListRenderer, IListVirtualDelegate, ListError } from 'vs/base/browser/ui/list/list';
-import { IListStyles, IStyleController, MouseController } from 'vs/base/browser/ui/list/listWidget';
+import { IListStyles, IStyleController, MouseController, IListOptions } from 'vs/base/browser/ui/list/listWidget';
 import { Emitter, Event } from 'vs/base/common/event';
 import { DisposableStore, IDisposable } from 'vs/base/common/lifecycle';
 import { isMacintosh } from 'vs/base/common/platform';
@@ -36,8 +36,6 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 
 	private readonly _onDidRemoveOutput = new Emitter<IOutput>();
 	readonly onDidRemoveOutput: Event<IOutput> = this._onDidRemoveOutput.event;
-	private readonly _onDidHideOutput = new Emitter<IOutput>();
-	readonly onDidHideOutput: Event<IOutput> = this._onDidHideOutput.event;
 
 	private _viewModel: NotebookViewModel | null = null;
 	private _hiddenRangeIds: string[] = [];
@@ -122,7 +120,7 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 
 	}
 
-	protected createMouseController(): MouseController<CellViewModel> {
+	protected createMouseController(_options: IListOptions<CellViewModel>): MouseController<CellViewModel> {
 		return new NotebookMouseController(this);
 	}
 
@@ -151,42 +149,27 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 			if (e.synchronous) {
 				viewDiffs.reverse().forEach((diff) => {
 					// remove output in the webview
-					const hideOutputs: IOutput[] = [];
-					const deletedOutputs: IOutput[] = [];
-
 					for (let i = diff.start; i < diff.start + diff.deleteCount; i++) {
 						const cell = this.element(i);
-						if (this._viewModel!.hasCell(cell)) {
-							hideOutputs.push(...cell?.model.outputs);
-						} else {
-							deletedOutputs.push(...cell?.model.outputs);
-						}
+						cell?.model.outputs.forEach(output => {
+							this._onDidRemoveOutput.fire(output);
+						});
 					}
 
 					this.splice2(diff.start, diff.deleteCount, diff.toInsert);
-
-					hideOutputs.forEach(output => this._onDidHideOutput.fire(output));
-					deletedOutputs.forEach(output => this._onDidRemoveOutput.fire(output));
 				});
 			} else {
 				DOM.scheduleAtNextAnimationFrame(() => {
 					viewDiffs.reverse().forEach((diff) => {
-						const hideOutputs: IOutput[] = [];
-						const deletedOutputs: IOutput[] = [];
-
+						// remove output in the webview
 						for (let i = diff.start; i < diff.start + diff.deleteCount; i++) {
 							const cell = this.element(i);
-							if (this._viewModel!.hasCell(cell)) {
-								hideOutputs.push(...cell?.model.outputs);
-							} else {
-								deletedOutputs.push(...cell?.model.outputs);
-							}
+							cell?.model.outputs.forEach(output => {
+								this._onDidRemoveOutput.fire(output);
+							});
 						}
 
 						this.splice2(diff.start, diff.deleteCount, diff.toInsert);
-
-						hideOutputs.forEach(output => this._onDidHideOutput.fire(output));
-						deletedOutputs.forEach(output => this._onDidRemoveOutput.fire(output));
 					});
 				});
 			}
@@ -279,22 +262,14 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 
 		viewDiffs.reverse().forEach((diff) => {
 			// remove output in the webview
-			const hideOutputs: IOutput[] = [];
-			const deletedOutputs: IOutput[] = [];
-
 			for (let i = diff.start; i < diff.start + diff.deleteCount; i++) {
 				const cell = this.element(i);
-				if (this._viewModel!.hasCell(cell)) {
-					hideOutputs.push(...cell?.model.outputs);
-				} else {
-					deletedOutputs.push(...cell?.model.outputs);
-				}
+				cell?.model.outputs.forEach(output => {
+					this._onDidRemoveOutput.fire(output);
+				});
 			}
 
 			this.splice2(diff.start, diff.deleteCount, diff.toInsert);
-
-			hideOutputs.forEach(output => this._onDidHideOutput.fire(output));
-			deletedOutputs.forEach(output => this._onDidRemoveOutput.fire(output));
 		});
 	}
 
@@ -303,42 +278,25 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 		super.splice(start, deleteCount, elements);
 	}
 
+
 	getViewIndex(cell: ICellViewModel) {
 		const modelIndex = this._viewModel!.getCellIndex(cell);
 		if (!this.hiddenRangesPrefixSum) {
 			return modelIndex;
 		}
 
-		const viewIndexInfo = this.hiddenRangesPrefixSum.getIndexOf(modelIndex);
-
-		if (viewIndexInfo.remainder !== 0) {
-			return undefined;
-		} else {
-			return viewIndexInfo.index;
-		}
-	}
-
-
-	private _getViewIndexUpperBound(cell: ICellViewModel) {
-		const modelIndex = this._viewModel!.getCellIndex(cell);
-		if (!this.hiddenRangesPrefixSum) {
-			return modelIndex;
-		}
-
-		const viewIndexInfo = this.hiddenRangesPrefixSum.getIndexOf(modelIndex);
-
-		return viewIndexInfo.index;
+		return this.hiddenRangesPrefixSum.getIndexOf(modelIndex).index;
 	}
 
 	focusElement(cell: ICellViewModel) {
-		const index = this._getViewIndexUpperBound(cell);
+		const index = this.getViewIndex(cell);
 
 		if (index !== undefined) {
 			this.setFocus([index]);
 		}
 	}
 	selectElement(cell: ICellViewModel) {
-		const index = this._getViewIndexUpperBound(cell);
+		const index = this.getViewIndex(cell);
 
 		if (index !== undefined) {
 			this.setSelection([index]);
@@ -347,7 +305,7 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 	}
 
 	revealElementInView(cell: ICellViewModel) {
-		const index = this._getViewIndexUpperBound(cell);
+		const index = this.getViewIndex(cell);
 
 		if (index !== undefined) {
 			this._revealInView(index);
@@ -355,7 +313,7 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 	}
 
 	revealElementInCenterIfOutsideViewport(cell: ICellViewModel) {
-		const index = this._getViewIndexUpperBound(cell);
+		const index = this.getViewIndex(cell);
 
 		if (index !== undefined) {
 			this._revealInCenterIfOutsideViewport(index);
@@ -363,7 +321,7 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 	}
 
 	revealElementInCenter(cell: ICellViewModel) {
-		const index = this._getViewIndexUpperBound(cell);
+		const index = this.getViewIndex(cell);
 
 		if (index !== undefined) {
 			this._revealInCenter(index);
@@ -371,7 +329,7 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 	}
 
 	revealElementLineInView(cell: ICellViewModel, line: number): void {
-		const index = this._getViewIndexUpperBound(cell);
+		const index = this.getViewIndex(cell);
 
 		if (index !== undefined) {
 			this._revealLineInView(index, line);
@@ -379,7 +337,7 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 	}
 
 	revealElementLineInCenter(cell: ICellViewModel, line: number) {
-		const index = this._getViewIndexUpperBound(cell);
+		const index = this.getViewIndex(cell);
 
 		if (index !== undefined) {
 			this._revealLineInCenter(index, line);
@@ -387,7 +345,7 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 	}
 
 	revealElementLineInCenterIfOutsideViewport(cell: ICellViewModel, line: number) {
-		const index = this._getViewIndexUpperBound(cell);
+		const index = this.getViewIndex(cell);
 
 		if (index !== undefined) {
 			this._revealLineInCenterIfOutsideViewport(index, line);
@@ -395,7 +353,7 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 	}
 
 	revealElementRangeInView(cell: ICellViewModel, range: Range): void {
-		const index = this._getViewIndexUpperBound(cell);
+		const index = this.getViewIndex(cell);
 
 		if (index !== undefined) {
 			this._revealRangeInView(index, range);
@@ -403,7 +361,7 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 	}
 
 	revealElementRangeInCenter(cell: ICellViewModel, range: Range): void {
-		const index = this._getViewIndexUpperBound(cell);
+		const index = this.getViewIndex(cell);
 
 		if (index !== undefined) {
 			this._revealRangeInCenter(index, range);
@@ -411,7 +369,7 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 	}
 
 	revealElementRangeInCenterIfOutsideViewport(cell: ICellViewModel, range: Range): void {
-		const index = this._getViewIndexUpperBound(cell);
+		const index = this.getViewIndex(cell);
 
 		if (index !== undefined) {
 			this._revealRangeInCenterIfOutsideViewport(index, range);
@@ -419,7 +377,7 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 	}
 
 	domElementOfElement(element: ICellViewModel): HTMLElement | null {
-		const index = this._getViewIndexUpperBound(element);
+		const index = this.getViewIndex(element);
 		if (index !== undefined) {
 			return this.view.domElement(index);
 		}
@@ -432,9 +390,8 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 	}
 
 	getAbsoluteTopOfElement(element: ICellViewModel): number {
-		let index = this._getViewIndexUpperBound(element);
+		let index = this.getViewIndex(element);
 		if (index === undefined || index < 0 || index >= this.length) {
-			this._getViewIndexUpperBound(element);
 			throw new ListError(this.listUser, `Invalid index ${index}`);
 		}
 
@@ -447,7 +404,7 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 
 
 	updateElementHeight2(element: ICellViewModel, size: number): void {
-		const index = this._getViewIndexUpperBound(element);
+		const index = this.getViewIndex(element);
 		if (index === undefined) {
 			return;
 		}

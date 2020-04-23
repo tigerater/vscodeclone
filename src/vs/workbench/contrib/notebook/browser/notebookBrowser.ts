@@ -5,7 +5,7 @@
 
 import { IMouseWheelEvent } from 'vs/base/browser/mouseEvent';
 import { IListEvent, IListMouseEvent } from 'vs/base/browser/ui/list/list';
-import { IListOptions, IListStyles } from 'vs/base/browser/ui/list/listWidget';
+import { IListOptions, IListStyles, List } from 'vs/base/browser/ui/list/listWidget';
 import { ProgressBar } from 'vs/base/browser/ui/progressbar/progressbar';
 import { ToolBar } from 'vs/base/browser/ui/toolbar/toolbar';
 import { CancellationTokenSource } from 'vs/base/common/cancellation';
@@ -312,13 +312,11 @@ export interface INotebookCellList {
 	length: number;
 	rowsContainer: HTMLElement;
 	readonly onDidRemoveOutput: Event<IOutput>;
-	readonly onDidHideOutput: Event<IOutput>;
 	readonly onMouseUp: Event<IListMouseEvent<CellViewModel>>;
 	readonly onMouseDown: Event<IListMouseEvent<CellViewModel>>;
 	detachViewModel(): void;
 	attachViewModel(viewModel: NotebookViewModel): void;
 	clear(): void;
-	getViewIndex(cell: ICellViewModel): number | undefined;
 	focusElement(element: ICellViewModel): void;
 	selectElement(element: ICellViewModel): void;
 	getFocusedElements(): ICellViewModel[];
@@ -343,6 +341,11 @@ export interface INotebookCellList {
 	updateOptions(options: IListOptions<ICellViewModel>): void;
 	layout(height?: number, width?: number): void;
 	dispose(): void;
+
+	// TODO resolve differences between List<CellViewModel> and INotebookCellList<ICellViewModel>
+	getFocus(): number[];
+	setFocus(indexes: number[]): void;
+	setSelection(indexes: number[]): void;
 }
 
 export interface BaseCellRenderTemplate {
