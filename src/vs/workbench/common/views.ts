@@ -43,8 +43,6 @@ export interface IViewContainerDescriptor {
 
 	readonly ctorDescriptor: SyncDescriptor<IViewPaneContainer>;
 
-	readonly storageId?: string;
-
 	readonly icon?: string | URI;
 
 	readonly order?: number;
@@ -209,43 +207,11 @@ export interface IViewDescriptor {
 	readonly remoteAuthority?: string | string[];
 }
 
-export interface IViewDescriptorRef {
-	viewDescriptor: IViewDescriptor;
-	index: number;
-}
-
-export interface IAddedViewDescriptorRef extends IViewDescriptorRef {
-	collapsed: boolean;
-	size?: number;
-}
-
-export interface IViewContainerModel {
-
-	readonly title: string;
-	readonly icon: string | URI | undefined;
-	readonly onDidChangeContainerInfo: Event<{ title?: boolean, icon?: boolean }>;
-
-	readonly allViewDescriptors: ReadonlyArray<IViewDescriptor>;
-	readonly onDidChangeAllViewDescriptors: Event<{ added: ReadonlyArray<IViewDescriptor>, removed: ReadonlyArray<IViewDescriptor> }>;
-
-	readonly activeViewDescriptors: ReadonlyArray<IViewDescriptor>;
-	readonly onDidChangeActiveViewDescriptors: Event<{ added: ReadonlyArray<IViewDescriptor>, removed: ReadonlyArray<IViewDescriptor> }>;
-
-	readonly visibleViewDescriptors: ReadonlyArray<IViewDescriptor>;
-	readonly onDidAddVisibleViewDescriptors: Event<IAddedViewDescriptorRef[]>;
-	readonly onDidRemoveVisibleViewDescriptors: Event<IViewDescriptorRef[]>
-	readonly onDidMoveVisibleViewDescriptors: Event<{ from: IViewDescriptorRef; to: IViewDescriptorRef; }>
-
-	isVisible(id: string): boolean;
-	setVisible(id: string, visible: boolean, size?: number): void;
-
-	isCollapsed(id: string): boolean;
-	setCollapsed(id: string, collapsed: boolean): void;
-
-	getSize(id: string): number | undefined;
-	setSize(id: string, size: number): void
-
-	move(from: string, to: string): void;
+export interface IViewDescriptorCollection extends IDisposable {
+	readonly onDidChangeViews: Event<{ added: IViewDescriptor[], removed: IViewDescriptor[] }>;
+	readonly onDidChangeActiveViews: Event<{ added: IViewDescriptor[], removed: IViewDescriptor[] }>;
+	readonly activeViewDescriptors: IViewDescriptor[];
+	readonly allViewDescriptors: IViewDescriptor[];
 }
 
 export enum ViewContentPriority {
@@ -485,7 +451,7 @@ export interface IViewDescriptorService {
 
 	moveViewsToContainer(views: IViewDescriptor[], viewContainer: ViewContainer): void;
 
-	getViewContainerModel(container: ViewContainer): IViewContainerModel;
+	getViewDescriptors(container: ViewContainer): IViewDescriptorCollection;
 
 	getViewDescriptor(viewId: string): IViewDescriptor | null;
 

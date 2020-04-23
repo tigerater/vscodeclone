@@ -144,7 +144,7 @@ export class FoldingModel extends Disposable {
 		const cellRanges: ICellRange[] = [];
 		for (let i = 0; i < newRegions.length; i++) {
 			const region = newRegions.toRegion(i);
-			cellRanges.push({ start: region.startLineNumber - 1, end: region.endLineNumber - 1 });
+			cellRanges.push({ start: region.startLineNumber - 1, length: region.endLineNumber - region.startLineNumber + 1 });
 		}
 
 		// remove old tracked ranges and add new ones
@@ -165,7 +165,6 @@ export enum CellFoldingState {
 
 export interface FoldingRegionDelegate {
 	onDidFoldingRegionChanged: Event<void>;
-	getCellIndex(cell: CellViewModel): number;
-	getFoldingStartIndex(index: number): number;
-	getFoldingState(index: number): CellFoldingState;
+	getFoldingStartIndex(cell: CellViewModel): number;
+	getFoldingState(cell: CellViewModel): CellFoldingState;
 }

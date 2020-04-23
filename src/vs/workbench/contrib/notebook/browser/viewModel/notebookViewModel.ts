@@ -251,30 +251,43 @@ export class NotebookViewModel extends Disposable implements FoldingRegionDelega
 			this._updateFoldingRanges();
 		}));
 	}
+	getFoldingStartIndex(cell: CellViewModel): number {
+		const modelIndex = this.viewCells.indexOf(cell);
+		if (modelIndex < 0) {
+			return -1;
+		}
 
-	getFoldingStartIndex(index: number): number {
-		const range = this._foldingModel.regions.findRange(index + 1);
+		const range = this._foldingModel.regions.findRange(modelIndex + 1);
 		const startIndex = this._foldingModel.regions.getStartLineNumber(range) - 1;
 		return startIndex;
 	}
 
-	getFoldingState(index: number): CellFoldingState {
-		const range = this._foldingModel.regions.findRange(index + 1);
+	getFoldingState(cell: CellViewModel): CellFoldingState {
+		const modelIndex = this.viewCells.indexOf(cell);
+		if (modelIndex < 0) {
+			return -1;
+		}
+
+		const range = this._foldingModel.regions.findRange(modelIndex + 1);
 		const startIndex = this._foldingModel.regions.getStartLineNumber(range) - 1;
 
-		if (startIndex !== index) {
+		if (startIndex !== modelIndex) {
 			return CellFoldingState.None;
 		}
 
 		return this._foldingModel.regions.isCollapsed(range) ? CellFoldingState.Collapsed : CellFoldingState.Expanded;
 	}
 
-	setFoldingState(index: number, state: CellFoldingState): void {
+	setFoldingState(cell: CellViewModel, state: CellFoldingState): void {
+		const modelIndex = this.viewCells.indexOf(cell);
+		if (modelIndex < 0) {
+			return;
+		}
 
-		const range = this._foldingModel.regions.findRange(index + 1);
+		const range = this._foldingModel.regions.findRange(modelIndex + 1);
 		const startIndex = this._foldingModel.regions.getStartLineNumber(range) - 1;
 
-		if (startIndex !== index) {
+		if (startIndex !== modelIndex) {
 			return;
 		}
 
@@ -305,13 +318,13 @@ export class NotebookViewModel extends Disposable implements FoldingRegionDelega
 				continue;
 			}
 
-			if (!updateHiddenAreas && k < this._hiddenRanges.length && this._hiddenRanges[k].start + 1 === startLineNumber && (this._hiddenRanges[k].end + 1) === endLineNumber) {
+			if (!updateHiddenAreas && k < this._hiddenRanges.length && this._hiddenRanges[k].start + 1 === startLineNumber && (this._hiddenRanges[k].start + this._hiddenRanges[k].length) === endLineNumber) {
 				// reuse the old ranges
 				newHiddenAreas.push(this._hiddenRanges[k]);
 				k++;
 			} else {
 				updateHiddenAreas = true;
-				newHiddenAreas.push({ start: startLineNumber - 1, end: endLineNumber - 1 });
+				newHiddenAreas.push({ start: startLineNumber - 1, length: endLineNumber - startLineNumber + 1 });
 			}
 			lastCollapsedStart = startLineNumber;
 			lastCollapsedEnd = endLineNumber;
@@ -366,10 +379,10 @@ export class NotebookViewModel extends Disposable implements FoldingRegionDelega
 			this._decorationsTree.resolveNode(node, versionId);
 		}
 		if (node.range === null) {
-			return { start: node.cachedAbsoluteStart - 1, end: node.cachedAbsoluteEnd - 1 };
+			return { start: node.cachedAbsoluteStart - 1, length: node.cachedAbsoluteEnd - node.cachedAbsoluteStart + 1 };
 		}
 
-		return { start: node.range.startLineNumber - 1, end: node.range.endLineNumber - 1 };
+		return { start: node.range.startLineNumber - 1, length: node.range.endLineNumber - node.range.startLineNumber + 1 };
 	}
 
 	setTrackedRange(id: string | null, newRange: ICellRange | null, newStickiness: TrackedRangeStickiness): string | null {
@@ -380,7 +393,7 @@ export class NotebookViewModel extends Disposable implements FoldingRegionDelega
 				return null;
 			}
 
-			return this._deltaCellDecorationsImpl(0, [], [{ range: new Range(newRange.start + 1, 1, newRange.end + 1, 1), options: TRACKED_RANGE_OPTIONS[newStickiness] }])[0];
+			return this._deltaCellDecorationsImpl(0, [], [{ range: new Range(newRange.start + 1, 1, newRange.start + newRange.length, 1), options: TRACKED_RANGE_OPTIONS[newStickiness] }])[0];
 		}
 
 		if (!newRange) {
@@ -391,7 +404,7 @@ export class NotebookViewModel extends Disposable implements FoldingRegionDelega
 		}
 
 		this._decorationsTree.delete(node);
-		node.reset(this.getVersionId(), newRange.start, newRange.end + 1, new Range(newRange.start + 1, 1, newRange.end + 1, 1));
+		node.reset(this.getVersionId(), newRange.start, newRange.start + newRange.length, new Range(newRange.start + 1, 1, newRange.start + newRange.length, 1));
 		node.setOptions(TRACKED_RANGE_OPTIONS[newStickiness]);
 		this._decorationsTree.insert(node);
 		return node.id;
