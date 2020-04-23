@@ -78,7 +78,7 @@ textarea {
 select {
 	height: calc(2.25rem + 2px);
 	display: inline-block;
-	padding: 3px 3px;
+	padding: 3px;
 	font-size: 14px;
 	line-height: 1.5;
 	color: #495057;

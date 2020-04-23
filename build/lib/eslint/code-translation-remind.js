@@ -3,7 +3,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-var _a;
+let _a;
 const fs_1 = require("fs");
 const utils_1 = require("./utils");
 module.exports = new (_a = class TranslationRemind {

@@ -3,7 +3,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-var _a;
+let _a;
 const experimental_utils_1 = require("@typescript-eslint/experimental-utils");
 function isStringLiteral(node) {
     return !!node && node.type === experimental_utils_1.AST_NODE_TYPES.Literal && typeof node.value === 'string';

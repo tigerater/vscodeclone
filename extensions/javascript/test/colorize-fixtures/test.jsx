@@ -1,8 +1,8 @@
-var ToggleText = React.createClass({
+let ToggleText = React.createClass({
   getInitialState: function () {
     return {
       showDefault: true
-    }
+    };
   },
 
   toggle: function (e) {
@@ -11,12 +11,12 @@ var ToggleText = React.createClass({
 
     // Invert the chosen default.
     // This will trigger an intelligent re-render of the component.
-    this.setState({ showDefault: !this.state.showDefault })
+    this.setState({ showDefault: !this.state.showDefault });
   },
 
   render: function () {
     // Default to the default message.
-    var message = this.props.default;
+    let message = this.props.default;
 
     // If toggled, show the alternate message.
     if (!this.state.showDefault) {

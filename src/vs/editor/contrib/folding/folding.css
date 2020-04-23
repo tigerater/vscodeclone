@@ -23,7 +23,7 @@
 
 .monaco-editor .inline-folded:after {
 	color: grey;
-	margin: 0.1em 0.2em 0 0.2em;
+	margin: 0.1em 0.2em 0;
 	content: "⋯";
 	display: inline;
 	line-height: 1em;

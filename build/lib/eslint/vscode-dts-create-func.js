@@ -14,7 +14,7 @@ module.exports = new class ApiLiteralOrTypes {
     create(context) {
         return {
             ['TSDeclareFunction Identifier[name=/create.*/]']: (node) => {
-                var _a;
+                let _a;
                 const decl = node.parent;
                 if (((_a = decl.returnType) === null || _a === void 0 ? void 0 : _a.typeAnnotation.type) !== experimental_utils_1.AST_NODE_TYPES.TSTypeReference) {
                     return;

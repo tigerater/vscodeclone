@@ -44,7 +44,7 @@ exports.externalExtensionsWithTranslations = {
     'vscode-node-debug': 'ms-vscode.node-debug',
     'vscode-node-debug2': 'ms-vscode.node-debug2'
 };
-var LocalizeInfo;
+let LocalizeInfo;
 (function (LocalizeInfo) {
     function is(value) {
         let candidate = value;
@@ -52,7 +52,7 @@ var LocalizeInfo;
     }
     LocalizeInfo.is = is;
 })(LocalizeInfo || (LocalizeInfo = {}));
-var BundledFormat;
+let BundledFormat;
 (function (BundledFormat) {
     function is(value) {
         if (Is.undef(value)) {
@@ -64,7 +64,7 @@ var BundledFormat;
     }
     BundledFormat.is = is;
 })(BundledFormat || (BundledFormat = {}));
-var PackageJsonFormat;
+let PackageJsonFormat;
 (function (PackageJsonFormat) {
     function is(value) {
         if (Is.undef(value) || !Is.object(value)) {

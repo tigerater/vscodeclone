@@ -5,12 +5,12 @@
 
 'use strict';
 
-var path = require('path');
-var fs = require('fs');
-var plist = require('fast-plist');
-var cson = require('cson-parser');
-var https = require('https');
-var url = require('url');
+let path = require('path');
+let fs = require('fs');
+let plist = require('fast-plist');
+let cson = require('cson-parser');
+let https = require('https');
+let url = require('url');
 
 let commitDate = '0000-00-00';
 
@@ -18,11 +18,11 @@ let commitDate = '0000-00-00';
  * @param {string} urlString
  */
 function getOptions(urlString) {
-	var _url = url.parse(urlString);
-	var headers = {
+	let _url = url.parse(urlString);
+	let headers = {
 		'User-Agent': 'VSCode'
 	};
-	var token = process.env['GITHUB_TOKEN'];
+	let token = process.env['GITHUB_TOKEN'];
 	if (token) {
 		headers['Authorization'] = 'token ' + token;
 	}
@@ -41,7 +41,7 @@ function getOptions(urlString) {
  */
 function download(url, redirectCount) {
 	return new Promise((c, e) => {
-		var content = '';
+		let content = '';
 		https.get(getOptions(url), function (response) {
 			response.on('data', function (data) {
 				content += data.toString();
@@ -68,7 +68,7 @@ function download(url, redirectCount) {
 }
 
 function getCommitSha(repoId, repoPath) {
-	var commitInfo = 'https://api.github.com/repos/' + repoId + '/commits?path=' + repoPath;
+	let commitInfo = 'https://api.github.com/repos/' + repoId + '/commits?path=' + repoPath;
 	return download(commitInfo).then(function (content) {
 		try {
 			let lastCommit = JSON.parse(content)[0];
@@ -83,11 +83,11 @@ function getCommitSha(repoId, repoPath) {
 }
 
 exports.update = function (repoId, repoPath, dest, modifyGrammar, version = 'master', packageJsonPathOverride = '') {
-	var contentPath = 'https://raw.githubusercontent.com/' + repoId + `/${version}/` + repoPath;
+	let contentPath = 'https://raw.githubusercontent.com/' + repoId + `/${version}/` + repoPath;
 	console.log('Reading from ' + contentPath);
 	return download(contentPath).then(function (content) {
-		var ext = path.extname(repoPath);
-		var grammar;
+		let ext = path.extname(repoPath);
+		let grammar;
 		if (ext === '.tmLanguage' || ext === '.plist') {
 			grammar = plist.parse(content);
 		} else if (ext === '.cson') {
@@ -170,7 +170,7 @@ exports.update = function (repoId, repoPath, dest, modifyGrammar, version = 'mas
 };
 
 if (path.basename(process.argv[1]) === 'update-grammar.js') {
-	for (var i = 3; i < process.argv.length; i += 2) {
+	for (let i = 3; i < process.argv.length; i += 2) {
 		exports.update(process.argv[2], process.argv[i], process.argv[i + 1]);
 	}
 }

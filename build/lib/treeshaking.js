@@ -9,7 +9,7 @@ const fs = require("fs");
 const path = require("path");
 const ts = require("typescript");
 const TYPESCRIPT_LIB_FOLDER = path.dirname(require.resolve('typescript/lib/lib.d.ts'));
-var ShakeLevel;
+let ShakeLevel;
 (function (ShakeLevel) {
     ShakeLevel[ShakeLevel["Files"] = 0] = "Files";
     ShakeLevel[ShakeLevel["InnerFile"] = 1] = "InnerFile";
@@ -207,7 +207,7 @@ class TypeScriptLanguageServiceHost {
 }
 //#endregion
 //#region Tree Shaking
-var NodeColor;
+let NodeColor;
 (function (NodeColor) {
     NodeColor[NodeColor["White"] = 0] = "White";
     NodeColor[NodeColor["Gray"] = 1] = "Gray";

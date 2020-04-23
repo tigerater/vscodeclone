@@ -5,11 +5,11 @@
 
 'use strict';
 
-var path = require('path');
-var fs = require('fs');
-var plist = require('fast-plist');
+let path = require('path');
+let fs = require('fs');
+let plist = require('fast-plist');
 
-var mappings = {
+let mappings = {
 	"background": ["editor.background"],
 	"foreground": ["editor.foreground"],
 	"hoverHighlight": ["editor.hoverHighlightBackground"],
@@ -52,7 +52,7 @@ exports.update = function (srcName, destName) {
 						entry.scope = parts;
 					}
 				} else {
-					var entrySettings = entry.settings;
+					let entrySettings = entry.settings;
 					for (let entry in entrySettings) {
 						let mapping = mappings[entry];
 						if (mapping) {
