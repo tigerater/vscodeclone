@@ -265,7 +265,7 @@ export abstract class AbstractScrollableElement extends Widget {
 	}
 
 	public setScrollDimensions(dimensions: INewScrollDimensions): void {
-		this._scrollable.setScrollDimensions(dimensions, false);
+		this._scrollable.setScrollDimensions(dimensions);
 	}
 
 	/**

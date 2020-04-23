@@ -21,7 +21,7 @@ import { ExtensionsRegistry } from 'vs/workbench/services/extensions/common/exte
 import { match } from 'vs/base/common/glob';
 import { LifecyclePhase } from 'vs/platform/lifecycle/common/lifecycle';
 import { registerSingleton } from 'vs/platform/instantiation/common/extensions';
-import { IPathService } from 'vs/workbench/services/path/common/pathService';
+import { IRemotePathService } from 'vs/workbench/services/path/common/remotePathService';
 
 const resourceLabelFormattersExtPoint = ExtensionsRegistry.registerExtensionPoint<ResourceLabelFormatter[]>({
 	extensionPoint: 'resourceLabelFormatters',
@@ -102,7 +102,7 @@ export class LabelService extends Disposable implements ILabelService {
 	constructor(
 		@IEnvironmentService private readonly environmentService: IEnvironmentService,
 		@IWorkspaceContextService private readonly contextService: IWorkspaceContextService,
-		@IPathService private readonly pathService: IPathService
+		@IRemotePathService private readonly remotePathService: IRemotePathService
 	) {
 		super();
 	}
@@ -135,7 +135,7 @@ export class LabelService extends Disposable implements ILabelService {
 
 	private doGetUriLabel(resource: URI, formatting?: ResourceLabelFormatting, options: { relative?: boolean, noPrefix?: boolean, endWithSeparator?: boolean } = {}): string {
 		if (!formatting) {
-			return getPathLabel(resource.path, { userHome: this.pathService.resolvedUserHome }, options.relative ? this.contextService : undefined);
+			return getPathLabel(resource.path, this.environmentService, options.relative ? this.contextService : undefined);
 		}
 
 		let label: string | undefined;
@@ -266,7 +266,7 @@ export class LabelService extends Disposable implements ILabelService {
 		}
 
 		if (formatting.tildify && !forceNoTildify) {
-			const userHome = this.pathService.resolvedUserHome;
+			const userHome = this.remotePathService.userHomeSync;
 			if (userHome) {
 				label = tildify(label, userHome.fsPath);
 			}

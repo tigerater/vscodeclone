@@ -16,7 +16,7 @@ import { IModelService } from 'vs/editor/common/services/modelService';
 import { IModeService } from 'vs/editor/common/services/modeService';
 import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
 import { IRemoteAgentService } from 'vs/workbench/services/remote/common/remoteAgentService';
-import { IPathService } from 'vs/workbench/services/path/common/pathService';
+import { IRemotePathService } from 'vs/workbench/services/path/common/remotePathService';
 import { IKeybindingService } from 'vs/platform/keybinding/common/keybinding';
 import { IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 import { INativeWorkbenchEnvironmentService } from 'vs/workbench/services/environment/electron-browser/environmentService';
@@ -33,11 +33,11 @@ export class NativeSimpleFileDialog extends SimpleFileDialog {
 		@IModeService modeService: IModeService,
 		@IWorkbenchEnvironmentService protected environmentService: INativeWorkbenchEnvironmentService,
 		@IRemoteAgentService remoteAgentService: IRemoteAgentService,
-		@IPathService protected pathService: IPathService,
+		@IRemotePathService protected remotePathService: IRemotePathService,
 		@IKeybindingService keybindingService: IKeybindingService,
 		@IContextKeyService contextKeyService: IContextKeyService
 	) {
-		super(fileService, quickInputService, labelService, workspaceContextService, notificationService, fileDialogService, modelService, modeService, environmentService, remoteAgentService, pathService, keybindingService, contextKeyService);
+		super(fileService, quickInputService, labelService, workspaceContextService, notificationService, fileDialogService, modelService, modeService, environmentService, remoteAgentService, remotePathService, keybindingService, contextKeyService);
 	}
 
 	protected async getUserHome(): Promise<URI> {

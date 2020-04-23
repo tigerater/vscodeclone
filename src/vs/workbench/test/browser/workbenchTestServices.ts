@@ -83,7 +83,7 @@ import { BrowserWorkbenchEnvironmentService } from 'vs/workbench/services/enviro
 import { BrowserTextFileService } from 'vs/workbench/services/textfile/browser/browserTextFileService';
 import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
 import { createTextBufferFactoryFromStream } from 'vs/editor/common/model/textModel';
-import { IPathService } from 'vs/workbench/services/path/common/pathService';
+import { IRemotePathService } from 'vs/workbench/services/path/common/remotePathService';
 import { Direction } from 'vs/base/browser/ui/grid/grid';
 import { IProgressService, IProgressOptions, IProgressWindowOptions, IProgressNotificationOptions, IProgressCompositeOptions, IProgress, IProgressStep, Progress } from 'vs/platform/progress/common/progress';
 import { IWorkingCopyFileService, WorkingCopyFileService } from 'vs/workbench/services/workingCopy/common/workingCopyFileService';
@@ -115,10 +115,7 @@ export interface ITestInstantiationService extends IInstantiationService {
 	stub<T>(service: ServiceIdentifier<T>, ctor: any): T;
 }
 
-export function workbenchInstantiationService(overrides?: {
-	textFileService?: (instantiationService: IInstantiationService) => ITextFileService
-	pathService?: (instantiationService: IInstantiationService) => IPathService
-}): ITestInstantiationService {
+export function workbenchInstantiationService(overrides?: { textFileService?: (instantiationService: IInstantiationService) => ITextFileService }): ITestInstantiationService {
 	const instantiationService = new TestInstantiationService(new ServiceCollection([ILifecycleService, new TestLifecycleService()]));
 
 	instantiationService.stub(IWorkingCopyService, new TestWorkingCopyService());
@@ -134,7 +131,7 @@ export function workbenchInstantiationService(overrides?: {
 	instantiationService.stub(ITextResourceConfigurationService, new TestTextResourceConfigurationService(configService));
 	instantiationService.stub(IUntitledTextEditorService, instantiationService.createInstance(UntitledTextEditorService));
 	instantiationService.stub(IStorageService, new TestStorageService());
-	instantiationService.stub(IPathService, overrides?.pathService ? overrides.pathService(instantiationService) : new TestPathService());
+	instantiationService.stub(IRemotePathService, new TestRemotePathService(TestEnvironmentService));
 	const layoutService = new TestLayoutService();
 	instantiationService.stub(IWorkbenchLayoutService, layoutService);
 	instantiationService.stub(IDialogService, new TestDialogService());
@@ -217,7 +214,7 @@ export class TestTextFileService extends BrowserTextFileService {
 		@IFilesConfigurationService filesConfigurationService: IFilesConfigurationService,
 		@ITextModelService textModelService: ITextModelService,
 		@ICodeEditorService codeEditorService: ICodeEditorService,
-		@IPathService pathService: IPathService,
+		@IRemotePathService remotePathService: IRemotePathService,
 		@IWorkingCopyFileService workingCopyFileService: IWorkingCopyFileService
 	) {
 		super(
@@ -233,7 +230,7 @@ export class TestTextFileService extends BrowserTextFileService {
 			filesConfigurationService,
 			textModelService,
 			codeEditorService,
-			pathService,
+			remotePathService,
 			workingCopyFileService
 		);
 	}
@@ -1107,16 +1104,16 @@ export class TestListService implements IListService {
 	}
 }
 
-export class TestPathService implements IPathService {
+export class TestRemotePathService implements IRemotePathService {
 
 	_serviceBrand: undefined;
 
-	constructor(private readonly fallbackUserHome: URI = URI.from({ scheme: Schemas.vscodeRemote, path: '/' })) { }
+	constructor(@IWorkbenchEnvironmentService private readonly environmentService: IEnvironmentService) { }
 
 	get path() { return Promise.resolve(isWindows ? win32 : posix); }
 
-	get userHome() { return Promise.resolve(this.fallbackUserHome); }
-	get resolvedUserHome() { return this.fallbackUserHome; }
+	get userHome() { return Promise.resolve(this.environmentService.userHome!); }
+	get userHomeSync() { return this.environmentService.userHome; }
 
 	async fileURI(path: string): Promise<URI> {
 		return URI.file(path);
