@@ -94,11 +94,6 @@ export interface IWorkbenchLayoutService extends ILayoutService {
 	hasFocus(part: Parts): boolean;
 
 	/**
-	 * Focuses the part. If the part is not visible this is a noop.
-	 */
-	focusPart(part: Parts): void;
-
-	/**
 	 * Returns the parts HTML element, if there is one.
 	 */
 	getContainer(part: Parts): HTMLElement | undefined;

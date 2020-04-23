@@ -449,7 +449,6 @@ export class StatusbarPart extends Part implements IStatusbarService {
 		this.leftItemsContainer = document.createElement('div');
 		addClasses(this.leftItemsContainer, 'left-items', 'items-container');
 		this.element.appendChild(this.leftItemsContainer);
-		this.element.tabIndex = -1;
 
 		// Right items container
 		this.rightItemsContainer = document.createElement('div');
@@ -623,10 +622,6 @@ export class StatusbarPart extends Part implements IStatusbarService {
 		}
 
 		return itemContainer;
-	}
-
-	focus(): void {
-		this.getContainer();
 	}
 
 	layout(width: number, height: number): void {

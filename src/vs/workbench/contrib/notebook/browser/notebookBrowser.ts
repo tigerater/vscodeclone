@@ -285,10 +285,7 @@ export interface MarkdownCellRenderTemplate extends BaseCellRenderTemplate {
 }
 
 export interface CodeCellRenderTemplate extends BaseCellRenderTemplate {
-	statusBarContainer: HTMLElement;
-	cellRunStatusContainer: HTMLElement;
-	cellStatusMessageContainer: HTMLElement;
-	cellStatusPlaceholderContainer: HTMLElement;
+	editorContainer: HTMLElement;
 	runToolbar: ToolBar;
 	runButtonContainer: HTMLElement;
 	executionOrderLabel: HTMLElement;
