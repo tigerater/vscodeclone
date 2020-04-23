@@ -780,7 +780,7 @@ export function registerTerminalActions() {
 			});
 		}
 		run(accessor: ServicesAccessor) {
-			accessor.get(ITerminalService).getActiveInstance()?.navigationMode?.exitNavigationMode();
+			accessor.get(ITerminalService).getActiveInstance()?.navigationMode?.focusPreviousLine();
 		}
 	});
 	registerAction2(class extends Action2 {

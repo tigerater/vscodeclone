@@ -69,6 +69,7 @@ import { OpenSearchEditorAction, createEditorFromSearchResult } from 'vs/workben
 import { ServiceCollection } from 'vs/platform/instantiation/common/serviceCollection';
 import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 import { Orientation } from 'vs/base/browser/ui/sash/sash';
+import { searchDetails } from 'vs/workbench/contrib/search/browser/searchIcons';
 
 const $ = dom.$;
 
@@ -88,6 +89,8 @@ export class SearchView extends ViewPane {
 
 	private static readonly MAX_TEXT_RESULTS = 10000;
 
+	private static readonly WIDE_CLASS_NAME = 'wide';
+	private static readonly WIDE_VIEW_SIZE = 1000;
 	private static readonly ACTIONS_RIGHT_CLASS_NAME = 'actions-right';
 
 	private isDisposed = false;
@@ -280,7 +283,7 @@ export class SearchView extends ViewPane {
 
 		// Toggle query details button
 		this.toggleQueryDetailsButton = dom.append(this.queryDetails,
-			$('.more.codicon.codicon-ellipsis', { tabindex: 0, role: 'button', title: nls.localize('moreSearch', "Toggle Search Details") }));
+			$('.more' + searchDetails.cssSelector, { tabindex: 0, role: 'button', title: nls.localize('moreSearch', "Toggle Search Details") }));
 
 		this._register(dom.addDisposableListener(this.toggleQueryDetailsButton, dom.EventType.CLICK, e => {
 			dom.EventHelper.stop(e);
@@ -965,6 +968,7 @@ export class SearchView extends ViewPane {
 
 		const actionsPosition = this.searchConfig.actionsPosition;
 		dom.toggleClass(this.getContainer(), SearchView.ACTIONS_RIGHT_CLASS_NAME, actionsPosition === 'right');
+		dom.toggleClass(this.getContainer(), SearchView.WIDE_CLASS_NAME, this.size.width >= SearchView.WIDE_VIEW_SIZE);
 
 		this.searchWidget.setWidth(this.size.width - 28 /* container margin */);
 
@@ -985,7 +989,6 @@ export class SearchView extends ViewPane {
 	}
 
 	protected layoutBody(height: number, width: number): void {
-		super.layoutBody(height, width);
 		this.size = new dom.Dimension(width, height);
 		this.reLayout();
 	}

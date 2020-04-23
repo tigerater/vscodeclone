@@ -754,6 +754,7 @@ export class ExtensionManagementService extends Disposable implements IExtension
 		// Scan other system extensions during development
 		const devSystemExtensionsPromise = this.getDevSystemExtensionsList()
 			.then(devSystemExtensionsList => {
+				console.log(devSystemExtensionsList);
 				if (devSystemExtensionsList.length) {
 					return this.scanExtensions(this.devSystemExtensionsPath, ExtensionType.System)
 						.then(result => {

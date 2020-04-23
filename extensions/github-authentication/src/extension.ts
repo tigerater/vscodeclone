@@ -7,11 +7,8 @@ import * as vscode from 'vscode';
 import { GitHubAuthenticationProvider, onDidChangeSessions } from './github';
 import { uriHandler } from './githubServer';
 import Logger from './common/logger';
-import TelemetryReporter from 'vscode-extension-telemetry';
 
 export async function activate(context: vscode.ExtensionContext) {
-	const { name, version, aiKey } = require('../package.json') as { name: string, version: string, aiKey: string };
-	const telemetryReporter = new TelemetryReporter(name, version, aiKey);
 
 	context.subscriptions.push(vscode.window.registerUriHandler(uriHandler));
 	const loginService = new GitHubAuthenticationProvider();
@@ -21,33 +18,25 @@ export async function activate(context: vscode.ExtensionContext) {
 	vscode.authentication.registerAuthenticationProvider({
 		id: 'github',
 		displayName: 'GitHub',
+		supportsMultipleAccounts: false,
 		onDidChangeSessions: onDidChangeSessions.event,
 		getSessions: () => Promise.resolve(loginService.sessions),
-		login: async (scopeList: string[]) => {
+		login: async (scopeList: string[] | undefined) => {
 			try {
-				telemetryReporter.sendTelemetryEvent('login');
-				const session = await loginService.login(scopeList.sort().join(' '));
+				const loginScopes = scopeList ? scopeList.sort().join(' ') : 'user:email';
+				const session = await loginService.login(loginScopes);
 				Logger.info('Login success!');
 				onDidChangeSessions.fire({ added: [session.id], removed: [], changed: [] });
 				return session;
 			} catch (e) {
-				telemetryReporter.sendTelemetryEvent('loginFailed');
 				vscode.window.showErrorMessage(`Sign in failed: ${e}`);
 				Logger.error(e);
 				throw e;
 			}
 		},
 		logout: async (id: string) => {
-			try {
-				telemetryReporter.sendTelemetryEvent('logout');
-				await loginService.logout(id);
-				onDidChangeSessions.fire({ added: [], removed: [id], changed: [] });
-			} catch (e) {
-				telemetryReporter.sendTelemetryEvent('logoutFailed');
-				vscode.window.showErrorMessage(`Sign out failed: ${e}`);
-				Logger.error(e);
-				throw e;
-			}
+			await loginService.logout(id);
+			onDidChangeSessions.fire({ added: [], removed: [id], changed: [] });
 		}
 	});
 

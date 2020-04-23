@@ -56,7 +56,7 @@ export class CompositeDragAndDrop implements ICompositeDragAndDrop {
 			}
 			// ... on a different composite bar
 			else {
-				const viewsToMove = this.viewDescriptorService.getViewContainerModel(currentContainer)!.allViewDescriptors;
+				const viewsToMove = this.viewDescriptorService.getViewDescriptors(currentContainer)!.allViewDescriptors;
 				if (viewsToMove.some(v => !v.canMoveView)) {
 					return;
 				}
@@ -119,7 +119,7 @@ export class CompositeDragAndDrop implements ICompositeDragAndDrop {
 			}
 
 			// ... to another composite location
-			const draggedViews = this.viewDescriptorService.getViewContainerModel(currentContainer)!.allViewDescriptors;
+			const draggedViews = this.viewDescriptorService.getViewDescriptors(currentContainer)!.allViewDescriptors;
 
 			// ... all views must be movable
 			return !draggedViews.some(v => !v.canMoveView);
@@ -569,7 +569,7 @@ export class CompositeBar extends Widget implements ICompositeBar {
 		}
 
 		overflowingIds = overflowingIds.filter(compositeId => this.visibleComposites.indexOf(compositeId) === -1);
-		return this.model.visibleItems.filter(c => overflowingIds.indexOf(c.id) !== -1).map(item => { return { id: item.id, name: this.getAction(item.id)?.label || item.name }; });
+		return this.model.visibleItems.filter(c => overflowingIds.indexOf(c.id) !== -1);
 	}
 
 	private showContextMenu(e: MouseEvent): void {
@@ -585,7 +585,7 @@ export class CompositeBar extends Widget implements ICompositeBar {
 		const actions: IAction[] = this.model.visibleItems
 			.map(({ id, name, activityAction }) => (<IAction>{
 				id,
-				label: this.getAction(id).label || name || id,
+				label: name || id,
 				checked: this.isPinned(id),
 				enabled: activityAction.enabled,
 				run: () => {

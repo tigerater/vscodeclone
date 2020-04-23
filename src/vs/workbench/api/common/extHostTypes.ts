@@ -1291,7 +1291,6 @@ export class SignatureInformation {
 	label: string;
 	documentation?: string | MarkdownString;
 	parameters: ParameterInformation[];
-	activeParameter?: number;
 
 	constructor(label: string, documentation?: string | MarkdownString) {
 		this.label = label;
@@ -2712,13 +2711,6 @@ export enum CellOutputKind {
 	Text = 1,
 	Error = 2,
 	Rich = 3
-}
-
-export enum NotebookCellRunState {
-	Running = 1,
-	Idle = 2,
-	Success = 3,
-	Error = 4
 }
 
 //#endregion

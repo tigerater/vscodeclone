@@ -35,7 +35,6 @@ import { ViewPaneContainer } from 'vs/workbench/browser/parts/views/viewPaneCont
 import { IQuickAccessRegistry, Extensions as QuickAccessExtensions } from 'vs/platform/quickinput/common/quickAccess';
 import { TerminalQuickAccessProvider } from 'vs/workbench/contrib/terminal/browser/terminalsQuickAccess';
 import { terminalConfiguration, getTerminalShellConfiguration } from 'vs/workbench/contrib/terminal/common/terminalConfiguration';
-import { CONTEXT_ACCESSIBILITY_MODE_ENABLED } from 'vs/platform/accessibility/common/accessibility';
 
 // Register services
 registerSingleton(ITerminalService, TerminalService, true);
@@ -68,8 +67,7 @@ if (platform.isWeb) {
 const VIEW_CONTAINER = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry).registerViewContainer({
 	id: TERMINAL_VIEW_ID,
 	name: nls.localize('terminal', "Terminal"),
-	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [TERMINAL_VIEW_ID, { mergeViewWithContainerWhenSingleView: true, donotShowContainerTitleWhenMergedWithContainer: true }]),
-	storageId: TERMINAL_VIEW_ID,
+	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [TERMINAL_VIEW_ID, TERMINAL_VIEW_ID, { mergeViewWithContainerWhenSingleView: true, donotShowContainerTitleWhenMergedWithContainer: true }]),
 	focusCommand: { id: TERMINAL_COMMAND_ID.FOCUS },
 	hideIfEmpty: true,
 	order: 3
@@ -152,26 +150,13 @@ if (BrowserFeatures.clipboard.readText) {
 		linux: { primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KEY_V }
 	}, KEYBINDING_CONTEXT_TERMINAL_FOCUS), 'Terminal: Paste into Active Terminal', category);
 	// An extra Windows-only ctrl+v keybinding is used for pwsh that sends ctrl+v directly to the
-	// shell, this gets handled by PSReadLine which properly handles multi-line pastes. This is
-	// disabled in accessibility mode as PowerShell does not run PSReadLine when it detects a screen
-	// reader.
+	// shell, this gets handled by PSReadLine which properly handles multi-line pastes
 	if (platform.isWindows) {
 		registerSendSequenceKeybinding(String.fromCharCode('V'.charCodeAt(0) - 64), { // ctrl+v
-			when: ContextKeyExpr.and(KEYBINDING_CONTEXT_TERMINAL_FOCUS, ContextKeyExpr.equals(KEYBINDING_CONTEXT_TERMINAL_SHELL_TYPE_KEY, WindowsShellType.PowerShell), CONTEXT_ACCESSIBILITY_MODE_ENABLED.negate()),
+			when: ContextKeyExpr.and(KEYBINDING_CONTEXT_TERMINAL_FOCUS, ContextKeyExpr.equals(KEYBINDING_CONTEXT_TERMINAL_SHELL_TYPE_KEY, WindowsShellType.PowerShell)),
 			primary: KeyMod.CtrlCmd | KeyCode.KEY_V
 		});
 	}
-}
-
-if (platform.isWeb) {
-	// Register standard external terminal keybinding as integrated terminal when in web as the
-	// external terminal is not available
-	KeybindingsRegistry.registerKeybindingRule({
-		id: TERMINAL_COMMAND_ID.NEW,
-		weight: KeybindingWeight.WorkbenchContrib,
-		when: undefined,
-		primary: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KEY_C
-	});
 }
 
 // Delete word left: ctrl+w

@@ -119,7 +119,6 @@ export class CodeWindow extends Disposable implements ICodeWindow {
 	private readonly touchBarGroups: TouchBarSegmentedControl[];
 
 	private currentHttpProxy?: string;
-	private currentNoProxy?: string;
 
 	constructor(
 		config: IWindowCreationOptions,
@@ -598,17 +597,12 @@ export class CodeWindow extends Disposable implements ICodeWindow {
 			this.setMenuBarVisibility(newMenuBarVisibility);
 		}
 		// Do not set to empty configuration at startup if setting is empty to not override configuration through CLI options:
-		const env = process.env;
-		const newHttpProxy = (this.configurationService.getValue<string>('http.proxy') || '').trim()
-			|| (env.https_proxy || process.env.HTTPS_PROXY || process.env.http_proxy || process.env.HTTP_PROXY || '').trim() // Not standardized.
-			|| undefined;
-		const newNoProxy = (env.no_proxy || env.NO_PROXY || '').trim() || undefined; // Not standardized.
-		if (newHttpProxy !== this.currentHttpProxy || newNoProxy !== this.currentNoProxy) {
+		const newHttpProxy = (this.configurationService.getValue<string>('http.proxy') || '').trim() || undefined;
+		if (newHttpProxy !== this.currentHttpProxy) {
 			this.currentHttpProxy = newHttpProxy;
-			this.currentNoProxy = newNoProxy;
 			this._win.webContents.session.setProxy({
 				proxyRules: newHttpProxy || '',
-				proxyBypassRules: newNoProxy ? `${newNoProxy},<local>` : '<local>',
+				proxyBypassRules: '',
 				pacScript: '',
 			});
 		}

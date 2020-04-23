@@ -323,7 +323,6 @@ export class OpenEditorsView extends ViewPane {
 	}
 
 	protected layoutBody(height: number, width: number): void {
-		super.layoutBody(height, width);
 		if (this.list) {
 			this.list.layout(height, width);
 		}

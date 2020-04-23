@@ -488,9 +488,9 @@ export class ResetViewLocationsAction extends Action {
 	async run(): Promise<void> {
 		const viewContainerRegistry = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry);
 		viewContainerRegistry.all.forEach(viewContainer => {
-			const viewContainerModel = this.viewDescriptorService.getViewContainerModel(viewContainer);
+			const viewDescriptors = this.viewDescriptorService.getViewDescriptors(viewContainer);
 
-			viewContainerModel.allViewDescriptors.forEach(viewDescriptor => {
+			viewDescriptors.allViewDescriptors.forEach(viewDescriptor => {
 				const defaultContainer = this.viewDescriptorService.getDefaultContainer(viewDescriptor.id);
 				const currentContainer = this.viewDescriptorService.getViewContainer(viewDescriptor.id);
 
@@ -583,7 +583,7 @@ export class MoveFocusedViewAction extends Action {
 
 		const currentContainer = this.viewDescriptorService.getViewContainer(focusedViewId)!;
 		const currentLocation = this.viewDescriptorService.getViewLocation(focusedViewId)!;
-		const isViewSolo = this.viewDescriptorService.getViewContainerModel(currentContainer).allViewDescriptors.length === 1;
+		const isViewSolo = this.viewDescriptorService.getViewDescriptors(currentContainer).allViewDescriptors.length === 1;
 
 		if (!(isViewSolo && currentLocation === ViewContainerLocation.Sidebar)) {
 			items.push({

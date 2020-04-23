@@ -30,23 +30,21 @@ export class UserDataSyncEnablementService extends Disposable implements IUserDa
 	constructor(
 		@IStorageService private readonly storageService: IStorageService,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
-		@IEnvironmentService private readonly environmentService: IEnvironmentService,
+		@IEnvironmentService environmentService: IEnvironmentService,
 	) {
 		super();
+		switch (environmentService.sync) {
+			case 'on':
+				this.setEnablement(true);
+				break;
+			case 'off':
+				this.setEnablement(false);
+				break;
+		}
 		this._register(storageService.onDidChangeStorage(e => this.onDidStorageChange(e)));
 	}
 
-	canToggleEnablement(): boolean {
-		return this.environmentService.sync === undefined;
-	}
-
 	isEnabled(): boolean {
-		switch (this.environmentService.sync) {
-			case 'on':
-				return true;
-			case 'off':
-				return false;
-		}
 		return this.storageService.getBoolean(enablementKey, StorageScope.GLOBAL, false);
 	}
 

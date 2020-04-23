@@ -581,12 +581,12 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			registerWebviewPanelSerializer: (viewType: string, serializer: vscode.WebviewPanelSerializer) => {
 				return extHostWebviews.registerWebviewPanelSerializer(extension, viewType, serializer);
 			},
-			registerCustomEditorProvider: (viewType: string, provider: vscode.CustomTextEditorProvider, options: { webviewOptions?: vscode.WebviewPanelOptions } = {}) => {
-				return extHostWebviews.registerCustomEditorProvider(extension, viewType, provider, options);
+			registerCustomEditorProvider: (viewType: string, provider: vscode.CustomTextEditorProvider, options?: { webviewOptions?: vscode.WebviewPanelOptions }) => {
+				return extHostWebviews.registerCustomEditorProvider(extension, viewType, provider, options?.webviewOptions);
 			},
-			registerCustomEditorProvider2: (viewType: string, provider: vscode.CustomEditorProvider, options: { webviewOptions?: vscode.WebviewPanelOptions, supportsMultipleEditorsPerResource?: boolean } = {}) => {
+			registerCustomEditorProvider2: (viewType: string, provider: vscode.CustomEditorProvider, options?: { webviewOptions?: vscode.WebviewPanelOptions }) => {
 				checkProposedApiEnabled(extension);
-				return extHostWebviews.registerCustomEditorProvider(extension, viewType, provider, options);
+				return extHostWebviews.registerCustomEditorProvider(extension, viewType, provider, options?.webviewOptions);
 			},
 			registerDecorationProvider(provider: vscode.DecorationProvider) {
 				checkProposedApiEnabled(extension);
@@ -1038,7 +1038,6 @@ export function createApiFactoryAndRegisterActors(accessor: ServicesAccessor): I
 			TimelineItem: extHostTypes.TimelineItem,
 			CellKind: extHostTypes.CellKind,
 			CellOutputKind: extHostTypes.CellOutputKind,
-			NotebookCellRunState: extHostTypes.NotebookCellRunState
 		};
 	};
 }

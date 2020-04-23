@@ -104,7 +104,7 @@ class Item extends BreadcrumbsItem {
 		} else if (this.element instanceof OutlineGroup) {
 			// provider
 			let label = new IconLabel(container);
-			label.setLabel(this.element.label);
+			label.setLabel(this.element.provider.displayName || '');
 			this._disposables.add(label);
 
 		} else if (this.element instanceof OutlineElement) {
@@ -504,7 +504,7 @@ export class BreadcrumbsControl {
 			const model = OutlineModel.get(element);
 			if (model) {
 				this._codeEditorService.openCodeEditor({
-					resource: model.uri,
+					resource: model.textModel.uri,
 					options: {
 						selection: Range.collapseToStart(element.symbol.selectionRange),
 						selectionRevealType: TextEditorSelectionRevealType.CenterIfOutsideViewport
@@ -751,7 +751,7 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 
 			// open symbol in editor
 			return editors.openEditor({
-				resource: outlineElement.uri,
+				resource: outlineElement.textModel.uri,
 				options: { selection: Range.collapseToStart(element.symbol.selectionRange) }
 			}, SIDE_GROUP);
 

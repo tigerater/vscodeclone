@@ -174,7 +174,6 @@ export class ExtensionsListView extends ViewPane {
 	}
 
 	protected layoutBody(height: number, width: number): void {
-		super.layoutBody(height, width);
 		if (this.bodyTemplate) {
 			this.bodyTemplate.extensionsList.style.height = height + 'px';
 		}
