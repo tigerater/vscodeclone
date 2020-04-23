@@ -8,7 +8,6 @@ import { createHash } from 'crypto';
 import { IExtensionManagementService, ILocalExtension, IExtensionIdentifier } from 'vs/platform/extensionManagement/common/extensionManagement';
 import { Disposable } from 'vs/base/common/lifecycle';
 import { IEnvironmentService } from 'vs/platform/environment/common/environment';
-import { INativeEnvironmentService } from 'vs/platform/environment/node/environmentService';
 import { Queue } from 'vs/base/common/async';
 import { areSameExtensions } from 'vs/platform/extensionManagement/common/extensionManagementUtil';
 import { ILogService } from 'vs/platform/log/common/log';
@@ -44,7 +43,7 @@ export class LocalizationsService extends Disposable implements ILocalizationsSe
 
 	constructor(
 		@IExtensionManagementService private readonly extensionManagementService: IExtensionManagementService,
-		@IEnvironmentService environmentService: INativeEnvironmentService,
+		@IEnvironmentService environmentService: IEnvironmentService,
 		@ILogService private readonly logService: ILogService
 	) {
 		super();
@@ -97,7 +96,7 @@ class LanguagePacksCache extends Disposable {
 	private initializedCache: boolean | undefined;
 
 	constructor(
-		@IEnvironmentService environmentService: INativeEnvironmentService,
+		@IEnvironmentService environmentService: IEnvironmentService,
 		@ILogService private readonly logService: ILogService
 	) {
 		super();

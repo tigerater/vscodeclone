@@ -17,7 +17,7 @@ import { IContextMenuService } from 'vs/platform/contextview/browser/contextView
 import { Registry } from 'vs/platform/registry/common/platform';
 import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 import { activeContrastBorder, focusBorder } from 'vs/platform/theme/common/colorRegistry';
-import { ICssStyleCollector, IColorTheme, IThemeService, registerThemingParticipant } from 'vs/platform/theme/common/themeService';
+import { ICssStyleCollector, ITheme, IThemeService, registerThemingParticipant } from 'vs/platform/theme/common/themeService';
 import { ActivityAction, ActivityActionViewItem, ICompositeBar, ICompositeBarColors, ToggleCompositePinnedAction } from 'vs/workbench/browser/parts/compositeBarActions';
 import { ViewletDescriptor } from 'vs/workbench/browser/viewlet';
 import { Extensions as ActionExtensions, IWorkbenchActionRegistry } from 'vs/workbench/common/actions';
@@ -74,15 +74,15 @@ export class ViewletActivityAction extends ActivityAction {
 		this.activity = activity;
 	}
 
-	async run(event: unknown): Promise<void> {
+	async run(event: any): Promise<any> {
 		if (event instanceof MouseEvent && event.button === 2) {
-			return; // do not run on right click
+			return false; // do not run on right click
 		}
 
 		// prevent accident trigger on a doubleclick (to help nervous people)
 		const now = Date.now();
 		if (now > this.lastRun /* https://github.com/Microsoft/vscode/issues/25830 */ && now - this.lastRun < ViewletActivityAction.preventDoubleClickDelay) {
-			return;
+			return true;
 		}
 		this.lastRun = now;
 
@@ -93,7 +93,7 @@ export class ViewletActivityAction extends ActivityAction {
 		if (sideBarVisible && activeViewlet?.getId() === this.activity.id) {
 			this.logAction('hide');
 			this.layoutService.setSideBarHidden(true);
-			return;
+			return true;
 		}
 
 		this.logAction('show');
@@ -120,72 +120,17 @@ export class ToggleViewletAction extends Action {
 		super(_viewlet.id, _viewlet.name);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 		const sideBarVisible = this.layoutService.isVisible(Parts.SIDEBAR_PART);
 		const activeViewlet = this.viewletService.getActiveViewlet();
 
 		// Hide sidebar if selected viewlet already visible
 		if (sideBarVisible && activeViewlet?.getId() === this._viewlet.id) {
 			this.layoutService.setSideBarHidden(true);
-			return;
+			return Promise.resolve();
 		}
 
-		await this.viewletService.openViewlet(this._viewlet.id, true);
-	}
-}
-
-export class AccountsActionViewItem extends ActivityActionViewItem {
-	constructor(
-		action: ActivityAction,
-		colors: (theme: IColorTheme) => ICompositeBarColors,
-		@IThemeService themeService: IThemeService,
-		@IContextMenuService protected contextMenuService: IContextMenuService,
-		@IMenuService protected menuService: IMenuService,
-		@IContextKeyService private readonly contextKeyService: IContextKeyService,
-	) {
-		super(action, { draggable: false, colors, icon: true }, themeService);
-	}
-
-	render(container: HTMLElement): void {
-		super.render(container);
-
-		// Context menus are triggered on mouse down so that an item can be picked
-		// and executed with releasing the mouse over it
-
-		this._register(DOM.addDisposableListener(this.container, DOM.EventType.MOUSE_DOWN, (e: MouseEvent) => {
-			DOM.EventHelper.stop(e, true);
-			this.showContextMenu();
-		}));
-
-		this._register(DOM.addDisposableListener(this.container, DOM.EventType.KEY_UP, (e: KeyboardEvent) => {
-			let event = new StandardKeyboardEvent(e);
-			if (event.equals(KeyCode.Enter) || event.equals(KeyCode.Space)) {
-				DOM.EventHelper.stop(e, true);
-				this.showContextMenu();
-			}
-		}));
-
-		this._register(DOM.addDisposableListener(this.container, TouchEventType.Tap, (e: GestureEvent) => {
-			DOM.EventHelper.stop(e, true);
-			this.showContextMenu();
-		}));
-	}
-
-	private showContextMenu(): void {
-		const accountsActions: IAction[] = [];
-		const accountsMenu = this.menuService.createMenu(MenuId.AccountsContext, this.contextKeyService);
-		const actionsDisposable = createAndFillInActionBarActions(accountsMenu, undefined, { primary: [], secondary: accountsActions });
-
-		const containerPosition = DOM.getDomNodePagePosition(this.container);
-		const location = { x: containerPosition.left + containerPosition.width / 2, y: containerPosition.top };
-		this.contextMenuService.showContextMenu({
-			getAnchor: () => location,
-			getActions: () => accountsActions,
-			onHide: () => {
-				accountsMenu.dispose();
-				dispose(actionsDisposable);
-			}
-		});
+		return this.viewletService.openViewlet(this._viewlet.id, true);
 	}
 }
 
@@ -193,11 +138,11 @@ export class GlobalActivityActionViewItem extends ActivityActionViewItem {
 
 	constructor(
 		action: ActivityAction,
-		colors: (theme: IColorTheme) => ICompositeBarColors,
+		colors: (theme: ITheme) => ICompositeBarColors,
 		@IThemeService themeService: IThemeService,
 		@IMenuService private readonly menuService: IMenuService,
-		@IContextMenuService protected readonly contextMenuService: IContextMenuService,
-		@IContextKeyService private readonly contextKeyService: IContextKeyService
+		@IContextMenuService protected contextMenuService: IContextMenuService,
+		@IContextKeyService private readonly contextKeyService: IContextKeyService,
 	) {
 		super(action, { draggable: false, colors, icon: true }, themeService);
 	}
@@ -281,12 +226,12 @@ class SwitchSideBarViewAction extends Action {
 		super(id, name);
 	}
 
-	async run(offset: number): Promise<void> {
+	run(offset: number): Promise<any> {
 		const pinnedViewletIds = this.activityBarService.getPinnedViewletIds();
 
 		const activeViewlet = this.viewletService.getActiveViewlet();
 		if (!activeViewlet) {
-			return;
+			return Promise.resolve();
 		}
 		let targetViewletId: string | undefined;
 		for (let i = 0; i < pinnedViewletIds.length; i++) {
@@ -295,8 +240,7 @@ class SwitchSideBarViewAction extends Action {
 				break;
 			}
 		}
-
-		await this.viewletService.openViewlet(targetViewletId, true);
+		return this.viewletService.openViewlet(targetViewletId, true);
 	}
 }
 
@@ -314,7 +258,7 @@ export class PreviousSideBarViewAction extends SwitchSideBarViewAction {
 		super(id, name, viewletService, activityBarService);
 	}
 
-	run(): Promise<void> {
+	run(): Promise<any> {
 		return super.run(-1);
 	}
 }
@@ -333,7 +277,7 @@ export class NextSideBarViewAction extends SwitchSideBarViewAction {
 		super(id, name, viewletService, activityBarService);
 	}
 
-	run(): Promise<void> {
+	run(): Promise<any> {
 		return super.run(1);
 	}
 }
@@ -342,7 +286,7 @@ const registry = Registry.as<IWorkbenchActionRegistry>(ActionExtensions.Workbenc
 registry.registerWorkbenchAction(SyncActionDescriptor.create(PreviousSideBarViewAction, PreviousSideBarViewAction.ID, PreviousSideBarViewAction.LABEL), 'View: Previous Side Bar View', nls.localize('view', "View"));
 registry.registerWorkbenchAction(SyncActionDescriptor.create(NextSideBarViewAction, NextSideBarViewAction.ID, NextSideBarViewAction.LABEL), 'View: Next Side Bar View', nls.localize('view', "View"));
 
-registerThemingParticipant((theme: IColorTheme, collector: ICssStyleCollector) => {
+registerThemingParticipant((theme: ITheme, collector: ICssStyleCollector) => {
 
 	const activeForegroundColor = theme.getColor(ACTIVITY_BAR_FOREGROUND);
 	if (activeForegroundColor) {

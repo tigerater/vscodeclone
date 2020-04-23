@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { promises as fs, exists, realpath } from 'fs';
+import { promises as fs, exists } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as cp from 'child_process';
@@ -21,7 +21,6 @@ import { StringDecoder } from 'string_decoder';
 
 // https://github.com/microsoft/vscode/issues/65693
 const MAX_CLI_LENGTH = 30000;
-const isWindows = process.platform === 'win32';
 
 export interface IGit {
 	path: string;
@@ -46,7 +45,7 @@ interface MutableRemote extends Remote {
 	isReadOnly: boolean;
 }
 
-// TODO@eamodio: Move to git.d.ts once we are good with the api
+// TODO[ECA]: Move to git.d.ts once we are good with the api
 /**
  * Log file options.
  */
@@ -420,44 +419,8 @@ export class Git {
 
 	async getRepositoryRoot(repositoryPath: string): Promise<string> {
 		const result = await this.exec(repositoryPath, ['rev-parse', '--show-toplevel']);
-
 		// Keep trailing spaces which are part of the directory name
-		const repoPath = path.normalize(result.stdout.trimLeft().replace(/(\r\n|\r|\n)+$/, ''));
-
-		if (isWindows) {
-			// On Git 2.25+ if you call `rev-parse --show-toplevel` on a mapped drive, instead of getting the mapped drive path back, you get the UNC path for the mapped drive.
-			// So we will try to normalize it back to the mapped drive path, if possible
-			const repoUri = Uri.file(repoPath);
-			const pathUri = Uri.file(repositoryPath);
-			if (repoUri.authority.length !== 0 && pathUri.authority.length === 0) {
-				let match = /(?<=^\/?)([a-zA-Z])(?=:\/)/.exec(pathUri.path);
-				if (match !== null) {
-					const [, letter] = match;
-
-					try {
-						let networkPath = await new Promise<string>(resolve =>
-							realpath.native(`${letter}:`, { encoding: 'utf8' }, (err, resolvedPath) =>
-								// eslint-disable-next-line eqeqeq
-								resolve(err != null ? undefined : resolvedPath),
-							),
-						);
-						if (networkPath !== undefined) {
-							networkPath = `${networkPath}\\`;
-							return path.normalize(
-								repoUri.fsPath.replace(
-									networkPath,
-									`${letter.toLowerCase()}:${networkPath.endsWith('\\') ? '\\' : ''}`
-								),
-							);
-						}
-					} catch { }
-				}
-
-				return path.normalize(pathUri.fsPath);
-			}
-		}
-
-		return repoPath;
+		return path.normalize(result.stdout.trimLeft().replace(/(\r\n|\r|\n)+$/, ''));
 	}
 
 	async getRepositoryDotGit(repositoryPath: string): Promise<string> {

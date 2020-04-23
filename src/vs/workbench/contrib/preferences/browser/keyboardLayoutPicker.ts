@@ -21,7 +21,7 @@ import { IEnvironmentService } from 'vs/platform/environment/common/environment'
 import { IFileService } from 'vs/platform/files/common/files';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
 import { VSBuffer } from 'vs/base/common/buffer';
-import { IEditorPane } from 'vs/workbench/common/editor';
+import { IEditor } from 'vs/workbench/common/editor';
 
 export class KeyboardLayoutPickerContribution extends Disposable implements IWorkbenchContribution {
 	private readonly pickerElement = this._register(new MutableDisposable<IStatusbarEntryAccessor>());
@@ -35,12 +35,9 @@ export class KeyboardLayoutPickerContribution extends Disposable implements IWor
 		let layout = this.keymapService.getCurrentKeyboardLayout();
 		if (layout) {
 			let layoutInfo = parseKeyboardLayoutDescription(layout);
-			const text = nls.localize('keyboardLayout', "Layout: {0}", layoutInfo.label);
-
 			this.pickerElement.value = this.statusbarService.addEntry(
 				{
-					text,
-					ariaLabel: text,
+					text: nls.localize('keyboardLayout', "Layout: {0}", layoutInfo.label),
 					command: KEYBOARD_LAYOUT_OPEN_PICKER
 				},
 				'status.workbench.keyboardLayout',
@@ -54,18 +51,14 @@ export class KeyboardLayoutPickerContribution extends Disposable implements IWor
 			let layoutInfo = parseKeyboardLayoutDescription(layout);
 
 			if (this.pickerElement.value) {
-				const text = nls.localize('keyboardLayout', "Layout: {0}", layoutInfo.label);
 				this.pickerElement.value.update({
-					text,
-					ariaLabel: text,
+					text: nls.localize('keyboardLayout', "Layout: {0}", layoutInfo.label),
 					command: KEYBOARD_LAYOUT_OPEN_PICKER
 				});
 			} else {
-				const text = nls.localize('keyboardLayout', "Layout: {0}", layoutInfo.label);
 				this.pickerElement.value = this.statusbarService.addEntry(
 					{
-						text,
-						ariaLabel: text,
+						text: nls.localize('keyboardLayout', "Layout: {0}", layoutInfo.label),
 						command: KEYBOARD_LAYOUT_OPEN_PICKER
 					},
 					'status.workbench.keyboardLayout',
@@ -163,7 +156,7 @@ export class KeyboardLayoutPickerAction extends Action {
 
 			await this.fileService.resolve(file).then(undefined, (error) => {
 				return this.fileService.createFile(file, VSBuffer.fromString(KeyboardLayoutPickerAction.DEFAULT_CONTENT));
-			}).then((stat): Promise<IEditorPane | undefined> | undefined => {
+			}).then((stat): Promise<IEditor | undefined> | undefined => {
 				if (!stat) {
 					return undefined;
 				}

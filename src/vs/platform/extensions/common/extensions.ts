@@ -38,7 +38,7 @@ export interface IGrammar {
 }
 
 export interface IJSONValidation {
-	fileMatch: string | string[];
+	fileMatch: string;
 	url: string;
 }
 

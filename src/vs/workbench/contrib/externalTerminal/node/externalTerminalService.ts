@@ -97,10 +97,6 @@ export class WindowsExternalTerminalService implements IExternalTerminalService 
 			cmdArgs.push('""');
 		}
 		cmdArgs.push(exec);
-		// Add starting directory parameter for Windows Terminal (see #90734)
-		if (basename === 'wt' || basename === 'wt.exe') {
-			cmdArgs.push('-d .');
-		}
 
 		return new Promise<void>((c, e) => {
 			const env = cwd ? { cwd: cwd } : undefined;

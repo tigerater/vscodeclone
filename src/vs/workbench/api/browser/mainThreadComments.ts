@@ -452,7 +452,6 @@ export class MainThreadComments extends Disposable implements MainThreadComments
 				id: COMMENTS_VIEW_ID,
 				name: COMMENTS_VIEW_TITLE,
 				ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [COMMENTS_VIEW_ID, COMMENTS_VIEW_TITLE, { mergeViewWithContainerWhenSingleView: true, donotShowContainerTitleWhenMergedWithContainer: true }]),
-				hideIfEmpty: true,
 				order: 10,
 			}, ViewContainerLocation.Panel);
 
@@ -461,7 +460,6 @@ export class MainThreadComments extends Disposable implements MainThreadComments
 				name: COMMENTS_VIEW_TITLE,
 				canToggleVisibility: false,
 				ctorDescriptor: new SyncDescriptor(CommentsPanel),
-				canMoveView: true,
 				focusCommand: {
 					id: 'workbench.action.focusCommentsPanel'
 				}

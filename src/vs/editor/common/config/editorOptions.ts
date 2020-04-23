@@ -136,11 +136,6 @@ export interface IEditorOptions {
 	 */
 	readOnly?: boolean;
 	/**
-	 * Rename matching regions on type.
-	 * Defaults to false.
-	 */
-	renameOnType?: boolean;
-	/**
 	 * Should the editor render validation decorations.
 	 * Defaults to editable.
 	 */
@@ -546,11 +541,6 @@ export interface IEditorOptions {
 	 * Defaults to all.
 	 */
 	renderLineHighlight?: 'none' | 'gutter' | 'line' | 'all';
-	/**
-	 * Control if the current line highlight should be rendered only the editor is focused.
-	 * Defaults to false.
-	 */
-	renderLineHighlightOnlyWhenFocus?: boolean;
 	/**
 	 * Inserting and deleting whitespace follows tab stops.
 	 */
@@ -1067,7 +1057,7 @@ class EditorComments extends BaseEditorOption<EditorOption.comments, EditorComme
 	}
 
 	public validate(_input: any): EditorCommentsOptions {
-		if (!_input || typeof _input !== 'object') {
+		if (typeof _input !== 'object') {
 			return this.defaultValue;
 		}
 		const input = _input as IEditorCommentsOptions;
@@ -1253,10 +1243,6 @@ export interface IEditorFindOptions {
 	 * Controls if the Find Widget should read or modify the shared find clipboard on macOS
 	 */
 	globalFindClipboard?: boolean;
-	/**
-	 * Controls whether the search automatically restarts from the beginning (or the end) when no further matches can be found
-	 */
-	loop?: boolean;
 }
 
 export type EditorFindOptions = Readonly<Required<IEditorFindOptions>>;
@@ -1268,8 +1254,7 @@ class EditorFind extends BaseEditorOption<EditorOption.find, EditorFindOptions> 
 			seedSearchStringFromSelection: true,
 			autoFindInSelection: 'never',
 			globalFindClipboard: false,
-			addExtraSpaceOnTop: true,
-			loop: true
+			addExtraSpaceOnTop: true
 		};
 		super(
 			EditorOption.find, 'find', defaults,
@@ -1300,19 +1285,13 @@ class EditorFind extends BaseEditorOption<EditorOption.find, EditorFindOptions> 
 					type: 'boolean',
 					default: defaults.addExtraSpaceOnTop,
 					description: nls.localize('find.addExtraSpaceOnTop', "Controls whether the Find Widget should add extra lines on top of the editor. When true, you can scroll beyond the first line when the Find Widget is visible.")
-				},
-				'editor.find.loop': {
-					type: 'boolean',
-					default: defaults.loop,
-					description: nls.localize('find.loop', "Controls whether the search automatically restarts from the beginning (or the end) when no further matches can be found.")
-				},
-
+				}
 			}
 		);
 	}
 
 	public validate(_input: any): EditorFindOptions {
-		if (!_input || typeof _input !== 'object') {
+		if (typeof _input !== 'object') {
 			return this.defaultValue;
 		}
 		const input = _input as IEditorFindOptions;
@@ -1322,8 +1301,7 @@ class EditorFind extends BaseEditorOption<EditorOption.find, EditorFindOptions> 
 				? (_input.autoFindInSelection ? 'always' : 'never')
 				: EditorStringEnumOption.stringSet<'never' | 'always' | 'multiline'>(input.autoFindInSelection, this.defaultValue.autoFindInSelection, ['never', 'always', 'multiline']),
 			globalFindClipboard: EditorBooleanOption.boolean(input.globalFindClipboard, this.defaultValue.globalFindClipboard),
-			addExtraSpaceOnTop: EditorBooleanOption.boolean(input.addExtraSpaceOnTop, this.defaultValue.addExtraSpaceOnTop),
-			loop: EditorBooleanOption.boolean(input.loop, this.defaultValue.loop),
+			addExtraSpaceOnTop: EditorBooleanOption.boolean(input.addExtraSpaceOnTop, this.defaultValue.addExtraSpaceOnTop)
 		};
 	}
 }
@@ -1354,7 +1332,7 @@ export class EditorFontLigatures extends BaseEditorOption<EditorOption.fontLigat
 						description: nls.localize('fontFeatureSettings', "Explicit font-feature-settings.")
 					}
 				],
-				description: nls.localize('fontLigaturesGeneral', "Configures font ligatures or font features."),
+				description: nls.localize('fontLigaturesGeneral', "Configures font ligatures."),
 				default: false
 			}
 		);
@@ -1538,7 +1516,7 @@ class EditorGoToLocation extends BaseEditorOption<EditorOption.gotoLocation, GoT
 	}
 
 	public validate(_input: any): GoToLocationOptions {
-		if (!_input || typeof _input !== 'object') {
+		if (typeof _input !== 'object') {
 			return this.defaultValue;
 		}
 		const input = _input as IGotoLocationOptions;
@@ -1616,7 +1594,7 @@ class EditorHover extends BaseEditorOption<EditorOption.hover, EditorHoverOption
 	}
 
 	public validate(_input: any): EditorHoverOptions {
-		if (!_input || typeof _input !== 'object') {
+		if (typeof _input !== 'object') {
 			return this.defaultValue;
 		}
 		const input = _input as IEditorHoverOptions;
@@ -2042,7 +2020,7 @@ class EditorLightbulb extends BaseEditorOption<EditorOption.lightbulb, EditorLig
 	}
 
 	public validate(_input: any): EditorLightbulbOptions {
-		if (!_input || typeof _input !== 'object') {
+		if (typeof _input !== 'object') {
 			return this.defaultValue;
 		}
 		const input = _input as IEditorLightbulbOptions;
@@ -2186,7 +2164,7 @@ class EditorMinimap extends BaseEditorOption<EditorOption.minimap, EditorMinimap
 	}
 
 	public validate(_input: any): EditorMinimapOptions {
-		if (!_input || typeof _input !== 'object') {
+		if (typeof _input !== 'object') {
 			return this.defaultValue;
 		}
 		const input = _input as IEditorMinimapOptions;
@@ -2261,7 +2239,7 @@ class EditorPadding extends BaseEditorOption<EditorOption.padding, InternalEdito
 	}
 
 	public validate(_input: any): InternalEditorPaddingOptions {
-		if (!_input || typeof _input !== 'object') {
+		if (typeof _input !== 'object') {
 			return this.defaultValue;
 		}
 		const input = _input as IEditorPaddingOptions;
@@ -2319,7 +2297,7 @@ class EditorParameterHints extends BaseEditorOption<EditorOption.parameterHints,
 	}
 
 	public validate(_input: any): InternalParameterHintOptions {
-		if (!_input || typeof _input !== 'object') {
+		if (typeof _input !== 'object') {
 			return this.defaultValue;
 		}
 		const input = _input as IEditorParameterHintOptions;
@@ -2409,7 +2387,7 @@ class EditorQuickSuggestions extends BaseEditorOption<EditorOption.quickSuggesti
 		if (typeof _input === 'boolean') {
 			return _input;
 		}
-		if (_input && typeof _input === 'object') {
+		if (typeof _input === 'object') {
 			const input = _input as IQuickSuggestionsOptions;
 			const opts = {
 				other: EditorBooleanOption.boolean(input.other, this.defaultValue.other),
@@ -2559,7 +2537,7 @@ class EditorRulers extends BaseEditorOption<EditorOption.rulers, IRulerOption[]>
 						column: EditorIntOption.clampedInt(_element, 0, 0, 10000),
 						color: null
 					});
-				} else if (_element && typeof _element === 'object') {
+				} else if (typeof _element === 'object') {
 					const element = _element as IRulerOption;
 					rulers.push({
 						column: EditorIntOption.clampedInt(element.column, 0, 0, 10000),
@@ -2693,7 +2671,7 @@ class EditorScrollbar extends BaseEditorOption<EditorOption.scrollbar, InternalE
 	}
 
 	public validate(_input: any): InternalEditorScrollbarOptions {
-		if (!_input || typeof _input !== 'object') {
+		if (typeof _input !== 'object') {
 			return this.defaultValue;
 		}
 		const input = _input as IEditorScrollbarOptions;
@@ -2728,6 +2706,10 @@ export interface ISuggestOptions {
 	 * Overwrite word ends on accept. Default to false.
 	 */
 	insertMode?: 'insert' | 'replace';
+	/**
+	 * Show a highlight when suggestion replaces or keep text after the cursor. Defaults to false.
+	 */
+	insertHighlight?: boolean;
 	/**
 	 * Enable graceful matching. Defaults to true.
 	 */
@@ -2849,14 +2831,6 @@ export interface ISuggestOptions {
 	 */
 	showTypeParameters?: boolean;
 	/**
-	 * Show issue-suggestions.
-	 */
-	showIssues?: boolean;
-	/**
-	 * Show user-suggestions.
-	 */
-	showUsers?: boolean;
-	/**
 	 * Show snippet-suggestions.
 	 */
 	showSnippets?: boolean;
@@ -2878,6 +2852,7 @@ class EditorSuggest extends BaseEditorOption<EditorOption.suggest, InternalSugge
 	constructor() {
 		const defaults: InternalSuggestOptions = {
 			insertMode: 'insert',
+			insertHighlight: true,
 			filterGraceful: true,
 			snippetsPreventQuickSuggestions: true,
 			localityBonus: false,
@@ -2909,8 +2884,6 @@ class EditorSuggest extends BaseEditorOption<EditorOption.suggest, InternalSugge
 			showFolders: true,
 			showTypeParameters: true,
 			showSnippets: true,
-			showUsers: true,
-			showIssues: true,
 			statusBar: {
 				visible: false
 			}
@@ -2927,6 +2900,11 @@ class EditorSuggest extends BaseEditorOption<EditorOption.suggest, InternalSugge
 					],
 					default: defaults.insertMode,
 					description: nls.localize('suggest.insertMode', "Controls whether words are overwritten when accepting completions. Note that this depends on extensions opting into this feature.")
+				},
+				'editor.suggest.insertHighlight': {
+					type: 'boolean',
+					default: defaults.insertHighlight,
+					description: nls.localize('suggest.insertHighlight', "Controls whether unexpected text modifications while accepting completions should be highlighted, e.g `insertMode` is `replace` but the completion only supports `insert`.")
 				},
 				'editor.suggest.filterGraceful': {
 					type: 'boolean',
@@ -3094,16 +3072,6 @@ class EditorSuggest extends BaseEditorOption<EditorOption.suggest, InternalSugge
 					default: true,
 					markdownDescription: nls.localize('editor.suggest.showSnippets', "When enabled IntelliSense shows `snippet`-suggestions.")
 				},
-				'editor.suggest.showUsers': {
-					type: 'boolean',
-					default: true,
-					markdownDescription: nls.localize('editor.suggest.showUsers', "When enabled IntelliSense shows `user`-suggestions.")
-				},
-				'editor.suggest.showIssues': {
-					type: 'boolean',
-					default: true,
-					markdownDescription: nls.localize('editor.suggest.showIssues', "When enabled IntelliSense shows `issues`-suggestions.")
-				},
 				'editor.suggest.statusBar.visible': {
 					type: 'boolean',
 					default: false,
@@ -3114,12 +3082,13 @@ class EditorSuggest extends BaseEditorOption<EditorOption.suggest, InternalSugge
 	}
 
 	public validate(_input: any): InternalSuggestOptions {
-		if (!_input || typeof _input !== 'object') {
+		if (typeof _input !== 'object') {
 			return this.defaultValue;
 		}
 		const input = _input as ISuggestOptions;
 		return {
 			insertMode: EditorStringEnumOption.stringSet(input.insertMode, this.defaultValue.insertMode, ['insert', 'replace']),
+			insertHighlight: EditorBooleanOption.boolean(input.insertHighlight, this.defaultValue.insertHighlight),
 			filterGraceful: EditorBooleanOption.boolean(input.filterGraceful, this.defaultValue.filterGraceful),
 			snippetsPreventQuickSuggestions: EditorBooleanOption.boolean(input.snippetsPreventQuickSuggestions, this.defaultValue.filterGraceful),
 			localityBonus: EditorBooleanOption.boolean(input.localityBonus, this.defaultValue.localityBonus),
@@ -3151,8 +3120,6 @@ class EditorSuggest extends BaseEditorOption<EditorOption.suggest, InternalSugge
 			showFolders: EditorBooleanOption.boolean(input.showFolders, this.defaultValue.showFolders),
 			showTypeParameters: EditorBooleanOption.boolean(input.showTypeParameters, this.defaultValue.showTypeParameters),
 			showSnippets: EditorBooleanOption.boolean(input.showSnippets, this.defaultValue.showSnippets),
-			showUsers: EditorBooleanOption.boolean(input.showUsers, this.defaultValue.showUsers),
-			showIssues: EditorBooleanOption.boolean(input.showIssues, this.defaultValue.showIssues),
 			statusBar: {
 				visible: EditorBooleanOption.boolean(input.statusBar?.visible, !!this.defaultValue.statusBar.visible)
 			}
@@ -3407,12 +3374,10 @@ export const enum EditorOption {
 	quickSuggestions,
 	quickSuggestionsDelay,
 	readOnly,
-	renameOnType,
 	renderControlCharacters,
 	renderIndentGuides,
 	renderFinalNewline,
 	renderLineHighlight,
-	renderLineHighlightOnlyWhenFocus,
 	renderValidationDecorations,
 	renderWhitespace,
 	revealHorizontalRightPadding,
@@ -3825,10 +3790,6 @@ export const EditorOptions = {
 	readOnly: register(new EditorBooleanOption(
 		EditorOption.readOnly, 'readOnly', false,
 	)),
-	renameOnType: register(new EditorBooleanOption(
-		EditorOption.renameOnType, 'renameOnType', false,
-		{ description: nls.localize('renameOnType', "Controls whether the editor auto renames on type.") }
-	)),
 	renderControlCharacters: register(new EditorBooleanOption(
 		EditorOption.renderControlCharacters, 'renderControlCharacters', false,
 		{ description: nls.localize('renderControlCharacters', "Controls whether the editor should render control characters.") }
@@ -3854,10 +3815,6 @@ export const EditorOptions = {
 			],
 			description: nls.localize('renderLineHighlight', "Controls how the editor should render the current line highlight.")
 		}
-	)),
-	renderLineHighlightOnlyWhenFocus: register(new EditorBooleanOption(
-		EditorOption.renderLineHighlightOnlyWhenFocus, 'renderLineHighlightOnlyWhenFocus', false,
-		{ description: nls.localize('renderLineHighlightOnlyWhenFocus', "Controls if the editor should render the current line highlight only when the editor is focused") }
 	)),
 	renderValidationDecorations: register(new EditorStringEnumOption(
 		EditorOption.renderValidationDecorations, 'renderValidationDecorations',

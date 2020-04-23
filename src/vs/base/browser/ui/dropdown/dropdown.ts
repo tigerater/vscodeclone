@@ -271,7 +271,7 @@ export class DropdownMenu extends BaseDropdown {
 }
 
 export class DropdownMenuActionViewItem extends BaseActionViewItem {
-	private menuActionsOrProvider: ReadonlyArray<IAction> | IActionProvider;
+	private menuActionsOrProvider: any;
 	private dropdownMenu: DropdownMenu | undefined;
 	private contextMenuProvider: IContextMenuProvider;
 	private actionViewItemProvider?: IActionViewItemProvider;
@@ -317,7 +317,7 @@ export class DropdownMenuActionViewItem extends BaseActionViewItem {
 		if (Array.isArray(this.menuActionsOrProvider)) {
 			options.actions = this.menuActionsOrProvider;
 		} else {
-			options.actionProvider = this.menuActionsOrProvider as IActionProvider;
+			options.actionProvider = this.menuActionsOrProvider;
 		}
 
 		this.dropdownMenu = this._register(new DropdownMenu(container, options));
@@ -341,7 +341,7 @@ export class DropdownMenuActionViewItem extends BaseActionViewItem {
 		}
 	}
 
-	setActionContext(newContext: unknown): void {
+	setActionContext(newContext: any): void {
 		super.setActionContext(newContext);
 
 		if (this.dropdownMenu) {

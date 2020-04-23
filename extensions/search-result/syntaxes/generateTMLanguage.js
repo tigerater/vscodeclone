@@ -55,7 +55,6 @@ const mappings = [
 	['vb', 'source.asp.vb.net'],
 	['xml', 'text.xml'],
 	['yaml', 'source.yaml'],
-	['yml', 'source.yaml'],
 ];
 
 const scopes = {
@@ -114,8 +113,8 @@ mappings.forEach(([ext, scope, regexp]) =>
 		patterns: [
 			{
 				name: [scopes.resultBlock.result.meta, scopes.resultBlock.result.metaMultiLine].join(' '),
-				begin: '^  (?:\\s*)((\\d+) )',
-				while: '^  (?:\\s*)(?:((\\d+)(:))|((\\d+) ))',
+				begin: '^  ((\\d+) )',
+				while: '^  (?:((\\d+)(:))|((\\d+) ))',
 				beginCaptures: {
 					'0': { name: scopes.resultBlock.result.prefix.meta },
 					'1': { name: scopes.resultBlock.result.prefix.metaContext },
@@ -133,7 +132,7 @@ mappings.forEach(([ext, scope, regexp]) =>
 				patterns: [{ include: scope }]
 			},
 			{
-				begin: '^  (?:\\s*)((\\d+)(:))',
+				begin: '^  ((\\d+)(:))',
 				while: '(?=not)possible',
 				name: [scopes.resultBlock.result.meta, scopes.resultBlock.result.metaSingleLine].join(' '),
 				beginCaptures: {
@@ -215,7 +214,7 @@ const plainText = [
 		}
 	},
 	{
-		match: '^  (?:\\s*)(?:((\\d+)(:))|((\\d+)( ))(.*))',
+		match: '^  (?:((\\d+)(:))|((\\d+)( ))(.*))',
 		name: [scopes.resultBlock.meta, scopes.resultBlock.result.meta].join(' '),
 		captures: {
 			'1': { name: [scopes.resultBlock.result.prefix.meta, scopes.resultBlock.result.prefix.metaMatch].join(' ') },

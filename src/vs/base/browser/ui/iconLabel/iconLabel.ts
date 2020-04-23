@@ -23,7 +23,6 @@ export interface IIconLabelValueOptions {
 	hideIcon?: boolean;
 	extraClasses?: string[];
 	italic?: boolean;
-	strikethrough?: boolean;
 	matches?: IMatch[];
 	labelEscapeNewLines?: boolean;
 	descriptionMatches?: IMatch[];
@@ -137,10 +136,6 @@ export class IconLabel extends Disposable {
 			if (options.italic) {
 				classes.push('italic');
 			}
-
-			if (options.strikethrough) {
-				classes.push('strikethrough');
-			}
 		}
 
 		this.domNode.className = classes.join(' ');
@@ -202,7 +197,7 @@ class Label {
 				const l = label[i];
 				const id = options?.domId && `${options?.domId}_${i}`;
 
-				dom.append(this.container, dom.$('a.label-name', { id, 'data-icon-label-count': label.length, 'data-icon-label-index': i, 'role': 'treeitem' }, l));
+				dom.append(this.container, dom.$('a.label-name', { id, 'data-icon-label-count': label.length, 'data-icon-label-index': i }, l));
 
 				if (i < label.length - 1) {
 					dom.append(this.container, dom.$('span.label-separator', undefined, options?.separator || '/'));
@@ -270,7 +265,7 @@ class LabelWithHighlights {
 				const m = matches ? matches[i] : undefined;
 				const id = options?.domId && `${options?.domId}_${i}`;
 
-				const name = dom.$('a.label-name', { id, 'data-icon-label-count': label.length, 'data-icon-label-index': i, 'role': 'treeitem' });
+				const name = dom.$('a.label-name', { id, 'data-icon-label-count': label.length, 'data-icon-label-index': i });
 				const highlightedLabel = new HighlightedLabel(dom.append(this.container, name), this.supportCodicons);
 				highlightedLabel.set(l, m, options?.title, options?.labelEscapeNewLines);
 

@@ -9,35 +9,19 @@ import { URI } from 'vs/base/common/uri';
 import { registerSingleton } from 'vs/platform/instantiation/common/extensions';
 import { createDecorator } from 'vs/platform/instantiation/common/instantiation';
 import { IRemoteAgentService } from 'vs/workbench/services/remote/common/remoteAgentService';
+import { Schemas } from 'vs/base/common/network';
 import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
 
 const REMOTE_PATH_SERVICE_ID = 'remotePath';
 export const IRemotePathService = createDecorator<IRemotePathService>(REMOTE_PATH_SERVICE_ID);
 
 export interface IRemotePathService {
-
 	_serviceBrand: undefined;
 
-	/**
-	 * The path library to use for the target remote environment.
-	 */
 	readonly path: Promise<path.IPath>;
-
-	/**
-	 * Converts the given path to a file URI in the remote environment.
-	 */
 	fileURI(path: string): Promise<URI>;
 
-	/**
-	 * Resolves the user home of the remote environment if defined.
-	 */
 	readonly userHome: Promise<URI>;
-
-	/**
-	 * Provides access to the user home of the remote environment
-	 * if defined.
-	 */
-	readonly userHomeSync: URI | undefined;
 }
 
 /**
@@ -47,15 +31,12 @@ export class RemotePathService implements IRemotePathService {
 	_serviceBrand: undefined;
 
 	private _extHostOS: Promise<platform.OperatingSystem>;
-	private _userHomeSync: URI | undefined;
 
 	constructor(
 		@IRemoteAgentService private readonly remoteAgentService: IRemoteAgentService,
 		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService
 	) {
 		this._extHostOS = remoteAgentService.getEnvironment().then(remoteEnvironment => {
-			this._userHomeSync = remoteEnvironment?.userHome;
-
 			return remoteEnvironment ? remoteEnvironment.os : platform.OS;
 		});
 	}
@@ -110,12 +91,8 @@ export class RemotePathService implements IRemotePathService {
 			}
 
 			// local: use the userHome from environment
-			return this.environmentService.userHome!;
+			return URI.from({ scheme: Schemas.file, path: this.environmentService.userHome });
 		});
-	}
-
-	get userHomeSync(): URI | undefined {
-		return this._userHomeSync || this.environmentService.userHome;
 	}
 }
 

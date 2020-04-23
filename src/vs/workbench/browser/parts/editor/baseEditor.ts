@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Composite } from 'vs/workbench/browser/composite';
-import { EditorInput, EditorOptions, IEditorPane, GroupIdentifier, IEditorMemento } from 'vs/workbench/common/editor';
+import { Panel } from 'vs/workbench/browser/panel';
+import { EditorInput, EditorOptions, IEditor, GroupIdentifier, IEditorMemento } from 'vs/workbench/common/editor';
 import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 import { IThemeService } from 'vs/platform/theme/common/themeService';
 import { CancellationToken } from 'vs/base/common/cancellation';
@@ -33,9 +33,9 @@ import { indexOfPath } from 'vs/base/common/extpath';
  *
  * This class is only intended to be subclassed and not instantiated.
  */
-export abstract class BaseEditor extends Composite implements IEditorPane {
+export abstract class BaseEditor extends Panel implements IEditor {
 
-	private static readonly EDITOR_MEMENTOS = new Map<string, EditorMemento<any>>();
+	private static readonly EDITOR_MEMENTOS: Map<string, EditorMemento<any>> = new Map<string, EditorMemento<any>>();
 
 	readonly minimumWidth = DEFAULT_EDITOR_MIN_DIMENSIONS.width;
 	readonly maximumWidth = DEFAULT_EDITOR_MAX_DIMENSIONS.width;
@@ -45,13 +45,9 @@ export abstract class BaseEditor extends Composite implements IEditorPane {
 	readonly onDidSizeConstraintsChange = Event.None;
 
 	protected _input: EditorInput | undefined;
-	get input(): EditorInput | undefined { return this._input; }
-
 	protected _options: EditorOptions | undefined;
-	get options(): EditorOptions | undefined { return this._options; }
 
 	private _group?: IEditorGroup;
-	get group(): IEditorGroup | undefined { return this._group; }
 
 	constructor(
 		id: string,
@@ -60,6 +56,18 @@ export abstract class BaseEditor extends Composite implements IEditorPane {
 		storageService: IStorageService
 	) {
 		super(id, telemetryService, themeService, storageService);
+	}
+
+	get input(): EditorInput | undefined {
+		return this._input;
+	}
+
+	get options(): EditorOptions | undefined {
+		return this._options;
+	}
+
+	get group(): IEditorGroup | undefined {
+		return this._group;
 	}
 
 	/**
@@ -171,12 +179,16 @@ export class EditorMemento<T> implements IEditorMemento<T> {
 	private cleanedUp = false;
 
 	constructor(
-		public readonly id: string,
+		private _id: string,
 		private key: string,
 		private memento: MementoObject,
 		private limit: number,
 		private editorGroupService: IEditorGroupsService
 	) { }
+
+	get id(): string {
+		return this._id;
+	}
 
 	saveEditorState(group: IEditorGroup, resource: URI, state: T): void;
 	saveEditorState(group: IEditorGroup, editor: EditorInput, state: T): void;

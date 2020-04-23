@@ -15,7 +15,7 @@ import { ISelection } from 'vs/editor/common/core/selection';
 import { IDecorationOptions, IDecorationRenderOptions, ILineChange } from 'vs/editor/common/editorCommon';
 import { ISingleEditOperation } from 'vs/editor/common/model';
 import { CommandsRegistry } from 'vs/platform/commands/common/commands';
-import { IEditorOptions, ITextEditorOptions, IResourceEditorInput, EditorActivation } from 'vs/platform/editor/common/editor';
+import { IEditorOptions, ITextEditorOptions, IResourceInput, EditorActivation } from 'vs/platform/editor/common/editor';
 import { ServicesAccessor } from 'vs/platform/instantiation/common/instantiation';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
 import { MainThreadDocumentsAndEditors } from 'vs/workbench/api/browser/mainThreadDocumentsAndEditors';
@@ -101,10 +101,10 @@ export class MainThreadTextEditors implements MainThreadTextEditorsShape {
 
 	private _getTextEditorPositionData(): ITextEditorPositionData {
 		const result: ITextEditorPositionData = Object.create(null);
-		for (let editorPane of this._editorService.visibleEditorPanes) {
-			const id = this._documentsAndEditors.findTextEditorIdFor(editorPane);
+		for (let workbenchEditor of this._editorService.visibleControls) {
+			const id = this._documentsAndEditors.findTextEditorIdFor(workbenchEditor);
 			if (id) {
-				result[id] = editorGroupToViewColumn(this._editorGroupService, editorPane.group);
+				result[id] = editorGroupToViewColumn(this._editorGroupService, workbenchEditor.group);
 			}
 		}
 		return result;
@@ -124,7 +124,7 @@ export class MainThreadTextEditors implements MainThreadTextEditorsShape {
 			activation: options.preserveFocus ? EditorActivation.RESTORE : undefined
 		};
 
-		const input: IResourceEditorInput = {
+		const input: IResourceInput = {
 			resource: uri,
 			options: editorOptions
 		};
@@ -151,10 +151,10 @@ export class MainThreadTextEditors implements MainThreadTextEditorsShape {
 	async $tryHideEditor(id: string): Promise<void> {
 		const mainThreadEditor = this._documentsAndEditors.getEditor(id);
 		if (mainThreadEditor) {
-			const editorPanes = this._editorService.visibleEditorPanes;
-			for (let editorPane of editorPanes) {
-				if (mainThreadEditor.matches(editorPane)) {
-					return editorPane.group.closeEditor(editorPane.input);
+			const editors = this._editorService.visibleControls;
+			for (let editor of editors) {
+				if (mainThreadEditor.matches(editor)) {
+					return editor.group.closeEditor(editor.input);
 				}
 			}
 		}

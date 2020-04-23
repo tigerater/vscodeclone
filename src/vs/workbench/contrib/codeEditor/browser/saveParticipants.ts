@@ -23,14 +23,14 @@ import { localize } from 'vs/nls';
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { IProgressStep, IProgress, Progress } from 'vs/platform/progress/common/progress';
-import { ITextFileService, ITextFileSaveParticipant, ITextFileEditorModel } from 'vs/workbench/services/textfile/common/textfiles';
+import { IResolvedTextFileEditorModel, ITextFileService, ITextFileSaveParticipant } from 'vs/workbench/services/textfile/common/textfiles';
 import { SaveReason } from 'vs/workbench/common/editor';
 import { Disposable } from 'vs/base/common/lifecycle';
 import { IWorkbenchContribution, Extensions as WorkbenchContributionsExtensions, IWorkbenchContributionsRegistry } from 'vs/workbench/common/contributions';
 import { Registry } from 'vs/platform/registry/common/platform';
 import { LifecyclePhase } from 'vs/platform/lifecycle/common/lifecycle';
 
-export class TrimWhitespaceParticipant implements ITextFileSaveParticipant {
+class TrimWhitespaceParticipant implements ITextFileSaveParticipant {
 
 	constructor(
 		@IConfigurationService private readonly configurationService: IConfigurationService,
@@ -39,11 +39,7 @@ export class TrimWhitespaceParticipant implements ITextFileSaveParticipant {
 		// Nothing
 	}
 
-	async participate(model: ITextFileEditorModel, env: { reason: SaveReason; }): Promise<void> {
-		if (!model.textEditorModel) {
-			return;
-		}
-
+	async participate(model: IResolvedTextFileEditorModel, env: { reason: SaveReason; }): Promise<void> {
 		if (this.configurationService.getValue('files.trimTrailingWhitespace', { overrideIdentifier: model.textEditorModel.getLanguageIdentifier().language, resource: model.resource })) {
 			this.doTrimTrailingWhitespace(model.textEditorModel, env.reason === SaveReason.AUTO);
 		}
@@ -105,11 +101,7 @@ export class FinalNewLineParticipant implements ITextFileSaveParticipant {
 		// Nothing
 	}
 
-	async participate(model: ITextFileEditorModel, _env: { reason: SaveReason; }): Promise<void> {
-		if (!model.textEditorModel) {
-			return;
-		}
-
+	async participate(model: IResolvedTextFileEditorModel, _env: { reason: SaveReason; }): Promise<void> {
 		if (this.configurationService.getValue('files.insertFinalNewline', { overrideIdentifier: model.textEditorModel.getLanguageIdentifier().language, resource: model.resource })) {
 			this.doInsertFinalNewLine(model.textEditorModel);
 		}
@@ -143,11 +135,7 @@ export class TrimFinalNewLinesParticipant implements ITextFileSaveParticipant {
 		// Nothing
 	}
 
-	async participate(model: ITextFileEditorModel, env: { reason: SaveReason; }): Promise<void> {
-		if (!model.textEditorModel) {
-			return;
-		}
-
+	async participate(model: IResolvedTextFileEditorModel, env: { reason: SaveReason; }): Promise<void> {
 		if (this.configurationService.getValue('files.trimFinalNewlines', { overrideIdentifier: model.textEditorModel.getLanguageIdentifier().language, resource: model.resource })) {
 			this.doTrimFinalNewLines(model.textEditorModel, env.reason === SaveReason.AUTO);
 		}
@@ -217,13 +205,9 @@ class FormatOnSaveParticipant implements ITextFileSaveParticipant {
 		// Nothing
 	}
 
-	async participate(model: ITextFileEditorModel, env: { reason: SaveReason; }, progress: IProgress<IProgressStep>, token: CancellationToken): Promise<void> {
-		if (!model.textEditorModel) {
-			return;
-		}
-
-		const textEditorModel = model.textEditorModel;
-		const overrides = { overrideIdentifier: textEditorModel.getLanguageIdentifier().language, resource: textEditorModel.uri };
+	async participate(editorModel: IResolvedTextFileEditorModel, env: { reason: SaveReason; }, progress: IProgress<IProgressStep>, token: CancellationToken): Promise<void> {
+		const model = editorModel.textEditorModel;
+		const overrides = { overrideIdentifier: model.getLanguageIdentifier().language, resource: model.uri };
 
 		if (env.reason === SaveReason.AUTO || !this.configurationService.getValue('editor.formatOnSave', overrides)) {
 			return undefined;
@@ -238,7 +222,7 @@ class FormatOnSaveParticipant implements ITextFileSaveParticipant {
 				)
 			});
 		});
-		const editorOrModel = findEditor(textEditorModel, this.codeEditorService) || textEditorModel;
+		const editorOrModel = findEditor(model, this.codeEditorService) || model;
 		await this.instantiationService.invokeFunction(formatDocumentWithSelectedProvider, editorOrModel, FormattingMode.Silent, nestedProgress, token);
 	}
 }
@@ -250,31 +234,21 @@ class CodeActionOnSaveParticipant implements ITextFileSaveParticipant {
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 	) { }
 
-	async participate(model: ITextFileEditorModel, env: { reason: SaveReason; }, progress: IProgress<IProgressStep>, token: CancellationToken): Promise<void> {
-		if (!model.textEditorModel) {
-			return;
-		}
-
+	async participate(editorModel: IResolvedTextFileEditorModel, env: { reason: SaveReason; }, progress: IProgress<IProgressStep>, token: CancellationToken): Promise<void> {
 		if (env.reason === SaveReason.AUTO) {
 			return undefined;
 		}
-		const textEditorModel = model.textEditorModel;
+		const model = editorModel.textEditorModel;
 
-		const settingsOverrides = { overrideIdentifier: textEditorModel.getLanguageIdentifier().language, resource: model.resource };
-		const setting = this.configurationService.getValue<{ [kind: string]: boolean } | string[]>('editor.codeActionsOnSave', settingsOverrides);
+		const settingsOverrides = { overrideIdentifier: model.getLanguageIdentifier().language, resource: editorModel.resource };
+		const setting = this.configurationService.getValue<{ [kind: string]: boolean }>('editor.codeActionsOnSave', settingsOverrides);
 		if (!setting) {
 			return undefined;
 		}
 
-		const settingItems: string[] = Array.isArray(setting)
-			? setting
-			: Object.keys(setting).filter(x => setting[x]);
-
-		const codeActionsOnSave = settingItems
-			.map(x => new CodeActionKind(x));
-
-		if (!Array.isArray(setting)) {
-			codeActionsOnSave.sort((a, b) => {
+		const codeActionsOnSave = Object.keys(setting)
+			.filter(x => setting[x]).map(x => new CodeActionKind(x))
+			.sort((a, b) => {
 				if (CodeActionKind.SourceFixAll.contains(a)) {
 					if (CodeActionKind.SourceFixAll.contains(b)) {
 						return 0;
@@ -286,38 +260,35 @@ class CodeActionOnSaveParticipant implements ITextFileSaveParticipant {
 				}
 				return 0;
 			});
-		}
 
 		if (!codeActionsOnSave.length) {
 			return undefined;
 		}
 
-		const excludedActions = Array.isArray(setting)
-			? []
-			: Object.keys(setting)
-				.filter(x => setting[x] === false)
-				.map(x => new CodeActionKind(x));
+		const excludedActions = Object.keys(setting)
+			.filter(x => setting[x] === false)
+			.map(x => new CodeActionKind(x));
 
 		progress.report({ message: localize('codeaction', "Quick Fixes") });
-		await this.applyOnSaveActions(textEditorModel, codeActionsOnSave, excludedActions, progress, token);
+		await this.applyOnSaveActions(model, codeActionsOnSave, excludedActions, progress, token);
 	}
 
 	private async applyOnSaveActions(model: ITextModel, codeActionsOnSave: readonly CodeActionKind[], excludes: readonly CodeActionKind[], progress: IProgress<IProgressStep>, token: CancellationToken): Promise<void> {
 
 		const getActionProgress = new class implements IProgress<CodeActionProvider> {
-			private _names = new Set<string>();
+			private _names: string[] = [];
 			private _report(): void {
 				progress.report({
 					message: localize(
 						'codeaction.get',
 						"Getting code actions from '{0}' ([configure](command:workbench.action.openSettings?%5B%22editor.codeActionsOnSave%22%5D)).",
-						[...this._names].map(name => `'${name}'`).join(', ')
+						this._names.map(name => `'${name}'`).join(', ')
 					)
 				});
 			}
 			report(provider: CodeActionProvider) {
-				if (provider.displayName && !this._names.has(provider.displayName)) {
-					this._names.add(provider.displayName);
+				if (provider.displayName) {
+					this._names.push(provider.displayName);
 					this._report();
 				}
 			}

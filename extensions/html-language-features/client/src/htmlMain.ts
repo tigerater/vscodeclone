@@ -21,12 +21,13 @@ import { EMPTY_ELEMENTS } from './htmlEmptyTagsShared';
 import { activateTagClosing } from './tagClosing';
 import TelemetryReporter from 'vscode-extension-telemetry';
 import { getCustomDataPathsInAllWorkspaces, getCustomDataPathsFromAllExtensions } from './customData';
+import { activateMirrorCursor } from './mirrorCursor';
 
 namespace TagCloseRequest {
 	export const type: RequestType<TextDocumentPositionParams, string, any, any> = new RequestType('html/tag');
 }
-namespace OnTypeRenameRequest {
-	export const type: RequestType<TextDocumentPositionParams, Range[] | null, any, any> = new RequestType('html/onTypeRename');
+namespace MatchingTagPositionRequest {
+	export const type: RequestType<TextDocumentPositionParams, Position | null, any, any> = new RequestType('html/matchingTagPosition');
 }
 
 // experimental: semantic tokens
@@ -128,6 +129,14 @@ export function activate(context: ExtensionContext) {
 			return client.sendRequest(TagCloseRequest.type, param);
 		};
 		disposable = activateTagClosing(tagRequestor, { html: true, handlebars: true }, 'html.autoClosingTags');
+		toDispose.push(disposable);
+
+		const matchingTagPositionRequestor = (document: TextDocument, position: Position) => {
+			let param = client.code2ProtocolConverter.asTextDocumentPositionParams(document, position);
+			return client.sendRequest(MatchingTagPositionRequest.type, param);
+		};
+
+		disposable = activateMirrorCursor(matchingTagPositionRequestor, { html: true, handlebars: true }, 'html.mirrorCursorOnMatchingTag');
 		toDispose.push(disposable);
 
 		disposable = client.onTelemetry(e => {
@@ -278,15 +287,6 @@ export function activate(context: ExtensionContext) {
 				results.push(snippetProposal);
 			}
 			return results;
-		}
-	});
-
-	languages.registerOnTypeRenameProvider(documentSelector, {
-		async provideOnTypeRenameRanges(document, position) {
-			const param = client.code2ProtocolConverter.asTextDocumentPositionParams(document, position);
-			const response = await client.sendRequest(OnTypeRenameRequest.type, param);
-
-			return response || [];
 		}
 	});
 }

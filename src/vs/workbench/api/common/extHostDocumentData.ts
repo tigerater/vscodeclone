@@ -238,7 +238,7 @@ export class ExtHostDocumentData extends MirrorTextModel {
 	}
 }
 
-export class ExtHostDocumentLine implements vscode.TextLine {
+class ExtHostDocumentLine implements vscode.TextLine {
 
 	private readonly _line: number;
 	private readonly _text: string;

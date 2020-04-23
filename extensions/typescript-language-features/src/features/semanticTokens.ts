@@ -14,14 +14,11 @@ import { TokenType, TokenModifier, TokenEncodingConsts, VersionRequirement } fro
 
 const minTypeScriptVersion = API.fromVersionString(`${VersionRequirement.major}.${VersionRequirement.minor}`);
 
-// as we don't do deltas, for performance reasons, don't compute semantic tokens for documents above that limit
-const CONTENT_LENGTH_LIMIT = 100000;
-
 export function register(selector: vscode.DocumentSelector, client: ITypeScriptServiceClient) {
 	return new VersionDependentRegistration(client, minTypeScriptVersion, () => {
 		const provider = new DocumentSemanticTokensProvider(client);
 		return vscode.Disposable.from(
-			// register only as a range provider
+			vscode.languages.registerDocumentSemanticTokensProvider(selector, provider, provider.getLegend()),
 			vscode.languages.registerDocumentRangeSemanticTokensProvider(selector, provider, provider.getLegend()),
 		);
 	});
@@ -43,7 +40,7 @@ class DocumentSemanticTokensProvider implements vscode.DocumentSemanticTokensPro
 
 	async provideDocumentSemanticTokens(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.SemanticTokens | null> {
 		const file = this.client.toOpenedFilePath(document);
-		if (!file || document.getText().length > CONTENT_LENGTH_LIMIT) {
+		if (!file) {
 			return null;
 		}
 		return this._provideSemanticTokens(document, { file, start: 0, length: document.getText().length }, token);
@@ -51,10 +48,9 @@ class DocumentSemanticTokensProvider implements vscode.DocumentSemanticTokensPro
 
 	async provideDocumentRangeSemanticTokens(document: vscode.TextDocument, range: vscode.Range, token: vscode.CancellationToken): Promise<vscode.SemanticTokens | null> {
 		const file = this.client.toOpenedFilePath(document);
-		if (!file || (document.offsetAt(range.end) - document.offsetAt(range.start) > CONTENT_LENGTH_LIMIT)) {
+		if (!file) {
 			return null;
 		}
-
 		const start = document.offsetAt(range.start);
 		const length = document.offsetAt(range.end) - start;
 		return this._provideSemanticTokens(document, { file, start, length }, token);
@@ -66,7 +62,7 @@ class DocumentSemanticTokensProvider implements vscode.DocumentSemanticTokensPro
 			return null;
 		}
 
-		let versionBeforeRequest = document.version;
+		const versionBeforeRequest = document.version;
 
 		const response = await (this.client as ExperimentalProtocol.IExtendedTypeScriptServiceClient).execute('encodedSemanticClassifications-full', requestArg, token);
 		if (response.type !== 'response' || !response.body) {
@@ -82,10 +78,6 @@ class DocumentSemanticTokensProvider implements vscode.DocumentSemanticTokensPro
 			// here we cannot return null, because returning null would remove all semantic tokens.
 			// we must throw to indicate that the semantic tokens should not be removed.
 			// using the string busy here because it is not logged to error telemetry if the error text contains busy.
-
-			// as the new request will come in right after our response, we first wait for the document activity to stop
-			await waitForDocumentChangesToEnd(document);
-
 			throw new Error('busy');
 		}
 
@@ -121,23 +113,9 @@ class DocumentSemanticTokensProvider implements vscode.DocumentSemanticTokensPro
 				builder.push(line, startCharacter, endCharacter - startCharacter, tokenType, tokenModifiers);
 			}
 		}
-		return builder.build();
+		return new vscode.SemanticTokens(builder.build());
 	}
 }
-
-function waitForDocumentChangesToEnd(document: vscode.TextDocument) {
-	let version = document.version;
-	return new Promise((s) => {
-		let iv = setInterval(_ => {
-			if (document.version === version) {
-				clearInterval(iv);
-				s();
-			}
-			version = document.version;
-		}, 400);
-	});
-}
-
 
 // typescript-vscode-sh-plugin encodes type and modifiers in the classification:
 // TSClassification = (TokenType + 1) << 8 + TokenModifier
@@ -173,7 +151,6 @@ tokenModifiers[TokenModifier.declaration] = 'declaration';
 tokenModifiers[TokenModifier.readonly] = 'readonly';
 tokenModifiers[TokenModifier.static] = 'static';
 tokenModifiers[TokenModifier.local] = 'local';
-tokenModifiers[TokenModifier.defaultLibrary] = 'defaultLibrary';
 
 // make sure token types and modifiers are complete
 if (tokenTypes.filter(t => !!t).length !== TokenType._) {

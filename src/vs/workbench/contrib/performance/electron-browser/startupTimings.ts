@@ -8,8 +8,7 @@ import { timeout } from 'vs/base/common/async';
 import { promisify } from 'util';
 import { onUnexpectedError } from 'vs/base/common/errors';
 import { isCodeEditor } from 'vs/editor/browser/editorBrowser';
-import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
-import { INativeWorkbenchEnvironmentService } from 'vs/workbench/services/environment/electron-browser/environmentService';
+import { IEnvironmentService } from 'vs/platform/environment/common/environment';
 import { ILifecycleService, StartupKind } from 'vs/platform/lifecycle/common/lifecycle';
 import product from 'vs/platform/product/common/product';
 import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
@@ -34,7 +33,7 @@ export class StartupTimings implements IWorkbenchContribution {
 		@ITelemetryService private readonly _telemetryService: ITelemetryService,
 		@ILifecycleService private readonly _lifecycleService: ILifecycleService,
 		@IUpdateService private readonly _updateService: IUpdateService,
-		@IWorkbenchEnvironmentService private readonly _envService: INativeWorkbenchEnvironmentService
+		@IEnvironmentService private readonly _envService: IEnvironmentService
 	) {
 		//
 		this._report().catch(onUnexpectedError);
@@ -99,8 +98,8 @@ export class StartupTimings implements IWorkbenchContribution {
 		if (!activeViewlet || activeViewlet.getId() !== files.VIEWLET_ID) {
 			return false;
 		}
-		const visibleEditorPanes = this._editorService.visibleEditorPanes;
-		if (visibleEditorPanes.length !== 1 || !isCodeEditor(visibleEditorPanes[0].getControl())) {
+		const visibleControls = this._editorService.visibleControls;
+		if (visibleControls.length !== 1 || !isCodeEditor(visibleControls[0].getControl())) {
 			return false;
 		}
 		if (this._panelService.getActivePanel()) {

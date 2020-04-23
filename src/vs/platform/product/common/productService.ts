@@ -14,13 +14,6 @@ export interface IProductService extends Readonly<IProductConfiguration> {
 
 }
 
-export interface IBuiltInExtension {
-	readonly name: string;
-	readonly version: string;
-	readonly repo: string;
-	readonly metadata: any;
-}
-
 export interface IProductConfiguration {
 	readonly version: string;
 	readonly date?: string;
@@ -36,8 +29,6 @@ export interface IProductConfiguration {
 
 	readonly urlProtocol: string;
 	readonly dataFolderName: string;
-
-	readonly builtInExtensions?: IBuiltInExtension[];
 
 	readonly downloadUrl?: string;
 	readonly updateUrl?: string;
@@ -98,7 +89,7 @@ export interface IProductConfiguration {
 	readonly checksums?: { [path: string]: string; };
 	readonly checksumFailMoreInfoUrl?: string;
 
-	readonly appCenter?: {
+	readonly hockeyApp?: {
 		readonly 'win32-ia32': string;
 		readonly 'win32-x64': string;
 		readonly 'linux-x64': string;

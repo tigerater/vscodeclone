@@ -6,6 +6,8 @@
 import { IDisposable, dispose, DisposableStore } from 'vs/base/common/lifecycle';
 import { IMarkdownString } from 'vs/base/common/htmlContent';
 import { renderMarkdown } from 'vs/base/browser/markdownRenderer';
+import { IOpenerService } from 'vs/platform/opener/common/opener';
+import { URI } from 'vs/base/common/uri';
 
 export enum WidgetVerticalAlignment {
 	Bottom,
@@ -23,6 +25,7 @@ export class TerminalWidgetManager implements IDisposable {
 
 	constructor(
 		terminalWrapper: HTMLElement,
+		private readonly _openerService: IOpenerService
 	) {
 		this._container = document.createElement('div');
 		this._container.classList.add('terminal-widget-overlay');
@@ -50,20 +53,19 @@ export class TerminalWidgetManager implements IDisposable {
 		mutationObserver.observe(this._xtermViewport, { attributes: true, attributeFilter: ['style'] });
 	}
 
-	public showMessage(left: number, y: number, text: IMarkdownString, verticalAlignment: WidgetVerticalAlignment = WidgetVerticalAlignment.Bottom, linkHandler: (url: string) => void): void {
-		if (!this._container || this._messageWidget?.mouseOver) {
+	public showMessage(left: number, y: number, text: IMarkdownString, verticalAlignment: WidgetVerticalAlignment = WidgetVerticalAlignment.Bottom): void {
+		if (!this._container) {
 			return;
 		}
 		dispose(this._messageWidget);
 		this._messageListeners.clear();
-		this._messageWidget = new MessageWidget(this._container, left, y, text, verticalAlignment, linkHandler);
+		this._messageWidget = new MessageWidget(this._container, left, y, text, verticalAlignment, this._openerService);
 	}
 
 	public closeMessage(): void {
 		this._messageListeners.clear();
-		const currentWidget = this._messageWidget;
 		setTimeout(() => {
-			if (this._messageWidget && !this._messageWidget.mouseOver && this._messageWidget === currentWidget) {
+			if (this._messageWidget && !this._messageWidget.mouseOver) {
 				this._messageListeners.add(MessageWidget.fadeOut(this._messageWidget));
 			}
 		}, 50);
@@ -108,11 +110,11 @@ class MessageWidget {
 		private _y: number,
 		private _text: IMarkdownString,
 		private _verticalAlignment: WidgetVerticalAlignment,
-		private _linkHandler: (url: string) => void
+		private readonly _openerService: IOpenerService
 	) {
 		this._domNode = renderMarkdown(this._text, {
 			actionHandler: {
-				callback: this._linkHandler,
+				callback: this._handleLinkClicked.bind(this),
 				disposeables: this._messageListeners
 			}
 		});
@@ -146,5 +148,9 @@ class MessageWidget {
 		}
 
 		this._messageListeners.dispose();
+	}
+
+	private _handleLinkClicked(content: string) {
+		this._openerService.open(URI.parse(content));
 	}
 }

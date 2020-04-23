@@ -126,29 +126,19 @@ class DiagnosticsSet {
 	}
 }
 
-class VsCodeCodeAction extends vscode.CodeAction {
-	constructor(
-		public readonly tsAction: Proto.CodeFixAction,
-		title: string,
-		kind: vscode.CodeActionKind,
-	) {
-		super(title, kind);
-	}
-}
-
 class CodeActionSet {
-	private readonly _actions = new Set<VsCodeCodeAction>();
-	private readonly _fixAllActions = new Map<{}, VsCodeCodeAction>();
+	private readonly _actions = new Set<vscode.CodeAction>();
+	private readonly _fixAllActions = new Map<{}, vscode.CodeAction>();
 
-	public get values(): Iterable<VsCodeCodeAction> {
+	public get values(): Iterable<vscode.CodeAction> {
 		return this._actions;
 	}
 
-	public addAction(action: VsCodeCodeAction) {
+	public addAction(action: vscode.CodeAction) {
 		this._actions.add(action);
 	}
 
-	public addFixAllAction(fixId: {}, action: VsCodeCodeAction) {
+	public addFixAllAction(fixId: {}, action: vscode.CodeAction) {
 		const existing = this._fixAllActions.get(fixId);
 		if (existing) {
 			// reinsert action at back of actions list
@@ -229,13 +219,7 @@ class TypeScriptQuickFixProvider implements vscode.CodeActionProvider {
 		for (const diagnostic of fixableDiagnostics.values) {
 			await this.getFixesForDiagnostic(document, file, diagnostic, results, token);
 		}
-
-		const allActions = Array.from(results.values);
-		const allTsActions = allActions.map(x => x.tsAction);
-		for (const action of allActions) {
-			action.isPreferred = isPreferredFix(action.tsAction, allTsActions);
-		}
-		return allActions;
+		return Array.from(results.values);
 	}
 
 	private async getFixesForDiagnostic(
@@ -275,8 +259,8 @@ class TypeScriptQuickFixProvider implements vscode.CodeActionProvider {
 	private getSingleFixForTsCodeAction(
 		diagnostic: vscode.Diagnostic,
 		tsAction: Proto.CodeFixAction
-	): VsCodeCodeAction {
-		const codeAction = new VsCodeCodeAction(tsAction, tsAction.description, vscode.CodeActionKind.QuickFix);
+	): vscode.CodeAction {
+		const codeAction = new vscode.CodeAction(tsAction.description, vscode.CodeActionKind.QuickFix);
 		codeAction.edit = getEditForCodeAction(this.client, tsAction);
 		codeAction.diagnostics = [diagnostic];
 		codeAction.command = {
@@ -284,6 +268,7 @@ class TypeScriptQuickFixProvider implements vscode.CodeActionProvider {
 			arguments: [tsAction],
 			title: ''
 		};
+		codeAction.isPreferred = isPreferredFix(tsAction);
 		return codeAction;
 	}
 
@@ -309,8 +294,7 @@ class TypeScriptQuickFixProvider implements vscode.CodeActionProvider {
 			return results;
 		}
 
-		const action = new VsCodeCodeAction(
-			tsAction,
+		const action = new vscode.CodeAction(
 			tsAction.fixAllDescription || localize('fixAllInFileLabel', '{0} (Fix all in file)', tsAction.description),
 			vscode.CodeActionKind.QuickFix);
 		action.diagnostics = [diagnostic];
@@ -333,37 +317,20 @@ const fixAllErrorCodes = new Map<number, number>([
 ]);
 
 
-const preferredFixes = new Map<string, /* priorty */number>([
-	['annotateWithTypeFromJSDoc', 0],
-	['constructorForDerivedNeedSuperCall', 0],
-	['extendsInterfaceBecomesImplements', 0],
-	['fixAwaitInSyncFunction', 0],
-	['fixClassIncorrectlyImplementsInterface', 1],
-	['fixUnreachableCode', 0],
-	['unusedIdentifier', 0],
-	['forgottenThisPropertyAccess', 0],
-	['spelling', 1],
-	['addMissingAwait', 0],
+const preferredFixes = new Set([
+	'annotateWithTypeFromJSDoc',
+	'constructorForDerivedNeedSuperCall',
+	'extendsInterfaceBecomesImplements',
+	'fixAwaitInSyncFunction',
+	'fixClassIncorrectlyImplementsInterface',
+	'fixUnreachableCode',
+	'forgottenThisPropertyAccess',
+	'spelling',
+	'unusedIdentifier',
+	'addMissingAwait',
 ]);
-
-function isPreferredFix(
-	tsAction: Proto.CodeFixAction,
-	allActions: readonly Proto.CodeFixAction[]
-): boolean {
-	const priority = preferredFixes.get(tsAction.fixName);
-	if (typeof priority === 'undefined') {
-		return false;
-	}
-	return allActions.every(otherAction => {
-		if (otherAction === tsAction) {
-			return true;
-		}
-		const otherPriority = preferredFixes.get(otherAction.fixName);
-		if (typeof otherPriority === 'undefined') {
-			return true;
-		}
-		return priority >= otherPriority;
-	});
+function isPreferredFix(tsAction: Proto.CodeFixAction): boolean {
+	return preferredFixes.has(tsAction.fixName);
 }
 
 export function register(

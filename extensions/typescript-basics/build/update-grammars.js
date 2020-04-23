@@ -17,23 +17,6 @@ function removeDom(grammar) {
 	return grammar;
 }
 
-function removeNodeTypes(grammar) {
-	grammar.repository['support-objects'].patterns = grammar.repository['support-objects'].patterns.filter(pattern => {
-		if (pattern.name) {
-			if (pattern.name.startsWith('support.variable.object.node') || pattern.name.startsWith('support.class.node.')) {
-				return false;
-			}
-		}
-		if (pattern.captures) {
-			if (Object.values(pattern.captures).some(capture => capture.name && capture.name.startsWith('support.variable.object.process'))) {
-				return false;
-			}
-		}
-		return true;
-	});
-	return grammar;
-}
-
 function patchJsdoctype(grammar) {
 	grammar.repository['jsdoctype'].patterns = grammar.repository['jsdoctype'].patterns.filter(pattern => {
 		if (pattern.name && pattern.name.indexOf('illegal') >= -1) {
@@ -45,7 +28,7 @@ function patchJsdoctype(grammar) {
 }
 
 function patchGrammar(grammar) {
-	return removeNodeTypes(removeDom(patchJsdoctype(grammar)));
+	return removeDom(patchJsdoctype(grammar));
 }
 
 function adaptToJavaScript(grammar, replacementScope) {

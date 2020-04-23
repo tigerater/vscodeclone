@@ -24,18 +24,18 @@ import { IAction, IActionViewItem, ActionRunner, Action } from 'vs/base/common/a
 import { ContextAwareMenuEntryActionViewItem } from 'vs/platform/actions/browser/menuEntryActionViewItem';
 import { SCMMenus } from './menus';
 import { ActionBar, IActionViewItemProvider } from 'vs/base/browser/ui/actionbar/actionbar';
-import { IThemeService, LIGHT, registerThemingParticipant, IFileIconTheme } from 'vs/platform/theme/common/themeService';
+import { IThemeService, LIGHT, registerThemingParticipant } from 'vs/platform/theme/common/themeService';
 import { isSCMResource, isSCMResourceGroup, connectPrimaryMenuToInlineActionBar } from './util';
 import { attachBadgeStyler } from 'vs/platform/theme/common/styler';
-import { WorkbenchCompressibleObjectTree, TreeResourceNavigator, IOpenEvent } from 'vs/platform/list/browser/listService';
-import { IConfigurationService, ConfigurationTarget } from 'vs/platform/configuration/common/configuration';
+import { WorkbenchCompressibleObjectTree } from 'vs/platform/list/browser/listService';
+import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { disposableTimeout, ThrottledDelayer } from 'vs/base/common/async';
 import { INotificationService } from 'vs/platform/notification/common/notification';
 import { ITreeNode, ITreeFilter, ITreeSorter, ITreeContextMenuEvent } from 'vs/base/browser/ui/tree/tree';
 import { ResourceTree, IResourceNode } from 'vs/base/common/resourceTree';
 import { ISequence, ISplice } from 'vs/base/common/sequence';
 import { ICompressibleTreeRenderer, ICompressibleKeyboardNavigationLabelProvider } from 'vs/base/browser/ui/tree/objectTree';
-import { Iterable } from 'vs/base/common/iterator';
+import { Iterator } from 'vs/base/common/iterator';
 import { ICompressedTreeNode, ICompressedTreeElement } from 'vs/base/browser/ui/tree/compressedObjectTreeModel';
 import { URI } from 'vs/base/common/uri';
 import { FileKind } from 'vs/platform/files/common/files';
@@ -45,6 +45,7 @@ import { IViewDescriptor, IViewDescriptorService } from 'vs/workbench/common/vie
 import { localize } from 'vs/nls';
 import { flatten, find } from 'vs/base/common/arrays';
 import { memoize } from 'vs/base/common/decorators';
+import { IWorkbenchThemeService, IFileIconTheme } from 'vs/workbench/services/themes/common/workbenchThemeService';
 import { IStorageService, StorageScope } from 'vs/platform/storage/common/storage';
 import { toResource, SideBySideEditor } from 'vs/workbench/common/editor';
 import { SIDE_BAR_BACKGROUND } from 'vs/workbench/common/theme';
@@ -66,13 +67,8 @@ import { SuggestController } from 'vs/editor/contrib/suggest/suggestController';
 import { SnippetController2 } from 'vs/editor/contrib/snippet/snippetController2';
 import { Schemas } from 'vs/base/common/network';
 import { ServiceCollection } from 'vs/platform/instantiation/common/serviceCollection';
-import { ModesHoverController } from 'vs/editor/contrib/hover/hover';
-import { ColorDetector } from 'vs/editor/contrib/colorPicker/colorDetector';
-import { LinkDetector } from 'vs/editor/contrib/links/links';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
 import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
-import { IListAccessibilityProvider } from 'vs/base/browser/ui/list/listWidget';
-import { IModeService } from 'vs/editor/common/services/modeService';
 
 type TreeElement = ISCMResourceGroup | IResourceNode<ISCMResource, ISCMResourceGroup> | ISCMResource;
 
@@ -153,7 +149,10 @@ interface ResourceTemplate {
 
 class RepositoryPaneActionRunner extends ActionRunner {
 
-	constructor(private getSelectedResources: () => (ISCMResource | IResourceNode<ISCMResource, ISCMResourceGroup>)[]) {
+	constructor(
+		private getSelectedResources: () => (ISCMResource | IResourceNode<ISCMResource, ISCMResourceGroup>)[],
+		private focus: () => void
+	) {
 		super();
 	}
 
@@ -167,6 +166,7 @@ class RepositoryPaneActionRunner extends ActionRunner {
 		const actualContext = contextIsSelected ? selection : [context];
 		const args = flatten(actualContext.map(e => ResourceTree.isResourceNode(e) ? ResourceTree.collect(e) : [e]));
 		await action.run(...args);
+		this.focus();
 	}
 }
 
@@ -179,7 +179,8 @@ class ResourceRenderer implements ICompressibleTreeRenderer<ISCMResource | IReso
 		private viewModelProvider: () => ViewModel,
 		private labels: ResourceLabels,
 		private actionViewItemProvider: IActionViewItemProvider,
-		private actionRunner: ActionRunner,
+		private getSelectedResources: () => (ISCMResource | IResourceNode<ISCMResource, ISCMResourceGroup>)[],
+		private focus: () => void,
 		private themeService: IThemeService,
 		private menus: SCMMenus
 	) { }
@@ -191,7 +192,7 @@ class ResourceRenderer implements ICompressibleTreeRenderer<ISCMResource | IReso
 		const actionsContainer = append(fileLabel.element, $('.actions'));
 		const actionBar = new ActionBar(actionsContainer, {
 			actionViewItemProvider: this.actionViewItemProvider,
-			actionRunner: this.actionRunner
+			actionRunner: new RepositoryPaneActionRunner(this.getSelectedResources, this.focus)
 		});
 
 		const decorationIcon = append(element, $('.decoration-icon'));
@@ -205,7 +206,7 @@ class ResourceRenderer implements ICompressibleTreeRenderer<ISCMResource | IReso
 
 		const elementDisposables = new DisposableStore();
 		const resourceOrFolder = node.element;
-		const theme = this.themeService.getColorTheme();
+		const theme = this.themeService.getTheme();
 		const iconResource = ResourceTree.isResourceNode(resourceOrFolder) ? resourceOrFolder.element : resourceOrFolder;
 		const icon = iconResource && (theme.type === LIGHT ? iconResource.decorations.icon : iconResource.decorations.iconDark);
 
@@ -390,19 +391,6 @@ class SCMResourceIdentityProvider implements IIdentityProvider<TreeElement> {
 	}
 }
 
-export class SCMAccessibilityProvider implements IListAccessibilityProvider<TreeElement> {
-
-	getAriaLabel(element: TreeElement): string {
-		if (ResourceTree.isResourceNode(element)) {
-			return element.name;
-		} else if (isSCMResourceGroup(element)) {
-			return element.label;
-		} else {
-			return `${basename(element.sourceUri)}, ${element.decorations.tooltip || ''}`;
-		}
-	}
-}
-
 interface IGroupItem {
 	readonly group: ISCMResourceGroup;
 	readonly resources: ISCMResource[];
@@ -412,8 +400,8 @@ interface IGroupItem {
 
 function groupItemAsTreeElement(item: IGroupItem, mode: ViewModelMode): ICompressedTreeElement<TreeElement> {
 	const children = mode === ViewModelMode.List
-		? Iterable.map(item.resources, element => ({ element, incompressible: true }))
-		: Iterable.map(item.tree.root.children, node => asTreeElement(node, true));
+		? Iterator.map(Iterator.fromArray(item.resources), element => ({ element, incompressible: true }))
+		: Iterator.map(item.tree.root.children, node => asTreeElement(node, true));
 
 	return { element: item.group, children, incompressible: true, collapsible: true };
 }
@@ -421,7 +409,7 @@ function groupItemAsTreeElement(item: IGroupItem, mode: ViewModelMode): ICompres
 function asTreeElement(node: IResourceNode<ISCMResource, ISCMResourceGroup>, forceIncompressible: boolean): ICompressedTreeElement<TreeElement> {
 	return {
 		element: (node.childrenCount === 0 && node.element) ? node.element : node,
-		children: Iterable.map(node.children, node => asTreeElement(node, false)),
+		children: Iterator.map(node.children, node => asTreeElement(node, false)),
 		incompressible: !!node.element || forceIncompressible
 	};
 }
@@ -637,7 +625,7 @@ export class RepositoryPane extends ViewPane {
 		readonly repository: ISCMRepository,
 		options: IViewPaneOptions,
 		@IKeybindingService protected keybindingService: IKeybindingService,
-		@IThemeService protected themeService: IThemeService,
+		@IWorkbenchThemeService protected themeService: IWorkbenchThemeService,
 		@IContextMenuService protected contextMenuService: IContextMenuService,
 		@IContextViewService protected contextViewService: IContextViewService,
 		@ICommandService protected commandService: ICommandService,
@@ -650,7 +638,6 @@ export class RepositoryPane extends ViewPane {
 		@IMenuService protected menuService: IMenuService,
 		@IStorageService private storageService: IStorageService,
 		@IModelService private modelService: IModelService,
-		@IModeService private modeService: IModeService,
 		@IOpenerService openerService: IOpenerService,
 		@ITelemetryService telemetryService: ITelemetryService,
 	) {
@@ -703,7 +690,6 @@ export class RepositoryPane extends ViewPane {
 			const label = binding ? binding.getLabel() : (platform.isMacintosh ? 'Cmd+Enter' : 'Ctrl+Enter');
 			const placeholderText = format(this.repository.input.placeholder, label);
 
-			this.inputEditor.updateOptions({ ariaLabel: placeholderText });
 			placeholderTextContainer.textContent = placeholderText;
 		};
 
@@ -749,6 +735,7 @@ export class RepositoryPane extends ViewPane {
 			wrappingStrategy: 'advanced',
 			wrappingIndent: 'none',
 			padding: { top: 3, bottom: 3 },
+			suggest: { showWords: false },
 			quickSuggestions: false
 		};
 
@@ -760,9 +747,6 @@ export class RepositoryPane extends ViewPane {
 				MenuPreventer.ID,
 				SelectionClipboardContributionID,
 				ContextMenuController.ID,
-				ColorDetector.ID,
-				ModesHoverController.ID,
-				LinkDetector.ID
 			])
 		};
 
@@ -787,10 +771,7 @@ export class RepositoryPane extends ViewPane {
 			query
 		});
 
-		this.configurationService.updateValue('editor.wordBasedSuggestions', false, { resource: uri }, ConfigurationTarget.MEMORY);
-
-		const mode = this.modeService.create('scminput');
-		this.inputModel = this.modelService.getModel(uri) || this.modelService.createModel('', mode, uri);
+		this.inputModel = this.modelService.getModel(uri) || this.modelService.createModel('', null, uri);
 		this.inputEditor.setModel(this.inputModel);
 
 		this._register(this.inputEditor.onDidChangeCursorPosition(triggerValidation));
@@ -802,7 +783,6 @@ export class RepositoryPane extends ViewPane {
 				return;
 			}
 			this.inputModel.setValue(value);
-			this.inputEditor.setPosition(this.inputModel.getFullModelRange().getEndPosition());
 		}));
 
 		// Keep API in sync with model and update placeholder and validation
@@ -820,7 +800,9 @@ export class RepositoryPane extends ViewPane {
 		const onDidChangeContentHeight = Event.filter(this.inputEditor.onDidContentSizeChange, e => e.contentHeightChanged);
 		this._register(onDidChangeContentHeight(() => this.layoutBody()));
 
-		this._register(this.repository.provider.onDidChangeCommitTemplate(this.onDidChangeCommitTemplate, this));
+		if (this.repository.provider.onDidChangeCommitTemplate) {
+			this._register(this.repository.provider.onDidChangeCommitTemplate(this.onDidChangeCommitTemplate, this));
+		}
 
 		this.onDidChangeCommitTemplate();
 
@@ -842,19 +824,9 @@ export class RepositoryPane extends ViewPane {
 		this.listLabels = this.instantiationService.createInstance(ResourceLabels, { onDidChangeVisibility: this.onDidChangeBodyVisibility });
 		this._register(this.listLabels);
 
-		const actionRunner = new RepositoryPaneActionRunner(() => this.getSelectedResources());
-		this._register(actionRunner);
-		this._register(actionRunner.onDidRun(() => {
-			if (this.repository.input.visible && this.inputEditor.hasWidgetFocus()) {
-				return;
-			}
-
-			this.tree.domFocus();
-		}));
-
 		const renderers = [
 			new ResourceGroupRenderer(actionViewItemProvider, this.themeService, this.menus),
-			new ResourceRenderer(() => this.viewModel, this.listLabels, actionViewItemProvider, actionRunner, this.themeService, this.menus)
+			new ResourceRenderer(() => this.viewModel, this.listLabels, actionViewItemProvider, () => this.getSelectedResources(), () => this.tree.domFocus(), this.themeService, this.menus)
 		];
 
 		const filter = new SCMTreeFilter();
@@ -862,7 +834,7 @@ export class RepositoryPane extends ViewPane {
 		const keyboardNavigationLabelProvider = new SCMTreeKeyboardNavigationLabelProvider();
 		const identityProvider = new SCMResourceIdentityProvider();
 
-		this.tree = this.instantiationService.createInstance(
+		this.tree = <WorkbenchCompressibleObjectTree<TreeElement, FuzzyScore>>this.instantiationService.createInstance(
 			WorkbenchCompressibleObjectTree,
 			'SCM Tree Repo',
 			this.listContainer,
@@ -876,12 +848,13 @@ export class RepositoryPane extends ViewPane {
 				keyboardNavigationLabelProvider,
 				overrideStyles: {
 					listBackground: SIDE_BAR_BACKGROUND
-				},
-				accessibilityProvider: new SCMAccessibilityProvider()
-			}) as WorkbenchCompressibleObjectTree<TreeElement, FuzzyScore>;
+				}
+			});
 
-		const navigator = this._register(new TreeResourceNavigator(this.tree, { openOnSelection: false }));
-		this._register(navigator.onDidOpenResource(this.open, this));
+		this._register(Event.chain(this.tree.onDidOpen)
+			.map(e => e.elements[0])
+			.filter<ISCMResource>((e): e is ISCMResource => !!e && !isSCMResourceGroup(e) && !ResourceTree.isResourceNode(e))
+			.on(this.open, this));
 
 		this._register(Event.chain(this.tree.onDidPin)
 			.map(e => e.elements[0])
@@ -891,7 +864,7 @@ export class RepositoryPane extends ViewPane {
 		this._register(this.tree.onContextMenu(this.onListContextMenu, this));
 		this._register(this.tree);
 
-		let viewMode = this.configurationService.getValue<'tree' | 'list'>('scm.defaultViewMode') === 'list' ? ViewModelMode.List : ViewModelMode.Tree;
+		let mode = this.configurationService.getValue<'tree' | 'list'>('scm.defaultViewMode') === 'list' ? ViewModelMode.List : ViewModelMode.Tree;
 
 		const rootUri = this.repository.provider.rootUri;
 
@@ -899,11 +872,11 @@ export class RepositoryPane extends ViewPane {
 			const storageMode = this.storageService.get(`scm.repository.viewMode:${rootUri.toString()}`, StorageScope.WORKSPACE) as ViewModelMode;
 
 			if (typeof storageMode === 'string') {
-				viewMode = storageMode;
+				mode = storageMode;
 			}
 		}
 
-		this.viewModel = this.instantiationService.createInstance(ViewModel, this.repository.provider.groups, this.tree, viewMode);
+		this.viewModel = this.instantiationService.createInstance(ViewModel, this.repository.provider.groups, this.tree, mode);
 		this._register(this.viewModel);
 
 		addClass(this.listContainer, 'file-icon-themable-tree');
@@ -1021,19 +994,15 @@ export class RepositoryPane extends ViewPane {
 		return this.repository.provider;
 	}
 
-	private open(e: IOpenEvent<TreeElement | null>): void {
-		if (!e.element || isSCMResourceGroup(e.element) || ResourceTree.isResourceNode(e.element)) {
-			return;
-		}
-
-		e.element.open(!!e.editorOptions.preserveFocus);
+	private open(e: ISCMResource): void {
+		e.open();
 	}
 
 	private pin(): void {
-		const activeEditorPane = this.editorService.activeEditorPane;
+		const activeControl = this.editorService.activeControl;
 
-		if (activeEditorPane) {
-			activeEditorPane.group.pinEditor(activeEditorPane.input);
+		if (activeControl) {
+			activeControl.group.pinEditor(activeControl.input);
 		}
 	}
 
@@ -1057,14 +1026,11 @@ export class RepositoryPane extends ViewPane {
 			actions = this.menus.getResourceContextActions(element);
 		}
 
-		const actionRunner = new RepositoryPaneActionRunner(() => this.getSelectedResources());
-		actionRunner.onDidRun(() => this.tree.domFocus());
-
 		this.contextMenuService.showContextMenu({
 			getAnchor: () => e.anchor,
 			getActions: () => actions,
 			getActionsContext: () => element,
-			actionRunner
+			actionRunner: new RepositoryPaneActionRunner(() => this.getSelectedResources(), () => this.tree.domFocus())
 		});
 	}
 

@@ -739,21 +739,21 @@ KeybindingsRegistry.registerCommandAndKeybindingRule({
 });
 
 export function getActiveEditor(accessor: ServicesAccessor): IActiveCodeEditor | null {
-	let activeTextEditorControl = accessor.get(IEditorService).activeTextEditorControl;
+	let activeTextEditorWidget = accessor.get(IEditorService).activeTextEditorWidget;
 
-	if (isDiffEditor(activeTextEditorControl)) {
-		if (activeTextEditorControl.getOriginalEditor().hasTextFocus()) {
-			activeTextEditorControl = activeTextEditorControl.getOriginalEditor();
+	if (isDiffEditor(activeTextEditorWidget)) {
+		if (activeTextEditorWidget.getOriginalEditor().hasTextFocus()) {
+			activeTextEditorWidget = activeTextEditorWidget.getOriginalEditor();
 		} else {
-			activeTextEditorControl = activeTextEditorControl.getModifiedEditor();
+			activeTextEditorWidget = activeTextEditorWidget.getModifiedEditor();
 		}
 	}
 
-	if (!isCodeEditor(activeTextEditorControl) || !activeTextEditorControl.hasModel()) {
+	if (!isCodeEditor(activeTextEditorWidget) || !activeTextEditorWidget.hasModel()) {
 		return null;
 	}
 
-	return activeTextEditorControl;
+	return activeTextEditorWidget;
 }
 
 registerThemingParticipant((theme, collector) => {

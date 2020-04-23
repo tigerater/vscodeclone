@@ -3,9 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Uri, env } from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
+import { Uri } from 'vscode';
 
 export interface ClientDetails {
 	id?: string;
@@ -21,8 +19,6 @@ export interface ClientConfig {
 	VSO: ClientDetails;
 	VSO_PPE: ClientDetails;
 	VSO_DEV: ClientDetails;
-
-	GITHUB_APP: ClientDetails;
 }
 
 export class Registrar {
@@ -30,8 +26,7 @@ export class Registrar {
 
 	constructor() {
 		try {
-			const fileContents = fs.readFileSync(path.join(env.appRoot, 'extensions/github-authentication/src/common/config.json')).toString();
-			this._config = JSON.parse(fileContents);
+			this._config = require('./config.json') as ClientConfig;
 		} catch (e) {
 			this._config = {
 				OSS: {},
@@ -40,20 +35,10 @@ export class Registrar {
 				EXPLORATION: {},
 				VSO: {},
 				VSO_PPE: {},
-				VSO_DEV: {},
-				GITHUB_APP: {}
+				VSO_DEV: {}
 			};
 		}
 	}
-
-	getGitHubAppDetails(): ClientDetails {
-		if (!this._config.GITHUB_APP.id || !this._config.GITHUB_APP.secret) {
-			throw new Error(`No GitHub App client configuration available`);
-		}
-
-		return this._config.GITHUB_APP;
-	}
-
 	getClientDetails(callbackUri: Uri): ClientDetails {
 		let details: ClientDetails | undefined;
 		switch (callbackUri.scheme) {

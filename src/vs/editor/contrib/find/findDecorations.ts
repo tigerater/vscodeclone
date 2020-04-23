@@ -86,8 +86,7 @@ export class FindDecorations implements IDisposable {
 				return this._getDecorationIndex(candidate.id);
 			}
 		}
-		// We don't know the current match position, so returns zero to show '?' in find widget
-		return 0;
+		return 1;
 	}
 
 	public setCurrentFindMatch(nextMatch: Range | null): number {
@@ -262,7 +261,7 @@ export class FindDecorations implements IDisposable {
 		return result;
 	}
 
-	public static readonly _CURRENT_FIND_MATCH_DECORATION = ModelDecorationOptions.register({
+	private static readonly _CURRENT_FIND_MATCH_DECORATION = ModelDecorationOptions.register({
 		stickiness: TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
 		zIndex: 13,
 		className: 'currentFindMatch',
@@ -277,7 +276,7 @@ export class FindDecorations implements IDisposable {
 		}
 	});
 
-	public static readonly _FIND_MATCH_DECORATION = ModelDecorationOptions.register({
+	private static readonly _FIND_MATCH_DECORATION = ModelDecorationOptions.register({
 		stickiness: TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
 		className: 'findMatch',
 		showIfCollapsed: true,
@@ -291,7 +290,7 @@ export class FindDecorations implements IDisposable {
 		}
 	});
 
-	public static readonly _FIND_MATCH_NO_OVERVIEW_DECORATION = ModelDecorationOptions.register({
+	private static readonly _FIND_MATCH_NO_OVERVIEW_DECORATION = ModelDecorationOptions.register({
 		stickiness: TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
 		className: 'findMatch',
 		showIfCollapsed: true

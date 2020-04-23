@@ -5,7 +5,7 @@
 
 import * as nativeWatchdog from 'native-watchdog';
 import * as net from 'net';
-import * as minimist from 'minimist';
+import * as minimist from 'vscode-minimist';
 import { onUnexpectedError } from 'vs/base/common/errors';
 import { Event } from 'vs/base/common/event';
 import { IMessagePassingProtocol } from 'vs/base/parts/ipc/common/ipc';
@@ -25,7 +25,6 @@ import { RunOnceScheduler } from 'vs/base/common/async';
 
 interface ParsedExtHostArgs {
 	uriTransformerPath?: string;
-	useHostProxy?: string;
 }
 
 // workaround for https://github.com/microsoft/vscode/issues/85490
@@ -41,8 +40,7 @@ interface ParsedExtHostArgs {
 
 const args = minimist(process.argv.slice(2), {
 	string: [
-		'uriTransformerPath',
-		'useHostProxy'
+		'uriTransformerPath'
 	]
 }) as ParsedExtHostArgs;
 
@@ -295,7 +293,6 @@ export async function startExtensionHostProcess(): Promise<void> {
 	const { initData } = renderer;
 	// setup things
 	patchProcess(!!initData.environment.extensionTestsLocationURI); // to support other test frameworks like Jasmin that use process.exit (https://github.com/Microsoft/vscode/issues/37708)
-	initData.environment.useHostProxy = args.useHostProxy !== undefined ? args.useHostProxy !== 'false' : undefined;
 
 	// host abstraction
 	const hostUtils = new class NodeHost implements IHostUtils {

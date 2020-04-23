@@ -514,7 +514,11 @@ function assertProblemMatcher(actual: string | ProblemMatcher, expected: string 
 	}
 	if (typeof actual !== 'string' && typeof expected !== 'string') {
 		if (expected.owner === ProblemMatcherBuilder.DEFAULT_UUID) {
-			assert.ok(UUID.isUUID(actual.owner), 'Owner must be a UUID');
+			try {
+				UUID.parse(actual.owner);
+			} catch (err) {
+				assert.fail(actual.owner, 'Owner must be a UUID');
+			}
 		} else {
 			assert.strictEqual(actual.owner, expected.owner);
 		}

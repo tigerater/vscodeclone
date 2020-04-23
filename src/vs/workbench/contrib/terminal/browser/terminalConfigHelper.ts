@@ -21,7 +21,6 @@ import { IInstantiationService } from 'vs/platform/instantiation/common/instanti
 import { InstallRecommendedExtensionAction } from 'vs/workbench/contrib/extensions/browser/extensionsActions';
 import { IProductService } from 'vs/platform/product/common/productService';
 import { XTermCore } from 'vs/workbench/contrib/terminal/browser/xterm-private';
-import { IStorageKeysSyncRegistryService } from 'vs/platform/userDataSync/common/storageKeys';
 
 const MINIMUM_FONT_SIZE = 6;
 const MAXIMUM_FONT_SIZE = 25;
@@ -48,8 +47,7 @@ export class TerminalConfigHelper implements IBrowserTerminalConfigHelper {
 		@IStorageService private readonly _storageService: IStorageService,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
-		@IProductService private readonly productService: IProductService,
-		@IStorageKeysSyncRegistryService storageKeysSyncRegistryService: IStorageKeysSyncRegistryService
+		@IProductService private readonly productService: IProductService
 	) {
 		this._updateConfig();
 		this._configurationService.onDidChangeConfiguration(e => {
@@ -57,9 +55,6 @@ export class TerminalConfigHelper implements IBrowserTerminalConfigHelper {
 				this._updateConfig();
 			}
 		});
-
-		// opt-in to syncing
-		storageKeysSyncRegistryService.registerStorageKey({ key: 'terminalConfigHelper/launchRecommendationsIgnore', version: 1 });
 	}
 
 	private _updateConfig(): void {
@@ -124,23 +119,9 @@ export class TerminalConfigHelper implements IBrowserTerminalConfigHelper {
 			fontSize,
 			letterSpacing,
 			lineHeight,
-			charWidth: 0,
-			charHeight: 0
+			charWidth: rect && rect.width ? rect.width : 0,
+			charHeight: rect && rect.height ? Math.ceil(rect.height) : 0
 		};
-
-		if (rect && rect.width && rect.height) {
-			this._lastFontMeasurement.charHeight = Math.ceil(rect.height);
-			// Char width is calculated differently for DOM and the other renderer types. Refer to
-			// how each renderer updates their dimensions in xterm.js
-			if (this.config.rendererType === 'dom') {
-				this._lastFontMeasurement.charWidth = rect.width;
-			} else {
-				const scaledCharWidth = rect.width * window.devicePixelRatio;
-				const scaledCellWidth = scaledCharWidth + Math.round(letterSpacing);
-				this._lastFontMeasurement.charWidth = Math.round(scaledCellWidth / window.devicePixelRatio);
-			}
-		}
-
 		return this._lastFontMeasurement;
 	}
 
@@ -181,14 +162,14 @@ export class TerminalConfigHelper implements IBrowserTerminalConfigHelper {
 
 		// Get the character dimensions from xterm if it's available
 		if (xtermCore) {
-			if (xtermCore._renderService && xtermCore._renderService.dimensions?.actualCellWidth && xtermCore._renderService.dimensions?.actualCellHeight) {
+			if (xtermCore._charSizeService && xtermCore._charSizeService.width && xtermCore._charSizeService.height) {
 				return {
 					fontFamily,
 					fontSize,
 					letterSpacing,
 					lineHeight,
-					charHeight: xtermCore._renderService.dimensions.actualCellHeight / lineHeight,
-					charWidth: xtermCore._renderService.dimensions.actualCellWidth
+					charHeight: xtermCore._charSizeService.height,
+					charWidth: xtermCore._charSizeService.width
 				};
 			}
 		}

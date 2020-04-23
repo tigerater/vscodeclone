@@ -5,6 +5,7 @@
 
 import { mergeSort } from 'vs/base/common/arrays';
 import { stringDiff } from 'vs/base/common/diff/diff';
+import { FIN, Iterator, IteratorResult } from 'vs/base/common/iterator';
 import { IDisposable } from 'vs/base/common/lifecycle';
 import { globals } from 'vs/base/common/platform';
 import { URI } from 'vs/base/common/uri';
@@ -64,7 +65,7 @@ export interface ICommonModel extends ILinkComputerTarget, IMirrorModel {
 	getLineCount(): number;
 	getLineContent(lineNumber: number): string;
 	getLineWords(lineNumber: number, wordDefinition: RegExp): IWordAtPosition[];
-	words(wordDefinition: RegExp): Iterable<string>;
+	createWordIterator(wordDefinition: RegExp): Iterator<string>;
 	getWordUntilPosition(position: IPosition, wordDefinition: RegExp): IWordAtPosition;
 	getValueInRange(range: IRange): string;
 	getWordAtPosition(position: IPosition, wordDefinition: RegExp): Range | null;
@@ -152,37 +153,36 @@ class MirrorModel extends BaseMirrorModel implements ICommonModel {
 		};
 	}
 
-
-	public words(wordDefinition: RegExp): Iterable<string> {
-
-		const lines = this._lines;
-		const wordenize = this._wordenize.bind(this);
-
+	public createWordIterator(wordDefinition: RegExp): Iterator<string> {
+		let obj: { done: false; value: string; };
 		let lineNumber = 0;
-		let lineText = '';
+		let lineText: string;
 		let wordRangesIdx = 0;
 		let wordRanges: IWordRange[] = [];
+		let next = (): IteratorResult<string> => {
 
-		return {
-			*[Symbol.iterator]() {
-				while (true) {
-					if (wordRangesIdx < wordRanges.length) {
-						const value = lineText.substring(wordRanges[wordRangesIdx].start, wordRanges[wordRangesIdx].end);
-						wordRangesIdx += 1;
-						yield value;
-					} else {
-						if (lineNumber < lines.length) {
-							lineText = lines[lineNumber];
-							wordRanges = wordenize(lineText, wordDefinition);
-							wordRangesIdx = 0;
-							lineNumber += 1;
-						} else {
-							break;
-						}
-					}
+			if (wordRangesIdx < wordRanges.length) {
+				const value = lineText.substring(wordRanges[wordRangesIdx].start, wordRanges[wordRangesIdx].end);
+				wordRangesIdx += 1;
+				if (!obj) {
+					obj = { done: false, value: value };
+				} else {
+					obj.value = value;
 				}
+				return obj;
+
+			} else if (lineNumber >= this._lines.length) {
+				return FIN;
+
+			} else {
+				lineText = this._lines[lineNumber];
+				wordRanges = this._wordenize(lineText, wordDefinition);
+				wordRangesIdx = 0;
+				lineNumber += 1;
+				return next();
 			}
 		};
+		return { next };
 	}
 
 	public getLineWords(lineNumber: number, wordDefinition: RegExp): IWordAtPosition[] {
@@ -545,7 +545,12 @@ export class EditorSimpleWorker implements IRequestHandler, IDisposable {
 			seen.add(model.getValueInRange(wordAt));
 		}
 
-		for (let word of model.words(wordDefRegExp)) {
+		for (
+			let iter = model.createWordIterator(wordDefRegExp), e = iter.next();
+			!e.done && seen.size <= EditorSimpleWorker._suggestionsLimit;
+			e = iter.next()
+		) {
+			const word = e.value;
 			if (seen.has(word)) {
 				continue;
 			}
@@ -554,9 +559,6 @@ export class EditorSimpleWorker implements IRequestHandler, IDisposable {
 				continue;
 			}
 			words.push(word);
-			if (seen.size > EditorSimpleWorker._suggestionsLimit) {
-				break;
-			}
 		}
 		return words;
 	}

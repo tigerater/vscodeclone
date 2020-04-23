@@ -30,13 +30,6 @@ export interface IWorkspaceUndoRedoElement {
 	split(): IResourceUndoRedoElement[];
 }
 
-export type IUndoRedoElement = IResourceUndoRedoElement | IWorkspaceUndoRedoElement;
-
-export interface IPastFutureElements {
-	past: IUndoRedoElement[];
-	future: IUndoRedoElement[];
-}
-
 export interface IUndoRedoService {
 	_serviceBrand: undefined;
 
@@ -44,18 +37,12 @@ export interface IUndoRedoService {
 	 * Add a new element to the `undo` stack.
 	 * This will destroy the `redo` stack.
 	 */
-	pushElement(element: IUndoRedoElement): void;
+	pushElement(element: IResourceUndoRedoElement | IWorkspaceUndoRedoElement): void;
 
 	/**
 	 * Get the last pushed element. If the last pushed element has been undone, returns null.
 	 */
-	getLastElement(resource: URI): IUndoRedoElement | null;
-
-	getElements(resource: URI): IPastFutureElements;
-
-	hasElements(resource: URI): boolean;
-
-	setElementsIsValid(resource: URI, isValid: boolean): void;
+	getLastElement(resource: URI): IResourceUndoRedoElement | IWorkspaceUndoRedoElement | null;
 
 	/**
 	 * Remove elements that target `resource`.

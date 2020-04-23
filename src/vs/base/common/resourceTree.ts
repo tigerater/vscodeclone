@@ -5,16 +5,18 @@
 
 import { memoize } from 'vs/base/common/decorators';
 import * as paths from 'vs/base/common/path';
+import { Iterator } from 'vs/base/common/iterator';
 import { relativePath, joinPath } from 'vs/base/common/resources';
 import { URI } from 'vs/base/common/uri';
-import { PathIterator, values } from 'vs/base/common/map';
+import { mapValues } from 'vs/base/common/collections';
+import { PathIterator } from 'vs/base/common/map';
 
 export interface IResourceNode<T, C = void> {
 	readonly uri: URI;
 	readonly relativePath: string;
 	readonly name: string;
 	readonly element: T | undefined;
-	readonly children: Iterable<IResourceNode<T, C>>;
+	readonly children: Iterator<IResourceNode<T, C>>;
 	readonly childrenCount: number;
 	readonly parent: IResourceNode<T, C> | undefined;
 	readonly context: C;
@@ -29,8 +31,8 @@ class Node<T, C> implements IResourceNode<T, C> {
 		return this._children.size;
 	}
 
-	get children(): Iterable<Node<T, C>> {
-		return [...values(this._children)];
+	get children(): Iterator<Node<T, C>> {
+		return Iterator.fromArray(mapValues(this._children));
 	}
 
 	@memoize
@@ -68,9 +70,7 @@ function collect<T, C>(node: IResourceNode<T, C>, result: T[]): T[] {
 		result.push(node.element);
 	}
 
-	for (const child of node.children) {
-		collect(child, result);
-	}
+	Iterator.forEach(node.children, child => collect(child, result));
 
 	return result;
 }

@@ -53,7 +53,7 @@ class VisibleTextAreaData {
 	}
 }
 
-const canUseZeroSizeTextarea = (browser.isEdge || browser.isFirefox);
+const canUseZeroSizeTextarea = (browser.isEdgeOrIE || browser.isFirefox);
 
 export class TextAreaHandler extends ViewPart {
 
@@ -125,7 +125,6 @@ export class TextAreaHandler extends ViewPart {
 		this.textArea.setAttribute('spellcheck', 'false');
 		this.textArea.setAttribute('aria-label', this._getAriaLabel(options));
 		this.textArea.setAttribute('role', 'textbox');
-		this.textArea.setAttribute('aria-roledescription', nls.localize('editor', "editor"));
 		this.textArea.setAttribute('aria-multiline', 'true');
 		this.textArea.setAttribute('aria-haspopup', 'false');
 		this.textArea.setAttribute('aria-autocomplete', 'both');
@@ -253,14 +252,13 @@ export class TextAreaHandler extends ViewPart {
 			this._viewController.setSelection('keyboard', modelSelection);
 		}));
 
-		this._register(this._textAreaInput.onCompositionStart((e) => {
+		this._register(this._textAreaInput.onCompositionStart(() => {
 			const lineNumber = this._selections[0].startLineNumber;
-			const column = this._selections[0].startColumn - (e.moveOneCharacterLeft ? 1 : 0);
+			const column = this._selections[0].startColumn;
 
 			this._context.privateViewEventBus.emit(new viewEvents.ViewRevealRangeRequestEvent(
 				'keyboard',
 				new Range(lineNumber, column, lineNumber, column),
-				null,
 				viewEvents.VerticalRevealType.Simple,
 				true,
 				ScrollType.Immediate
@@ -285,7 +283,7 @@ export class TextAreaHandler extends ViewPart {
 		}));
 
 		this._register(this._textAreaInput.onCompositionUpdate((e: ICompositionData) => {
-			if (browser.isEdge) {
+			if (browser.isEdgeOrIE) {
 				// Due to isEdgeOrIE (where the textarea was not cleared initially)
 				// we cannot assume the text consists only of the composited text
 				this._visibleTextArea = this._visibleTextArea!.setWidth(0);
@@ -350,7 +348,7 @@ export class TextAreaHandler extends ViewPart {
 	private _getAriaLabel(options: IComputedEditorOptions): string {
 		const accessibilitySupport = options.get(EditorOption.accessibilitySupport);
 		if (accessibilitySupport === AccessibilitySupport.Disabled) {
-			return nls.localize('accessibilityOffAriaLabel', "The editor is not accessible at this time. Press {0} for options.", platform.isLinux ? 'Shift+Alt+F1' : 'Alt+F1');
+			return nls.localize('accessibilityOffAriaLabel', "The editor is not accessible at this time. Press Alt+F1 for options.");
 		}
 		return options.get(EditorOption.ariaLabel);
 	}
@@ -359,9 +357,9 @@ export class TextAreaHandler extends ViewPart {
 		this._accessibilitySupport = options.get(EditorOption.accessibilitySupport);
 		const accessibilityPageSize = options.get(EditorOption.accessibilityPageSize);
 		if (this._accessibilitySupport === AccessibilitySupport.Enabled && accessibilityPageSize === EditorOptions.accessibilityPageSize.defaultValue) {
-			// If a screen reader is attached and the default value is not set we shuold automatically increase the page size to 100 for a better experience
-			// If we put more than 100 lines the nvda can not handle this https://github.com/microsoft/vscode/issues/89717
-			this._accessibilityPageSize = 100;
+			// If a screen reader is attached and the default value is not set we shuold automatically increase the page size to 160 for a better experience
+			// If we put more than 160 lines the nvda can not handle this https://github.com/microsoft/vscode/issues/89717
+			this._accessibilityPageSize = 160;
 		} else {
 			this._accessibilityPageSize = accessibilityPageSize;
 		}
@@ -457,9 +455,6 @@ export class TextAreaHandler extends ViewPart {
 			this.textArea.setAttribute('aria-haspopup', 'false');
 			this.textArea.setAttribute('aria-autocomplete', 'both');
 			this.textArea.removeAttribute('aria-activedescendant');
-		}
-		if (options.role) {
-			this.textArea.setAttribute('role', options.role);
 		}
 	}
 

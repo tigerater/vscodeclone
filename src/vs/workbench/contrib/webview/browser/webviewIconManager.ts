@@ -5,9 +5,10 @@
 
 import * as dom from 'vs/base/browser/dom';
 import { memoize } from 'vs/base/common/decorators';
-import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
+import { URI } from 'vs/base/common/uri';
 import { ILifecycleService, LifecyclePhase } from 'vs/platform/lifecycle/common/lifecycle';
 import { WebviewIcons } from 'vs/workbench/contrib/webview/browser/webview';
+import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 
 export class WebviewIconManager {
 
@@ -47,20 +48,22 @@ export class WebviewIconManager {
 	private async updateStyleSheet() {
 		await this._lifecycleService.when(LifecyclePhase.Starting);
 
-		const cssRules: string[] = [];
-		if (this._configService.getValue('workbench.iconTheme') !== null) {
-			for (const [key, value] of this._icons) {
-				const webviewSelector = `.show-file-icons .webview-${key}-name-file-icon::before`;
-				try {
-					cssRules.push(
-						`.vs ${webviewSelector} { content: ""; background-image: ${dom.asCSSUrl(value.light)}; }`,
-						`.vs-dark ${webviewSelector} { content: ""; background-image: ${dom.asCSSUrl(value.dark)}; }`
-					);
-				} catch {
-					// noop
-				}
+		try {
+			const cssRules: string[] = [];
+			if (this._configService.getValue('workbench.iconTheme') !== null) {
+				this._icons.forEach((value, key) => {
+					const webviewSelector = `.show-file-icons .webview-${key}-name-file-icon::before`;
+					if (URI.isUri(value)) {
+						cssRules.push(`${webviewSelector} { content: ""; background-image: ${dom.asCSSUrl(value)}; }`);
+					} else {
+						cssRules.push(`.vs ${webviewSelector} { content: ""; background-image: ${dom.asCSSUrl(value.light)}; }`);
+						cssRules.push(`.vs-dark ${webviewSelector} { content: ""; background-image: ${dom.asCSSUrl(value.dark)}; }`);
+					}
+				});
 			}
+			this._styleElement.innerHTML = cssRules.join('\n');
+		} catch {
+			// noop
 		}
-		this._styleElement.innerHTML = cssRules.join('\n');
 	}
 }

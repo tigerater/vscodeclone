@@ -206,9 +206,9 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 
 	//#region Revert
 
-	async revert(options?: IRevertOptions): Promise<void> {
+	async revert(options?: IRevertOptions): Promise<boolean> {
 		if (!this.isResolved()) {
-			return;
+			return false;
 		}
 
 		// Unset flags
@@ -240,6 +240,8 @@ export class TextFileEditorModel extends BaseTextEditorModel implements ITextFil
 		if (wasDirty) {
 			this._onDidChangeDirty.fire();
 		}
+
+		return true;
 	}
 
 	//#endregion

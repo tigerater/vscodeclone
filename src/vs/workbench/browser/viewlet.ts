@@ -165,16 +165,17 @@ export class ShowViewletAction extends Action {
 		this.enabled = !!this.viewletService && !!this.editorGroupService;
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 
 		// Pass focus to viewlet if not open or focused
 		if (this.otherViewletShowing() || !this.sidebarHasFocus()) {
-			await this.viewletService.openViewlet(this.viewletId, true);
-			return;
+			return this.viewletService.openViewlet(this.viewletId, true);
 		}
 
 		// Otherwise pass focus to editor group
 		this.editorGroupService.activeGroup.focus();
+
+		return Promise.resolve(true);
 	}
 
 	private otherViewletShowing(): boolean {
@@ -194,6 +195,10 @@ export class ShowViewletAction extends Action {
 
 export class CollapseAction extends Action {
 	constructor(tree: AsyncDataTree<any, any, any> | AbstractTree<any, any, any>, enabled: boolean, clazz?: string) {
-		super('workbench.action.collapse', nls.localize('collapse', "Collapse All"), clazz, enabled, async () => tree.collapseAll());
+		super('workbench.action.collapse', nls.localize('collapse', "Collapse All"), clazz, enabled, () => {
+			tree.collapseAll();
+
+			return Promise.resolve(undefined);
+		});
 	}
 }

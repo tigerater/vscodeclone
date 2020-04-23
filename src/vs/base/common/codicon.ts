@@ -6,7 +6,7 @@
 import { matchesFuzzy, IMatch } from 'vs/base/common/filters';
 import { ltrim } from 'vs/base/common/strings';
 
-export const codiconStartMarker = '$(';
+const codiconStartMarker = '$(';
 
 export interface IParsedCodicons {
 	readonly text: string;

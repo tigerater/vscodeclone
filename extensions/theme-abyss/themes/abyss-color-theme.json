@@ -434,6 +434,5 @@
 		"terminal.ansiBrightMagenta": "#d778ff",
 		"terminal.ansiBrightCyan": "#78ffff",
 		"terminal.ansiBrightWhite": "#ffffff"
-	},
-	"semanticHighlighting": true
+	}
 }

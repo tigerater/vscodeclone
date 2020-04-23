@@ -7,7 +7,6 @@ import * as crypto from 'crypto';
 import * as https from 'https';
 import * as querystring from 'querystring';
 import * as vscode from 'vscode';
-import * as uuid from 'uuid';
 import { createServer, startServer } from './authServer';
 import { keychain } from './keychain';
 import Logger from './logger';
@@ -55,7 +54,7 @@ function parseQuery(uri: vscode.Uri) {
 	}, {});
 }
 
-export const onDidChangeSessions = new vscode.EventEmitter<vscode.AuthenticationSessionsChangeEvent>();
+export const onDidChangeSessions = new vscode.EventEmitter<void>();
 
 export const REFRESH_NETWORK_FAILURE = 'Network failure';
 
@@ -82,7 +81,7 @@ export class AzureActiveDirectoryService {
 				const sessions = this.parseStoredData(storedData);
 				const refreshes = sessions.map(async session => {
 					try {
-						await this.refreshToken(session.refreshToken, session.scope, session.id);
+						await this.refreshToken(session.refreshToken, session.scope);
 					} catch (e) {
 						if (e.message === REFRESH_NETWORK_FAILURE) {
 							const didSucceedOnRetry = await this.handleRefreshNetworkError(session.id, session.refreshToken, session.scope);
@@ -104,7 +103,6 @@ export class AzureActiveDirectoryService {
 
 				await Promise.all(refreshes);
 			} catch (e) {
-				Logger.info('Failed to initialize stored data');
 				await this.clearSessions();
 			}
 		}
@@ -131,8 +129,7 @@ export class AzureActiveDirectoryService {
 
 	private pollForChange() {
 		setTimeout(async () => {
-			const addedIds: string[] = [];
-			let removedIds: string[] = [];
+			let didChange = false;
 			const storedData = await keychain.getToken();
 			if (storedData) {
 				try {
@@ -141,8 +138,8 @@ export class AzureActiveDirectoryService {
 						const matchesExisting = this._tokens.some(token => token.scope === session.scope && token.sessionId === session.id);
 						if (!matchesExisting) {
 							try {
-								await this.refreshToken(session.refreshToken, session.scope, session.id);
-								addedIds.push(session.id);
+								await this.refreshToken(session.refreshToken, session.scope);
+								didChange = true;
 							} catch (e) {
 								if (e.message === REFRESH_NETWORK_FAILURE) {
 									// Ignore, will automatically retry on next poll.
@@ -157,7 +154,7 @@ export class AzureActiveDirectoryService {
 						const matchesExisting = sessions.some(session => token.scope === session.scope && token.sessionId === session.id);
 						if (!matchesExisting) {
 							await this.logout(token.sessionId);
-							removedIds.push(token.sessionId);
+							didChange = true;
 						}
 					}));
 
@@ -165,27 +162,19 @@ export class AzureActiveDirectoryService {
 				} catch (e) {
 					Logger.error(e.message);
 					// if data is improperly formatted, remove all of it and send change event
-					removedIds = this._tokens.map(token => token.sessionId);
 					this.clearSessions();
+					didChange = true;
 				}
 			} else {
 				if (this._tokens.length) {
-					// Log out all, remove all local data
-					removedIds = this._tokens.map(token => token.sessionId);
-					Logger.info('No stored keychain data, clearing local data');
-
-					this._tokens = [];
-
-					this._refreshTimeouts.forEach(timeout => {
-						clearTimeout(timeout);
-					});
-
-					this._refreshTimeouts.clear();
+					// Log out all
+					await this.clearSessions();
+					didChange = true;
 				}
 			}
 
-			if (addedIds.length || removedIds.length) {
-				onDidChangeSessions.fire({ added: addedIds, removed: removedIds, changed: [] });
+			if (didChange) {
+				onDidChangeSessions.fire();
 			}
 
 			this.pollForChange();
@@ -211,9 +200,9 @@ export class AzureActiveDirectoryService {
 
 		try {
 			Logger.info('Token expired or unavailable, trying refresh');
-			const refreshedToken = await this.refreshToken(token.refreshToken, token.scope, token.sessionId);
+			const refreshedToken = await this.refreshToken(token.refreshToken, token.scope);
 			if (refreshedToken.accessToken) {
-				return refreshedToken.accessToken;
+				Promise.resolve(token.accessToken);
 			} else {
 				throw new Error();
 			}
@@ -352,8 +341,7 @@ export class AzureActiveDirectoryService {
 					const query = parseQuery(uri);
 					const code = query.code;
 
-					// Workaround double encoding issues of state in web
-					if (query.state !== state && decodeURIComponent(query.state) !== state) {
+					if (query.state !== state) {
 						throw new Error('State does not match.');
 					}
 
@@ -387,8 +375,8 @@ export class AzureActiveDirectoryService {
 		if (token.expiresIn) {
 			this._refreshTimeouts.set(token.sessionId, setTimeout(async () => {
 				try {
-					await this.refreshToken(token.refreshToken, scope, token.sessionId);
-					onDidChangeSessions.fire({ added: [], removed: [], changed: [token.sessionId] });
+					await this.refreshToken(token.refreshToken, scope);
+					onDidChangeSessions.fire();
 				} catch (e) {
 					if (e.message === REFRESH_NETWORK_FAILURE) {
 						const didSucceedOnRetry = await this.handleRefreshNetworkError(token.sessionId, token.refreshToken, scope);
@@ -397,7 +385,7 @@ export class AzureActiveDirectoryService {
 						}
 					} else {
 						await this.logout(token.sessionId);
-						onDidChangeSessions.fire({ added: [], removed: [token.sessionId], changed: [] });
+						onDidChangeSessions.fire();
 					}
 				}
 			}, 1000 * (parseInt(token.expiresIn) - 30)));
@@ -406,7 +394,7 @@ export class AzureActiveDirectoryService {
 		this.storeTokenData();
 	}
 
-	private getTokenFromResponse(buffer: Buffer[], scope: string, existingId?: string): IToken {
+	private getTokenFromResponse(buffer: Buffer[], scope: string): IToken {
 		const json = JSON.parse(Buffer.concat(buffer).toString());
 		const claims = this.getTokenClaims(json.access_token);
 		return {
@@ -415,7 +403,7 @@ export class AzureActiveDirectoryService {
 			accessToken: json.access_token,
 			refreshToken: json.refresh_token,
 			scope,
-			sessionId: existingId || `${claims.tid}/${(claims.oid || (claims.altsecid || '' + claims.ipd || ''))}/${uuid()}`,
+			sessionId: `${claims.tid}/${(claims.oid || (claims.altsecid || '' + claims.ipd || ''))}/${scope}`,
 			accountName: claims.email || claims.unique_name || 'user@example.com'
 		};
 	}
@@ -473,7 +461,7 @@ export class AzureActiveDirectoryService {
 		});
 	}
 
-	private async refreshToken(refreshToken: string, scope: string, sessionId: string): Promise<IToken> {
+	private async refreshToken(refreshToken: string, scope: string): Promise<IToken> {
 		return new Promise((resolve: (value: IToken) => void, reject) => {
 			Logger.info('Refreshing token...');
 			const postData = querystring.stringify({
@@ -498,7 +486,7 @@ export class AzureActiveDirectoryService {
 				});
 				result.on('end', async () => {
 					if (result.statusCode === 200) {
-						const token = this.getTokenFromResponse(buffer, scope, sessionId);
+						const token = this.getTokenFromResponse(buffer, scope);
 						this.setToken(token, scope);
 						Logger.info('Token refresh success');
 						resolve(token);
@@ -541,7 +529,7 @@ export class AzureActiveDirectoryService {
 
 		this._refreshTimeouts.set(sessionId, setTimeout(async () => {
 			try {
-				await this.refreshToken(refreshToken, scope, sessionId);
+				await this.refreshToken(refreshToken, scope);
 			} catch (e) {
 				this.pollForReconnect(sessionId, refreshToken, scope);
 			}
@@ -559,8 +547,9 @@ export class AzureActiveDirectoryService {
 				const token = this._tokens.find(token => token.sessionId === sessionId);
 				if (token) {
 					token.accessToken = undefined;
-					onDidChangeSessions.fire({ added: [], removed: [], changed: [token.sessionId] });
 				}
+
+				onDidChangeSessions.fire();
 			}
 
 			const delayBeforeRetry = 5 * attempts * attempts;
@@ -569,7 +558,7 @@ export class AzureActiveDirectoryService {
 
 			this._refreshTimeouts.set(sessionId, setTimeout(async () => {
 				try {
-					await this.refreshToken(refreshToken, scope, sessionId);
+					await this.refreshToken(refreshToken, scope);
 					return resolve(true);
 				} catch (e) {
 					return resolve(await this.handleRefreshNetworkError(sessionId, refreshToken, scope, attempts + 1));

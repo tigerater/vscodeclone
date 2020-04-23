@@ -14,13 +14,12 @@ import { IResolvedBackup, IBackupFileService } from 'vs/workbench/services/backu
 import { IFileService, FileOperationError, FileOperationResult } from 'vs/platform/files/common/files';
 import { ITextSnapshot } from 'vs/editor/common/model';
 import { createTextBufferFactoryFromStream, createTextBufferFactoryFromSnapshot } from 'vs/editor/common/model/textModel';
-import { ResourceMap } from 'vs/base/common/map';
+import { keys, ResourceMap } from 'vs/base/common/map';
 import { Schemas } from 'vs/base/common/network';
 import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
 import { VSBuffer } from 'vs/base/common/buffer';
 import { TextSnapshotReadable, stringToSnapshot } from 'vs/workbench/services/textfile/common/textfiles';
 import { Disposable } from 'vs/base/common/lifecycle';
-import { ILogService } from 'vs/platform/log/common/log';
 
 export interface IBackupFilesModel {
 	resolve(backupRoot: URI): Promise<IBackupFilesModel>;
@@ -115,8 +114,7 @@ export class BackupFileService implements IBackupFileService {
 
 	constructor(
 		@IWorkbenchEnvironmentService private environmentService: IWorkbenchEnvironmentService,
-		@IFileService protected fileService: IFileService,
-		@ILogService private readonly logService: ILogService
+		@IFileService protected fileService: IFileService
 	) {
 		this.impl = this.initialize();
 	}
@@ -130,7 +128,7 @@ export class BackupFileService implements IBackupFileService {
 	private initialize(): BackupFileServiceImpl | InMemoryBackupFileService {
 		const backupWorkspaceResource = this.environmentService.configuration.backupWorkspaceResource;
 		if (backupWorkspaceResource) {
-			return new BackupFileServiceImpl(backupWorkspaceResource, this.hashPath, this.fileService, this.logService);
+			return new BackupFileServiceImpl(backupWorkspaceResource, this.hashPath, this.fileService);
 		}
 
 		return new InMemoryBackupFileService(this.hashPath);
@@ -165,10 +163,6 @@ export class BackupFileService implements IBackupFileService {
 		return this.impl.discardBackup(resource);
 	}
 
-	discardBackups(): Promise<void> {
-		return this.impl.discardBackups();
-	}
-
 	getBackups(): Promise<URI[]> {
 		return this.impl.getBackups();
 	}
@@ -200,8 +194,7 @@ class BackupFileServiceImpl extends Disposable implements IBackupFileService {
 	constructor(
 		backupWorkspaceResource: URI,
 		private readonly hashPath: (resource: URI) => string,
-		@IFileService private readonly fileService: IFileService,
-		@ILogService private readonly logService: ILogService
+		@IFileService private readonly fileService: IFileService
 	) {
 		super();
 
@@ -262,14 +255,6 @@ class BackupFileServiceImpl extends Disposable implements IBackupFileService {
 			// Update model
 			model.add(backupResource, versionId, meta);
 		});
-	}
-
-	async discardBackups(): Promise<void> {
-		const model = await this.ready;
-
-		await this.deleteIgnoreFileNotFound(this.backupWorkspacePath);
-
-		model.clear();
 	}
 
 	discardBackup(resource: URI): Promise<void> {
@@ -387,9 +372,7 @@ class BackupFileServiceImpl extends Disposable implements IBackupFileService {
 		// the meta-end marker ('\n') and as such the backup can only be invalid. We bail out
 		// here if that is the case.
 		if (!metaEndFound) {
-			this.logService.error(`Backup: Could not find meta end marker in ${backupResource}. The file is probably corrupt.`);
-
-			return undefined;
+			throw new Error(`Backup: Could not find meta end marker in ${backupResource}. The file is probably corrupt.`);
 		}
 
 		return { value: factory, meta };
@@ -434,15 +417,11 @@ export class InMemoryBackupFileService implements IBackupFileService {
 	}
 
 	async getBackups(): Promise<URI[]> {
-		return Array.from(this.backups.keys()).map(key => URI.parse(key));
+		return keys(this.backups).map(key => URI.parse(key));
 	}
 
 	async discardBackup(resource: URI): Promise<void> {
 		this.backups.delete(this.toBackupResource(resource).toString());
-	}
-
-	async discardBackups(): Promise<void> {
-		this.backups.clear();
 	}
 
 	toBackupResource(resource: URI): URI {

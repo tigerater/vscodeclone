@@ -54,11 +54,7 @@ export class QuickInputBox extends Disposable {
 		this.inputBox.select(range);
 	}
 
-	isSelectionAtEnd(): boolean {
-		return this.inputBox.isSelectionAtEnd();
-	}
-
-	setPlaceholder(placeholder: string): void {
+	setPlaceholder(placeholder: string) {
 		this.inputBox.setPlaceHolder(placeholder);
 	}
 
@@ -68,14 +64,6 @@ export class QuickInputBox extends Disposable {
 
 	set placeholder(placeholder: string) {
 		this.inputBox.setPlaceHolder(placeholder);
-	}
-
-	get ariaLabel() {
-		return this.inputBox.getAriaLabel();
-	}
-
-	set ariaLabel(ariaLabel: string) {
-		this.inputBox.setAriaLabel(ariaLabel);
 	}
 
 	get password() {
@@ -94,11 +82,11 @@ export class QuickInputBox extends Disposable {
 		return this.inputBox.hasFocus();
 	}
 
-	setAttribute(name: string, value: string): void {
+	setAttribute(name: string, value: string) {
 		this.inputBox.inputElement.setAttribute(name, value);
 	}
 
-	removeAttribute(name: string): void {
+	removeAttribute(name: string) {
 		this.inputBox.inputElement.removeAttribute(name);
 	}
 
@@ -122,7 +110,7 @@ export class QuickInputBox extends Disposable {
 		this.inputBox.layout();
 	}
 
-	style(styles: IInputBoxStyles): void {
+	style(styles: IInputBoxStyles) {
 		this.inputBox.style(styles);
 	}
 }

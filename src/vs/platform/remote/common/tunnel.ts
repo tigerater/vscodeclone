@@ -15,7 +15,7 @@ export interface RemoteTunnel {
 	readonly tunnelRemoteHost: string;
 	readonly tunnelLocalPort?: number;
 	readonly localAddress: string;
-	dispose(silent?: boolean): void;
+	dispose(): void;
 }
 
 export interface TunnelOptions {

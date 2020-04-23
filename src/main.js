@@ -57,12 +57,6 @@ const nodeCachedDataDir = getNodeCachedDir();
 // Configure static command line arguments
 const argvConfig = configureCommandlineSwitchesSync(args);
 
-// Remove env set by snap https://github.com/microsoft/vscode/issues/85344
-if (process.env['SNAP']) {
-	delete process.env['GDK_PIXBUF_MODULE_FILE'];
-	delete process.env['GDK_PIXBUF_MODULEDIR'];
-}
-
 /**
  * Support user defined locale: load it early before app('ready')
  * to have more things running in parallel.
@@ -181,7 +175,7 @@ function configureCommandlineSwitchesSync(cliArgs) {
 		app.commandLine.appendSwitch('js-flags', jsFlags);
 	}
 
-	// TODO@Deepak Electron 7 workaround for https://github.com/microsoft/vscode/issues/88873
+	// TODO@Ben TODO@Deepak Electron 7 workaround for https://github.com/microsoft/vscode/issues/88873
 	app.commandLine.appendSwitch('disable-features', 'LayoutNG');
 
 	return argvConfig;
@@ -322,7 +316,7 @@ function getUserDataPath(cliArgs) {
  * @returns {ParsedArgs}
  */
 function parseCLIArgs() {
-	const minimist = require('minimist');
+	const minimist = require('vscode-minimist');
 
 	return minimist(process.argv, {
 		string: [

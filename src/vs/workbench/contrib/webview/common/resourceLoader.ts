@@ -5,6 +5,7 @@
 
 import { VSBuffer } from 'vs/base/common/buffer';
 import { sep } from 'vs/base/common/path';
+import { startsWith, endsWith } from 'vs/base/common/strings';
 import { URI } from 'vs/base/common/uri';
 import { IFileService } from 'vs/platform/files/common/files';
 import { REMOTE_HOST_SCHEME } from 'vs/platform/remote/common/remoteHosts';
@@ -95,7 +96,7 @@ function normalizeRequestPath(requestUri: URI) {
 }
 
 function containsResource(root: URI, resource: URI): boolean {
-	let rootPath = root.fsPath + (root.fsPath.endsWith(sep) ? '' : sep);
+	let rootPath = root.fsPath + (endsWith(root.fsPath, sep) ? '' : sep);
 	let resourceFsPath = resource.fsPath;
 
 	if (isUNC(root.fsPath) && isUNC(resource.fsPath)) {
@@ -103,5 +104,5 @@ function containsResource(root: URI, resource: URI): boolean {
 		resourceFsPath = resourceFsPath.toLowerCase();
 	}
 
-	return resourceFsPath.startsWith(rootPath);
+	return startsWith(resourceFsPath, rootPath);
 }

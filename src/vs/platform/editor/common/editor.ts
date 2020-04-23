@@ -24,7 +24,7 @@ export interface IEditorModel {
 	dispose(): void;
 }
 
-export interface IBaseResourceEditorInput {
+export interface IBaseResourceInput {
 
 	/**
 	 * Optional options to use when opening the text input.
@@ -60,12 +60,12 @@ export interface IBaseResourceEditorInput {
 	readonly forceUntitled?: boolean;
 }
 
-export interface IResourceEditorInput extends IBaseResourceEditorInput {
+export interface IResourceInput extends IBaseResourceInput {
 
 	/**
 	 * The resource URI of the resource to open.
 	 */
-	readonly resource: URI;
+	resource: URI;
 
 	/**
 	 * The encoding of the text input if known.

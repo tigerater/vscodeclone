@@ -4,10 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as cp from 'child_process';
+import { assign } from 'vs/base/common/objects';
 import { generateUuid } from 'vs/base/common/uuid';
 import { isWindows } from 'vs/base/common/platform';
 import { ILogService } from 'vs/platform/log/common/log';
-import { INativeEnvironmentService } from 'vs/platform/environment/node/environmentService';
+import { IEnvironmentService } from 'vs/platform/environment/common/environment';
 
 function getUnixShellEnvironment(logService: ILogService): Promise<typeof process.env> {
 	const promise = new Promise<typeof process.env>((resolve, reject) => {
@@ -20,11 +21,10 @@ function getUnixShellEnvironment(logService: ILogService): Promise<typeof proces
 		const mark = generateUuid().replace(/-/g, '').substr(0, 12);
 		const regex = new RegExp(mark + '(.*)' + mark);
 
-		const env = {
-			...process.env,
+		const env = assign({}, process.env, {
 			ELECTRON_RUN_AS_NODE: '1',
 			ELECTRON_NO_ATTACH_CONSOLE: '1'
-		};
+		});
 
 		const command = `'${process.execPath}' -p '"${mark}" + JSON.stringify(process.env) + "${mark}"'`;
 		logService.trace('getUnixShellEnvironment#env', env);
@@ -90,7 +90,7 @@ let _shellEnv: Promise<typeof process.env>;
  * This should only be done when Code itself is not launched
  * from within a shell.
  */
-export function getShellEnvironment(logService: ILogService, environmentService: INativeEnvironmentService): Promise<typeof process.env> {
+export function getShellEnvironment(logService: ILogService, environmentService: IEnvironmentService): Promise<typeof process.env> {
 	if (_shellEnv === undefined) {
 		if (environmentService.args['disable-user-env-probe']) {
 			logService.trace('getShellEnvironment: disable-user-env-probe set, skipping');

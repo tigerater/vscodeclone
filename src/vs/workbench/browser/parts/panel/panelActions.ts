@@ -17,7 +17,7 @@ import { ActivityAction, ToggleCompositePinnedAction, ICompositeBar } from 'vs/w
 import { IActivity } from 'vs/workbench/common/activity';
 import { IEditorGroupsService } from 'vs/workbench/services/editor/common/editorGroupsService';
 import { ActivePanelContext, PanelPositionContext } from 'vs/workbench/common/panel';
-import { ContextKeyExpression } from 'vs/platform/contextkey/common/contextkey';
+import { ContextKeyExpr } from 'vs/platform/contextkey/common/contextkey';
 
 export class ClosePanelAction extends Action {
 
@@ -32,8 +32,9 @@ export class ClosePanelAction extends Action {
 		super(id, name, 'codicon-close');
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 		this.layoutService.setPanelHidden(true);
+		return Promise.resolve();
 	}
 }
 
@@ -50,8 +51,9 @@ export class TogglePanelAction extends Action {
 		super(id, name, layoutService.isVisible(Parts.PANEL_PART) ? 'panel expanded' : 'panel');
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 		this.layoutService.setPanelHidden(this.layoutService.isVisible(Parts.PANEL_PART));
+		return Promise.resolve();
 	}
 }
 
@@ -69,11 +71,12 @@ class FocusPanelAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 
 		// Show panel
 		if (!this.layoutService.isVisible(Parts.PANEL_PART)) {
 			this.layoutService.setPanelHidden(false);
+			return Promise.resolve();
 		}
 
 		// Focus into active panel
@@ -81,6 +84,8 @@ class FocusPanelAction extends Action {
 		if (panel) {
 			panel.focus();
 		}
+
+		return Promise.resolve();
 	}
 }
 
@@ -110,12 +115,13 @@ export class ToggleMaximizedPanelAction extends Action {
 		}));
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 		if (!this.layoutService.isVisible(Parts.PANEL_PART)) {
 			this.layoutService.setPanelHidden(false);
 		}
 
 		this.layoutService.toggleMaximizedPanel();
+		return Promise.resolve();
 	}
 }
 
@@ -127,7 +133,7 @@ const PositionPanelActionId = {
 
 interface PanelActionConfig<T> {
 	id: string;
-	when: ContextKeyExpression;
+	when: ContextKeyExpr;
 	alias: string;
 	label: string;
 	value: T;
@@ -160,9 +166,10 @@ export class SetPanelPositionAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<any> {
 		const position = positionByActionId.get(this.id);
 		this.layoutService.setPanelPosition(position === undefined ? Position.BOTTOM : position);
+		return Promise.resolve();
 	}
 }
 
@@ -175,7 +182,7 @@ export class PanelActivityAction extends ActivityAction {
 		super(activity);
 	}
 
-	async run(): Promise<void> {
+	async run(event: any): Promise<any> {
 		await this.panelService.openPanel(this.activity.id, true);
 		this.activate();
 	}
@@ -217,7 +224,7 @@ export class SwitchPanelViewAction extends Action {
 		super(id, name);
 	}
 
-	async run(offset: number): Promise<void> {
+	async run(offset: number): Promise<any> {
 		const pinnedPanels = this.panelService.getPinnedPanels();
 		const activePanel = this.panelService.getActivePanel();
 		if (!activePanel) {
@@ -249,7 +256,7 @@ export class PreviousPanelViewAction extends SwitchPanelViewAction {
 		super(id, name, panelService);
 	}
 
-	run(): Promise<void> {
+	run(): Promise<any> {
 		return super.run(-1);
 	}
 }
@@ -267,7 +274,7 @@ export class NextPanelViewAction extends SwitchPanelViewAction {
 		super(id, name, panelService);
 	}
 
-	run(): Promise<void> {
+	run(): Promise<any> {
 		return super.run(1);
 	}
 }

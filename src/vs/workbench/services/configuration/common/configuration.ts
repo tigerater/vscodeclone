@@ -40,5 +40,3 @@ export interface IConfigurationCache {
 	remove(key: ConfigurationKey): Promise<void>;
 
 }
-
-export const TASKS_DEFAULT = '{\n\t\"version\": \"2.0.0\",\n\t\"tasks\": []\n}';

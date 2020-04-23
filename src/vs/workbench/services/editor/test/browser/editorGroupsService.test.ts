@@ -4,7 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as assert from 'assert';
-import { workbenchInstantiationService, registerTestEditor, TestFileEditorInput, TestEditorPart, ITestInstantiationService } from 'vs/workbench/test/browser/workbenchTestServices';
+import { EditorPart } from 'vs/workbench/browser/parts/editor/editorPart';
+import { workbenchInstantiationService, registerTestEditor, TestFileEditorInput } from 'vs/workbench/test/browser/workbenchTestServices';
 import { GroupDirection, GroupsOrder, MergeGroupMode, GroupOrientation, GroupChangeKind, GroupLocation } from 'vs/workbench/services/editor/common/editorGroupsService';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { EditorOptions, CloseDirection, IEditorPartOptions, EditorsOrder } from 'vs/workbench/common/editor';
@@ -28,16 +29,18 @@ suite('EditorGroupsService', () => {
 		disposables = [];
 	});
 
-	function createPart(instantiationService = workbenchInstantiationService()): [TestEditorPart, ITestInstantiationService] {
-		const part = instantiationService.createInstance(TestEditorPart);
+	function createPart(): EditorPart {
+		const instantiationService = workbenchInstantiationService();
+
+		const part = instantiationService.createInstance(EditorPart);
 		part.create(document.createElement('div'));
 		part.layout(400, 300);
 
-		return [part, instantiationService];
+		return part;
 	}
 
 	test('groups basics', async function () {
-		const [part] = createPart();
+		const part = createPart();
 
 		let activeGroupChangeCounter = 0;
 		const activeGroupChangeListener = part.onDidActiveGroupChange(() => {
@@ -123,7 +126,7 @@ suite('EditorGroupsService', () => {
 		assert.equal(groupAddedCounter, 2);
 		assert.equal(part.groups.length, 3);
 		assert.ok(part.activeGroup === rightGroup);
-		assert.ok(!downGroup.activeEditorPane);
+		assert.ok(!downGroup.activeControl);
 		assert.equal(rootGroup.label, 'Group 1');
 		assert.equal(rightGroup.label, 'Group 2');
 		assert.equal(downGroup.label, 'Group 3');
@@ -198,37 +201,8 @@ suite('EditorGroupsService', () => {
 		part.dispose();
 	});
 
-	test('save & restore state', async function () {
-		let [part, instantiationService] = createPart();
-
-		const rootGroup = part.groups[0];
-		const rightGroup = part.addGroup(rootGroup, GroupDirection.RIGHT);
-		const downGroup = part.addGroup(rightGroup, GroupDirection.DOWN);
-
-		const rootGroupInput = new TestFileEditorInput(URI.file('foo/bar1'), TEST_EDITOR_INPUT_ID);
-		await rootGroup.openEditor(rootGroupInput, EditorOptions.create({ pinned: true }));
-
-		const rightGroupInput = new TestFileEditorInput(URI.file('foo/bar2'), TEST_EDITOR_INPUT_ID);
-		await rightGroup.openEditor(rightGroupInput, EditorOptions.create({ pinned: true }));
-
-		assert.equal(part.groups.length, 3);
-
-		part.saveState();
-		part.dispose();
-
-		let [restoredPart] = createPart(instantiationService);
-
-		assert.equal(restoredPart.groups.length, 3);
-		assert.ok(restoredPart.getGroup(rootGroup.id));
-		assert.ok(restoredPart.getGroup(rightGroup.id));
-		assert.ok(restoredPart.getGroup(downGroup.id));
-
-		restoredPart.clearState();
-		restoredPart.dispose();
-	});
-
 	test('groups index / labels', function () {
-		const [part] = createPart();
+		const part = createPart();
 
 		const rootGroup = part.groups[0];
 		const rightGroup = part.addGroup(rootGroup, GroupDirection.RIGHT);
@@ -286,7 +260,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('copy/merge groups', async () => {
-		const [part] = createPart();
+		const part = createPart();
 
 		let groupAddedCounter = 0;
 		const groupAddedListener = part.onDidAddGroup(() => {
@@ -327,7 +301,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('whenRestored', async () => {
-		const [part] = createPart();
+		const part = createPart();
 
 		await part.whenRestored;
 		assert.ok(true);
@@ -335,7 +309,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('options', () => {
-		const [part] = createPart();
+		const part = createPart();
 
 		let oldOptions!: IEditorPartOptions;
 		let newOptions!: IEditorPartOptions;
@@ -356,7 +330,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('editor basics', async function () {
-		const [part] = createPart();
+		const part = createPart();
 		const group = part.activeGroup;
 		assert.equal(group.isEmpty, true);
 
@@ -425,7 +399,7 @@ suite('EditorGroupsService', () => {
 		assert.ok(!group.previewEditor);
 
 		assert.equal(group.activeEditor, input);
-		assert.equal(group.activeEditorPane?.getId(), TEST_EDITOR_ID);
+		assert.equal(group.activeControl?.getId(), TEST_EDITOR_ID);
 		assert.equal(group.count, 2);
 
 		const mru = group.getEditors(EditorsOrder.MOST_RECENTLY_ACTIVE);
@@ -454,7 +428,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('openEditors / closeEditors', async () => {
-		const [part] = createPart();
+		const part = createPart();
 		const group = part.activeGroup;
 		assert.equal(group.isEmpty, true);
 
@@ -472,7 +446,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('closeEditors (except one)', async () => {
-		const [part] = createPart();
+		const part = createPart();
 		const group = part.activeGroup;
 		assert.equal(group.isEmpty, true);
 
@@ -493,7 +467,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('closeEditors (saved only)', async () => {
-		const [part] = createPart();
+		const part = createPart();
 		const group = part.activeGroup;
 		assert.equal(group.isEmpty, true);
 
@@ -513,7 +487,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('closeEditors (direction: right)', async () => {
-		const [part] = createPart();
+		const part = createPart();
 		const group = part.activeGroup;
 		assert.equal(group.isEmpty, true);
 
@@ -535,7 +509,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('closeEditors (direction: left)', async () => {
-		const [part] = createPart();
+		const part = createPart();
 		const group = part.activeGroup;
 		assert.equal(group.isEmpty, true);
 
@@ -557,7 +531,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('closeAllEditors', async () => {
-		const [part] = createPart();
+		const part = createPart();
 		const group = part.activeGroup;
 		assert.equal(group.isEmpty, true);
 
@@ -575,7 +549,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('moveEditor (same group)', async () => {
-		const [part] = createPart();
+		const part = createPart();
 		const group = part.activeGroup;
 		assert.equal(group.isEmpty, true);
 
@@ -603,7 +577,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('moveEditor (across groups)', async () => {
-		const [part] = createPart();
+		const part = createPart();
 		const group = part.activeGroup;
 		assert.equal(group.isEmpty, true);
 
@@ -625,7 +599,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('copyEditor (across groups)', async () => {
-		const [part] = createPart();
+		const part = createPart();
 		const group = part.activeGroup;
 		assert.equal(group.isEmpty, true);
 
@@ -648,7 +622,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('replaceEditors', async () => {
-		const [part] = createPart();
+		const part = createPart();
 		const group = part.activeGroup;
 		assert.equal(group.isEmpty, true);
 
@@ -666,7 +640,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('find neighbour group (left/right)', function () {
-		const [part] = createPart();
+		const part = createPart();
 		const rootGroup = part.activeGroup;
 		const rightGroup = part.addGroup(rootGroup, GroupDirection.RIGHT);
 
@@ -677,7 +651,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('find neighbour group (up/down)', function () {
-		const [part] = createPart();
+		const part = createPart();
 		const rootGroup = part.activeGroup;
 		const downGroup = part.addGroup(rootGroup, GroupDirection.DOWN);
 
@@ -688,7 +662,7 @@ suite('EditorGroupsService', () => {
 	});
 
 	test('find group by location (left/right)', function () {
-		const [part] = createPart();
+		const part = createPart();
 		const rootGroup = part.activeGroup;
 		const rightGroup = part.addGroup(rootGroup, GroupDirection.RIGHT);
 		const downGroup = part.addGroup(rightGroup, GroupDirection.DOWN);
@@ -701,26 +675,6 @@ suite('EditorGroupsService', () => {
 
 		assert.equal(downGroup, part.findGroup({ location: GroupLocation.NEXT }, rightGroup));
 		assert.equal(rightGroup, part.findGroup({ location: GroupLocation.PREVIOUS }, downGroup));
-
-		part.dispose();
-	});
-
-	test('applyLayout (2x2)', function () {
-		const [part] = createPart();
-
-		part.applyLayout({ groups: [{ groups: [{}, {}] }, { groups: [{}, {}] }], orientation: GroupOrientation.HORIZONTAL });
-
-		assert.equal(part.groups.length, 4);
-
-		part.dispose();
-	});
-
-	test('centeredLayout', function () {
-		const [part] = createPart();
-
-		part.centerLayout(true);
-
-		assert.equal(part.isLayoutCentered(), true);
 
 		part.dispose();
 	});

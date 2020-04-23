@@ -19,9 +19,7 @@ export class NotificationService extends Disposable implements INotificationServ
 	private _model: INotificationsModel = this._register(new NotificationsModel());
 	get model(): INotificationsModel { return this._model; }
 
-	constructor(
-		@IStorageService private readonly storageService: IStorageService
-	) {
+	constructor(@IStorageService private readonly storageService: IStorageService) {
 		super();
 	}
 
@@ -66,10 +64,10 @@ export class NotificationService extends Disposable implements INotificationServ
 		let handle: INotificationHandle;
 		if (notification.neverShowAgain) {
 			const scope = notification.neverShowAgain.scope === NeverShowAgainScope.WORKSPACE ? StorageScope.WORKSPACE : StorageScope.GLOBAL;
-			const id = notification.neverShowAgain.id;
 
 			// If the user already picked to not show the notification
 			// again, we return with a no-op notification here
+			const id = notification.neverShowAgain.id;
 			if (this.storageService.getBoolean(id, scope)) {
 				return new NoOpNotification();
 			}
@@ -89,14 +87,11 @@ export class NotificationService extends Disposable implements INotificationServ
 				}));
 
 			// Insert as primary or secondary action
-			const actions = {
-				primary: notification.actions?.primary || [],
-				secondary: notification.actions?.secondary || []
-			};
+			const actions = notification.actions || { primary: [], secondary: [] };
 			if (!notification.neverShowAgain.isSecondary) {
-				actions.primary = [neverShowAgainAction, ...actions.primary]; // action comes first
+				actions.primary = [neverShowAgainAction, ...(actions.primary || [])]; // action comes first
 			} else {
-				actions.secondary = [...actions.secondary, neverShowAgainAction]; // actions comes last
+				actions.secondary = [...(actions.secondary || []), neverShowAgainAction]; // actions comes last
 			}
 
 			notification.actions = actions;
@@ -117,10 +112,10 @@ export class NotificationService extends Disposable implements INotificationServ
 		// Handle neverShowAgain option accordingly
 		if (options?.neverShowAgain) {
 			const scope = options.neverShowAgain.scope === NeverShowAgainScope.WORKSPACE ? StorageScope.WORKSPACE : StorageScope.GLOBAL;
-			const id = options.neverShowAgain.id;
 
 			// If the user already picked to not show the notification
 			// again, we return with a no-op notification here
+			const id = options.neverShowAgain.id;
 			if (this.storageService.getBoolean(id, scope)) {
 				return new NoOpNotification();
 			}

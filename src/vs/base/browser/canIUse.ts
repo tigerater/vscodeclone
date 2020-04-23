@@ -27,6 +27,10 @@ export const BrowserFeatures = {
 			|| !!(navigator && navigator.clipboard && navigator.clipboard.readText)
 		),
 		richText: (() => {
+			if (browser.isIE) {
+				return false;
+			}
+
 			if (browser.isEdge) {
 				let index = navigator.userAgent.indexOf('Edge/');
 				let version = parseInt(navigator.userAgent.substring(index + 5, navigator.userAgent.indexOf('.', index)), 10);
@@ -51,8 +55,6 @@ export const BrowserFeatures = {
 		return KeyboardSupport.None;
 	})(),
 
-	// 'ontouchstart' in window always evaluates to true with typescript's modern typings. This causes `window` to be
-	// `never` later in `window.navigator`. That's why we need the explicit `window as Window` cast
-	touch: 'ontouchstart' in window || navigator.maxTouchPoints > 0 || (window as Window).navigator.msMaxTouchPoints > 0,
-	pointerEvents: window.PointerEvent && ('ontouchstart' in window || (window as Window).navigator.maxTouchPoints > 0 || navigator.maxTouchPoints > 0 || (window as Window).navigator.msMaxTouchPoints > 0)
+	touch: 'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.navigator.msMaxTouchPoints > 0,
+	pointerEvents: window.PointerEvent && ('ontouchstart' in window || window.navigator.maxTouchPoints > 0 || navigator.maxTouchPoints > 0 || window.navigator.msMaxTouchPoints > 0)
 };

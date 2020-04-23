@@ -7,7 +7,7 @@ import * as assert from 'assert';
 import { Event } from 'vs/base/common/event';
 import { toResource } from 'vs/base/test/common/utils';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
-import { TestFilesConfigurationService, workbenchInstantiationService, TestServiceAccessor } from 'vs/workbench/test/browser/workbenchTestServices';
+import { TestFilesConfigurationService, TestEnvironmentService, workbenchInstantiationService, TestServiceAccessor } from 'vs/workbench/test/browser/workbenchTestServices';
 import { IResolvedTextFileEditorModel, ITextFileEditorModel } from 'vs/workbench/services/textfile/common/textfiles';
 import { IEditorGroupsService } from 'vs/workbench/services/editor/common/editorGroupsService';
 import { dispose, IDisposable } from 'vs/base/common/lifecycle';
@@ -47,16 +47,17 @@ suite('EditorAutoSave', () => {
 		disposables = [];
 	});
 
-	async function createEditorAutoSave(autoSaveConfig: object): Promise<[TestServiceAccessor, EditorPart, EditorAutoSave]> {
+	test('editor auto saves after short delay if configured', async function () {
 		const instantiationService = workbenchInstantiationService();
 
 		const configurationService = new TestConfigurationService();
-		configurationService.setUserConfiguration('files', autoSaveConfig);
+		configurationService.setUserConfiguration('files', { autoSave: 'afterDelay', autoSaveDelay: 1 });
 		instantiationService.stub(IConfigurationService, configurationService);
 
 		instantiationService.stub(IFilesConfigurationService, new TestFilesConfigurationService(
 			<IContextKeyService>instantiationService.createInstance(MockContextKeyService),
-			configurationService
+			configurationService,
+			TestEnvironmentService
 		));
 
 		const part = instantiationService.createInstance(EditorPart);
@@ -72,40 +73,13 @@ suite('EditorAutoSave', () => {
 
 		const editorAutoSave = instantiationService.createInstance(EditorAutoSave);
 
-		return [accessor, part, editorAutoSave];
-	}
-
-	test('editor auto saves after short delay if configured', async function () {
-		const [accessor, part, editorAutoSave] = await createEditorAutoSave({ autoSave: 'afterDelay', autoSaveDelay: 1 });
-
 		const resource = toResource.call(this, '/path/index.txt');
 
 		const model = await accessor.textFileService.files.resolve(resource) as IResolvedTextFileEditorModel;
+
 		model.textEditorModel.setValue('Super Good');
 
 		assert.ok(model.isDirty());
-
-		await awaitModelSaved(model);
-
-		assert.ok(!model.isDirty());
-
-		part.dispose();
-		editorAutoSave.dispose();
-		(<TextFileEditorModelManager>accessor.textFileService.files).dispose();
-	});
-
-	test('editor auto saves on focus change if configured', async function () {
-		const [accessor, part, editorAutoSave] = await createEditorAutoSave({ autoSave: 'onFocusChange' });
-
-		const resource = toResource.call(this, '/path/index.txt');
-		await accessor.editorService.openEditor({ resource, forceFile: true });
-
-		const model = await accessor.textFileService.files.resolve(resource) as IResolvedTextFileEditorModel;
-		model.textEditorModel.setValue('Super Good');
-
-		assert.ok(model.isDirty());
-
-		await accessor.editorService.openEditor({ resource: toResource.call(this, '/path/index_other.txt') });
 
 		await awaitModelSaved(model);
 

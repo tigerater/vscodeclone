@@ -113,9 +113,6 @@ export function mixin(destination: any, source: any, overwrite: boolean = true):
 	return destination;
 }
 
-/**
- * @deprecated ES6
- */
 export function assign<T>(destination: T): T;
 export function assign<T, U>(destination: T, u: U): T & U;
 export function assign<T, U, V>(destination: T, u: U, v: V): T & U & V;

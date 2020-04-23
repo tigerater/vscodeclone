@@ -7,6 +7,7 @@ import * as dom from 'vs/base/browser/dom';
 import { HighlightedLabel } from 'vs/base/browser/ui/highlightedlabel/highlightedLabel';
 import { IIdentityProvider, IKeyboardNavigationLabelProvider, IListVirtualDelegate } from 'vs/base/browser/ui/list/list';
 import { IDataSource, ITreeNode, ITreeRenderer, ITreeSorter, ITreeFilter } from 'vs/base/browser/ui/tree/tree';
+import { values } from 'vs/base/common/collections';
 import { createMatches, FuzzyScore } from 'vs/base/common/filters';
 import 'vs/css!./media/outlineTree';
 import 'vs/css!./media/symbol-icons';
@@ -18,13 +19,11 @@ import { IconLabel } from 'vs/base/browser/ui/iconLabel/iconLabel';
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { OutlineConfigKeys } from 'vs/editor/contrib/documentSymbols/outline';
 import { MarkerSeverity } from 'vs/platform/markers/common/markers';
-import { IThemeService, registerThemingParticipant, IColorTheme, ICssStyleCollector } from 'vs/platform/theme/common/themeService';
+import { IThemeService, registerThemingParticipant, ITheme, ICssStyleCollector } from 'vs/platform/theme/common/themeService';
 import { registerColor, listErrorForeground, listWarningForeground, foreground } from 'vs/platform/theme/common/colorRegistry';
 import { IdleValue } from 'vs/base/common/async';
 import { ITextResourceConfigurationService } from 'vs/editor/common/services/textResourceConfigurationService';
 import { URI } from 'vs/base/common/uri';
-import { IListAccessibilityProvider } from 'vs/base/browser/ui/list/listWidget';
-import { Iterable } from 'vs/base/common/iterator';
 
 export type OutlineItem = OutlineGroup | OutlineElement;
 
@@ -39,16 +38,6 @@ export class OutlineNavigationLabelProvider implements IKeyboardNavigationLabelP
 	}
 }
 
-export class OutlineAccessibilityProvider implements IListAccessibilityProvider<OutlineItem> {
-
-	getAriaLabel(element: OutlineItem): string | null {
-		if (element instanceof OutlineGroup) {
-			return element.provider.displayName || element.id;
-		} else {
-			return element.symbol.name;
-		}
-	}
-}
 
 export class OutlineIdentityProvider implements IIdentityProvider<OutlineItem> {
 	getId(element: OutlineItem): { toString(): string; } {
@@ -161,7 +150,7 @@ export class OutlineElementRenderer implements ITreeRenderer<OutlineElement, Fuz
 		}
 
 		const { count, topSev } = element.marker;
-		const color = this._themeService.getColorTheme().getColor(topSev === MarkerSeverity.Error ? listErrorForeground : listWarningForeground);
+		const color = this._themeService.getTheme().getColor(topSev === MarkerSeverity.Error ? listErrorForeground : listWarningForeground);
 		const cssColor = color ? color.toString() : 'inherit';
 
 		// color of the label
@@ -341,11 +330,11 @@ export class OutlineItemComparator implements ITreeSorter<OutlineItem> {
 
 export class OutlineDataSource implements IDataSource<OutlineModel, OutlineItem> {
 
-	getChildren(element: undefined | OutlineModel | OutlineGroup | OutlineElement) {
+	getChildren(element: undefined | OutlineModel | OutlineGroup | OutlineElement): OutlineItem[] {
 		if (!element) {
-			return Iterable.empty();
+			return [];
 		}
-		return element.children.values();
+		return values(element.children);
 	}
 }
 
@@ -547,172 +536,172 @@ export const SYMBOL_ICON_VARIABLE_FOREGROUND = registerColor('symbolIcon.variabl
 	hc: '#75BEFF'
 }, localize('symbolIcon.variableForeground', 'The foreground color for variable symbols. These symbols appear in the outline, breadcrumb, and suggest widget.'));
 
-registerThemingParticipant((theme: IColorTheme, collector: ICssStyleCollector) => {
+registerThemingParticipant((theme: ITheme, collector: ICssStyleCollector) => {
 
 	const symbolIconArrayColor = theme.getColor(SYMBOL_ICON_ARRAY_FOREGROUND);
 	if (symbolIconArrayColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-array { color: ${symbolIconArrayColor}; }`);
+		collector.addRule(`.codicon-symbol-array { color: ${symbolIconArrayColor} !important; }`);
 	}
 
 	const symbolIconBooleanColor = theme.getColor(SYMBOL_ICON_BOOLEAN_FOREGROUND);
 	if (symbolIconBooleanColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-boolean { color: ${symbolIconBooleanColor}; }`);
+		collector.addRule(`.codicon-symbol-boolean { color: ${symbolIconBooleanColor} !important; }`);
 	}
 
 	const symbolIconClassColor = theme.getColor(SYMBOL_ICON_CLASS_FOREGROUND);
 	if (symbolIconClassColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-class { color: ${symbolIconClassColor}; }`);
+		collector.addRule(`.codicon-symbol-class { color: ${symbolIconClassColor} !important; }`);
 	}
 
 	const symbolIconMethodColor = theme.getColor(SYMBOL_ICON_METHOD_FOREGROUND);
 	if (symbolIconMethodColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-method { color: ${symbolIconMethodColor}; }`);
+		collector.addRule(`.codicon-symbol-method { color: ${symbolIconMethodColor} !important; }`);
 	}
 
 	const symbolIconColorColor = theme.getColor(SYMBOL_ICON_COLOR_FOREGROUND);
 	if (symbolIconColorColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-color { color: ${symbolIconColorColor}; }`);
+		collector.addRule(`.codicon-symbol-color { color: ${symbolIconColorColor} !important; }`);
 	}
 
 	const symbolIconConstantColor = theme.getColor(SYMBOL_ICON_CONSTANT_FOREGROUND);
 	if (symbolIconConstantColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-constant { color: ${symbolIconConstantColor}; }`);
+		collector.addRule(`.codicon-symbol-constant { color: ${symbolIconConstantColor} !important; }`);
 	}
 
 	const symbolIconConstructorColor = theme.getColor(SYMBOL_ICON_CONSTRUCTOR_FOREGROUND);
 	if (symbolIconConstructorColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-constructor { color: ${symbolIconConstructorColor}; }`);
+		collector.addRule(`.codicon-symbol-constructor { color: ${symbolIconConstructorColor} !important; }`);
 	}
 
 	const symbolIconEnumeratorColor = theme.getColor(SYMBOL_ICON_ENUMERATOR_FOREGROUND);
 	if (symbolIconEnumeratorColor) {
 		collector.addRule(`
-			.monaco-workbench .codicon.codicon-symbol-value,.monaco-workbench .codicon.codicon-symbol-enum { color: ${symbolIconEnumeratorColor}; }`);
+			.codicon-symbol-value,.codicon-symbol-enum { color: ${symbolIconEnumeratorColor} !important; }`);
 	}
 
 	const symbolIconEnumeratorMemberColor = theme.getColor(SYMBOL_ICON_ENUMERATOR_MEMBER_FOREGROUND);
 	if (symbolIconEnumeratorMemberColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-enum-member { color: ${symbolIconEnumeratorMemberColor}; }`);
+		collector.addRule(`.codicon-symbol-enum-member { color: ${symbolIconEnumeratorMemberColor} !important; }`);
 	}
 
 	const symbolIconEventColor = theme.getColor(SYMBOL_ICON_EVENT_FOREGROUND);
 	if (symbolIconEventColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-event { color: ${symbolIconEventColor}; }`);
+		collector.addRule(`.codicon-symbol-event { color: ${symbolIconEventColor} !important; }`);
 	}
 
 	const symbolIconFieldColor = theme.getColor(SYMBOL_ICON_FIELD_FOREGROUND);
 	if (symbolIconFieldColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-field { color: ${symbolIconFieldColor}; }`);
+		collector.addRule(`.codicon-symbol-field { color: ${symbolIconFieldColor} !important; }`);
 	}
 
 	const symbolIconFileColor = theme.getColor(SYMBOL_ICON_FILE_FOREGROUND);
 	if (symbolIconFileColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-file { color: ${symbolIconFileColor}; }`);
+		collector.addRule(`.codicon-symbol-file { color: ${symbolIconFileColor} !important; }`);
 	}
 
 	const symbolIconFolderColor = theme.getColor(SYMBOL_ICON_FOLDER_FOREGROUND);
 	if (symbolIconFolderColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-folder { color: ${symbolIconFolderColor}; }`);
+		collector.addRule(`.codicon-symbol-folder { color: ${symbolIconFolderColor} !important; }`);
 	}
 
 	const symbolIconFunctionColor = theme.getColor(SYMBOL_ICON_FUNCTION_FOREGROUND);
 	if (symbolIconFunctionColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-function { color: ${symbolIconFunctionColor}; }`);
+		collector.addRule(`.codicon-symbol-function { color: ${symbolIconFunctionColor} !important; }`);
 	}
 
 	const symbolIconInterfaceColor = theme.getColor(SYMBOL_ICON_INTERFACE_FOREGROUND);
 	if (symbolIconInterfaceColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-interface { color: ${symbolIconInterfaceColor}; }`);
+		collector.addRule(`.codicon-symbol-interface { color: ${symbolIconInterfaceColor} !important; }`);
 	}
 
 	const symbolIconKeyColor = theme.getColor(SYMBOL_ICON_KEY_FOREGROUND);
 	if (symbolIconKeyColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-key { color: ${symbolIconKeyColor}; }`);
+		collector.addRule(`.codicon-symbol-key { color: ${symbolIconKeyColor} !important; }`);
 	}
 
 	const symbolIconKeywordColor = theme.getColor(SYMBOL_ICON_KEYWORD_FOREGROUND);
 	if (symbolIconKeywordColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-keyword { color: ${symbolIconKeywordColor}; }`);
+		collector.addRule(`.codicon-symbol-keyword { color: ${symbolIconKeywordColor} !important; }`);
 	}
 
 	const symbolIconModuleColor = theme.getColor(SYMBOL_ICON_MODULE_FOREGROUND);
 	if (symbolIconModuleColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-module { color: ${symbolIconModuleColor}; }`);
+		collector.addRule(`.codicon-symbol-module { color: ${symbolIconModuleColor} !important; }`);
 	}
 
 	const outlineNamespaceColor = theme.getColor(SYMBOL_ICON_NAMESPACE_FOREGROUND);
 	if (outlineNamespaceColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-namespace { color: ${outlineNamespaceColor}; }`);
+		collector.addRule(`.codicon-symbol-namespace { color: ${outlineNamespaceColor} !important; }`);
 	}
 
 	const symbolIconNullColor = theme.getColor(SYMBOL_ICON_NULL_FOREGROUND);
 	if (symbolIconNullColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-null { color: ${symbolIconNullColor}; }`);
+		collector.addRule(`.codicon-symbol-null { color: ${symbolIconNullColor} !important; }`);
 	}
 
 	const symbolIconNumberColor = theme.getColor(SYMBOL_ICON_NUMBER_FOREGROUND);
 	if (symbolIconNumberColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-number { color: ${symbolIconNumberColor}; }`);
+		collector.addRule(`.codicon-symbol-number { color: ${symbolIconNumberColor} !important; }`);
 	}
 
 	const symbolIconObjectColor = theme.getColor(SYMBOL_ICON_OBJECT_FOREGROUND);
 	if (symbolIconObjectColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-object { color: ${symbolIconObjectColor}; }`);
+		collector.addRule(`.codicon-symbol-object { color: ${symbolIconObjectColor} !important; }`);
 	}
 
 	const symbolIconOperatorColor = theme.getColor(SYMBOL_ICON_OPERATOR_FOREGROUND);
 	if (symbolIconOperatorColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-operator { color: ${symbolIconOperatorColor}; }`);
+		collector.addRule(`.codicon-symbol-operator { color: ${symbolIconOperatorColor} !important; }`);
 	}
 
 	const symbolIconPackageColor = theme.getColor(SYMBOL_ICON_PACKAGE_FOREGROUND);
 	if (symbolIconPackageColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-package { color: ${symbolIconPackageColor}; }`);
+		collector.addRule(`.codicon-symbol-package { color: ${symbolIconPackageColor} !important; }`);
 	}
 
 	const symbolIconPropertyColor = theme.getColor(SYMBOL_ICON_PROPERTY_FOREGROUND);
 	if (symbolIconPropertyColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-property { color: ${symbolIconPropertyColor}; }`);
+		collector.addRule(`.codicon-symbol-property { color: ${symbolIconPropertyColor} !important; }`);
 	}
 
 	const symbolIconReferenceColor = theme.getColor(SYMBOL_ICON_REFERENCE_FOREGROUND);
 	if (symbolIconReferenceColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-reference { color: ${symbolIconReferenceColor}; }`);
+		collector.addRule(`.codicon-symbol-reference { color: ${symbolIconReferenceColor} !important; }`);
 	}
 
 	const symbolIconSnippetColor = theme.getColor(SYMBOL_ICON_SNIPPET_FOREGROUND);
 	if (symbolIconSnippetColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-snippet { color: ${symbolIconSnippetColor}; }`);
+		collector.addRule(`.codicon-symbol-snippet { color: ${symbolIconSnippetColor} !important; }`);
 	}
 
 	const symbolIconStringColor = theme.getColor(SYMBOL_ICON_STRING_FOREGROUND);
 	if (symbolIconStringColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-string { color: ${symbolIconStringColor}; }`);
+		collector.addRule(`.codicon-symbol-string { color: ${symbolIconStringColor} !important; }`);
 	}
 
 	const symbolIconStructColor = theme.getColor(SYMBOL_ICON_STRUCT_FOREGROUND);
 	if (symbolIconStructColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-struct { color: ${symbolIconStructColor}; }`);
+		collector.addRule(`.codicon-symbol-struct { color: ${symbolIconStructColor} !important; }`);
 	}
 
 	const symbolIconTextColor = theme.getColor(SYMBOL_ICON_TEXT_FOREGROUND);
 	if (symbolIconTextColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-text { color: ${symbolIconTextColor}; }`);
+		collector.addRule(`.codicon-symbol-text { color: ${symbolIconTextColor} !important; }`);
 	}
 
 	const symbolIconTypeParameterColor = theme.getColor(SYMBOL_ICON_TYPEPARAMETER_FOREGROUND);
 	if (symbolIconTypeParameterColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-type-parameter { color: ${symbolIconTypeParameterColor}; }`);
+		collector.addRule(`.codicon-symbol-type-parameter { color: ${symbolIconTypeParameterColor} !important; }`);
 	}
 
 	const symbolIconUnitColor = theme.getColor(SYMBOL_ICON_UNIT_FOREGROUND);
 	if (symbolIconUnitColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-unit { color: ${symbolIconUnitColor}; }`);
+		collector.addRule(`.codicon-symbol-unit { color: ${symbolIconUnitColor} !important; }`);
 	}
 
 	const symbolIconVariableColor = theme.getColor(SYMBOL_ICON_VARIABLE_FOREGROUND);
 	if (symbolIconVariableColor) {
-		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-variable { color: ${symbolIconVariableColor}; }`);
+		collector.addRule(`.codicon-symbol-variable { color: ${symbolIconVariableColor} !important; }`);
 	}
 
 });

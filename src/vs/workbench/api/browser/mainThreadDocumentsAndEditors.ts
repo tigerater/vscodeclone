@@ -5,6 +5,7 @@
 
 import { Emitter, Event } from 'vs/base/common/event';
 import { IDisposable, combinedDisposable, DisposableStore } from 'vs/base/common/lifecycle';
+import { values } from 'vs/base/common/map';
 import { URI } from 'vs/base/common/uri';
 import { ICodeEditor, isCodeEditor, isDiffEditor, IActiveCodeEditor } from 'vs/editor/browser/editorBrowser';
 import { IBulkEditService } from 'vs/editor/browser/services/bulkEditService';
@@ -21,7 +22,7 @@ import { MainThreadTextEditors } from 'vs/workbench/api/browser/mainThreadEditor
 import { ExtHostContext, ExtHostDocumentsAndEditorsShape, IDocumentsAndEditorsDelta, IExtHostContext, IModelAddedData, ITextEditorAddData, MainContext } from 'vs/workbench/api/common/extHost.protocol';
 import { EditorViewColumn, editorGroupToViewColumn } from 'vs/workbench/api/common/shared/editor';
 import { BaseTextEditor } from 'vs/workbench/browser/parts/editor/textEditor';
-import { IEditorPane } from 'vs/workbench/common/editor';
+import { IEditor as IWorkbenchEditor } from 'vs/workbench/common/editor';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
 import { IEditorGroupsService } from 'vs/workbench/services/editor/common/editorGroupsService';
 import { IPanelService } from 'vs/workbench/services/panel/common/panelService';
@@ -109,8 +110,8 @@ class DocumentAndEditorState {
 	static compute(before: DocumentAndEditorState | undefined, after: DocumentAndEditorState): DocumentAndEditorStateDelta {
 		if (!before) {
 			return new DocumentAndEditorStateDelta(
-				[], [...after.documents.values()],
-				[], [...after.textEditors.values()],
+				[], values(after.documents),
+				[], values(after.textEditors),
 				undefined, after.activeEditor
 			);
 		}
@@ -290,11 +291,11 @@ class MainThreadDocumentAndEditorStateComputer {
 	}
 
 	private _getActiveEditorFromEditorPart(): IEditor | undefined {
-		let activeTextEditorControl = this._editorService.activeTextEditorControl;
-		if (isDiffEditor(activeTextEditorControl)) {
-			activeTextEditorControl = activeTextEditorControl.getModifiedEditor();
+		let result = this._editorService.activeTextEditorWidget;
+		if (isDiffEditor(result)) {
+			result = result.getModifiedEditor();
 		}
-		return activeTextEditorControl;
+		return result;
 	}
 }
 
@@ -435,17 +436,17 @@ export class MainThreadDocumentsAndEditors {
 	}
 
 	private _findEditorPosition(editor: MainThreadTextEditor): EditorViewColumn | undefined {
-		for (const editorPane of this._editorService.visibleEditorPanes) {
-			if (editor.matches(editorPane)) {
-				return editorGroupToViewColumn(this._editorGroupService, editorPane.group);
+		for (const workbenchEditor of this._editorService.visibleControls) {
+			if (editor.matches(workbenchEditor)) {
+				return editorGroupToViewColumn(this._editorGroupService, workbenchEditor.group);
 			}
 		}
 		return undefined;
 	}
 
-	findTextEditorIdFor(editorPane: IEditorPane): string | undefined {
+	findTextEditorIdFor(inputEditor: IWorkbenchEditor): string | undefined {
 		for (const [id, editor] of this._textEditors) {
-			if (editor.matches(editorPane)) {
+			if (editor.matches(inputEditor)) {
 				return id;
 			}
 		}

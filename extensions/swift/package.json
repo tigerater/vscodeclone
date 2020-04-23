@@ -23,7 +23,7 @@
 		}],
 		"snippets": [{
 			"language": "swift",
-			"path": "./snippets/swift.code-snippets"
+			"path": "./snippets/swift.json"
 		}]
 	}
 }

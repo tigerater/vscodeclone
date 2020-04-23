@@ -20,19 +20,18 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.authentication.registerAuthenticationProvider({
 		id: 'microsoft',
 		displayName: 'Microsoft',
-		supportsMultipleAccounts: true,
 		onDidChangeSessions: onDidChangeSessions.event,
 		getSessions: () => Promise.resolve(loginService.sessions),
-		login: async (scopes: string[] | undefined) => {
-			const loginScopes = scopes ? scopes.sort().join(' ') : 'https://management.core.windows.net/.default offline_access';
-			await loginService.login(loginScopes);
-			const session = loginService.sessions[loginService.sessions.length - 1];
-			onDidChangeSessions.fire({ added: [session.id], removed: [], changed: [] });
-			return loginService.sessions[0]!;
+		login: async (scopes: string[]) => {
+			try {
+				await loginService.login(scopes.sort().join(' '));
+				return loginService.sessions[0]!;
+			} catch (e) {
+				throw e;
+			}
 		},
 		logout: async (id: string) => {
-			await loginService.logout(id);
-			onDidChangeSessions.fire({ added: [], removed: [id], changed: [] });
+			return loginService.logout(id);
 		}
 	}));
 
@@ -47,9 +46,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		if (sessions.length === 1) {
-			const id = loginService.sessions[0].id;
-			await loginService.logout(id);
-			onDidChangeSessions.fire({ added: [], removed: [id], changed: [] });
+			await loginService.logout(loginService.sessions[0].id);
+			onDidChangeSessions.fire();
 			vscode.window.showInformationMessage(localize('signedOut', "Successfully signed out."));
 			return;
 		}
@@ -63,7 +61,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		if (selectedSession) {
 			await loginService.logout(selectedSession.id);
-			onDidChangeSessions.fire({ added: [], removed: [selectedSession.id], changed: [] });
+			onDidChangeSessions.fire();
 			vscode.window.showInformationMessage(localize('signedOut', "Successfully signed out."));
 			return;
 		}

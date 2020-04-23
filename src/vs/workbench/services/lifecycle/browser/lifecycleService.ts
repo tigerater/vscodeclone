@@ -28,9 +28,6 @@ export class BrowserLifecycleService extends AbstractLifecycleService {
 	}
 
 	private onBeforeUnload(): string | null {
-		const logService = this.logService;
-		logService.info('[lifecycle] onBeforeUnload triggered');
-
 		let veto = false;
 
 		// Before Shutdown
@@ -39,7 +36,7 @@ export class BrowserLifecycleService extends AbstractLifecycleService {
 				if (value === true) {
 					veto = true;
 				} else if (value instanceof Promise && !veto) {
-					logService.error('[lifecycle] Long running onBeforeShutdown currently not supported in the web');
+					console.warn(new Error('Long running onBeforeShutdown currently not supported in the web'));
 					veto = true;
 				}
 			},
@@ -54,7 +51,7 @@ export class BrowserLifecycleService extends AbstractLifecycleService {
 		// No Veto: continue with Will Shutdown
 		this._onWillShutdown.fire({
 			join() {
-				logService.error('[lifecycle] Long running onWillShutdown currently not supported in the web');
+				console.warn(new Error('Long running onWillShutdown currently not supported in the web'));
 			},
 			reason: ShutdownReason.QUIT
 		});

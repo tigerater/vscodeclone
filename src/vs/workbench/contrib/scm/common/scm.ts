@@ -30,7 +30,7 @@ export interface ISCMResource {
 	readonly resourceGroup: ISCMResourceGroup;
 	readonly sourceUri: URI;
 	readonly decorations: ISCMResourceDecorations;
-	open(preserveFocus: boolean): Promise<void>;
+	open(): Promise<void>;
 }
 
 export interface ISCMResourceGroup extends ISequence<ISCMResource> {

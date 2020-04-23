@@ -19,7 +19,6 @@ import { IEditorGroupsService } from 'vs/workbench/services/editor/common/editor
 import { IFileService } from 'vs/platform/files/common/files';
 import { ILabelService } from 'vs/platform/label/common/label';
 import { IFilesConfigurationService } from 'vs/workbench/services/filesConfiguration/common/filesConfigurationService';
-import { Schemas } from 'vs/base/common/network';
 
 export class PreferencesEditorInput extends SideBySideEditorInput {
 	static readonly ID: string = 'workbench.editorinputs.preferencesEditorInput';
@@ -106,7 +105,7 @@ export class SettingsEditor2Input extends EditorInput {
 	private readonly _settingsModel: Settings2EditorModel;
 
 	readonly resource: URI = URI.from({
-		scheme: Schemas.vscodeSettings,
+		scheme: 'vscode-settings',
 		path: `settingseditor`
 	});
 

@@ -426,7 +426,7 @@ export class WalkThroughPart extends BaseEditor {
 				alwaysConsumeMouseWheel: false
 			},
 			overviewRulerLanes: 3,
-			fixedOverflowWidgets: false,
+			fixedOverflowWidgets: true,
 			lineNumbersMinChars: 1,
 			minimap: { enabled: false },
 		};

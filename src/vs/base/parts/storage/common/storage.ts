@@ -18,17 +18,17 @@ export enum StorageHint {
 }
 
 export interface IStorageOptions {
-	readonly hint?: StorageHint;
+	hint?: StorageHint;
 }
 
 export interface IUpdateRequest {
-	readonly insert?: Map<string, string>;
-	readonly delete?: Set<string>;
+	insert?: Map<string, string>;
+	delete?: Set<string>;
 }
 
 export interface IStorageItemsChangeEvent {
-	readonly changed?: Map<string, string>;
-	readonly deleted?: Set<string>;
+	changed?: Map<string, string>;
+	deleted?: Set<string>;
 }
 
 export interface IStorageDatabase {
@@ -74,23 +74,25 @@ export class Storage extends Disposable implements IStorage {
 
 	private static readonly DEFAULT_FLUSH_DELAY = 100;
 
-	private readonly _onDidChangeStorage = this._register(new Emitter<string>());
-	readonly onDidChangeStorage = this._onDidChangeStorage.event;
+	private readonly _onDidChangeStorage: Emitter<string> = this._register(new Emitter<string>());
+	readonly onDidChangeStorage: Event<string> = this._onDidChangeStorage.event;
 
 	private state = StorageState.None;
 
-	private cache = new Map<string, string>();
+	private cache: Map<string, string> = new Map<string, string>();
 
-	private readonly flushDelayer = this._register(new ThrottledDelayer<void>(Storage.DEFAULT_FLUSH_DELAY));
+	private flushDelayer: ThrottledDelayer<void>;
 
-	private pendingDeletes = new Set<string>();
-	private pendingInserts = new Map<string, string>();
+	private pendingDeletes: Set<string> = new Set<string>();
+	private pendingInserts: Map<string, string> = new Map();
 
 	constructor(
-		protected readonly database: IStorageDatabase,
-		private readonly options: IStorageOptions = Object.create(null)
+		protected database: IStorageDatabase,
+		private options: IStorageOptions = Object.create(null)
 	) {
 		super();
+
+		this.flushDelayer = this._register(new ThrottledDelayer(Storage.DEFAULT_FLUSH_DELAY));
 
 		this.registerListeners();
 	}
@@ -144,7 +146,7 @@ export class Storage extends Disposable implements IStorage {
 
 	async init(): Promise<void> {
 		if (this.state !== StorageState.None) {
-			return; // either closed or already initialized
+			return Promise.resolve(); // either closed or already initialized
 		}
 
 		this.state = StorageState.Initialized;
@@ -153,7 +155,7 @@ export class Storage extends Disposable implements IStorage {
 			// return early if we know the storage file does not exist. this is a performance
 			// optimization to not load all items of the underlying storage if we know that
 			// there can be no items because the storage does not exist.
-			return;
+			return Promise.resolve();
 		}
 
 		this.cache = await this.database.getItems();
@@ -294,13 +296,13 @@ export class InMemoryStorageDatabase implements IStorageDatabase {
 
 	readonly onDidChangeItemsExternal = Event.None;
 
-	private readonly items = new Map<string, string>();
+	private items = new Map<string, string>();
 
-	async getItems(): Promise<Map<string, string>> {
-		return this.items;
+	getItems(): Promise<Map<string, string>> {
+		return Promise.resolve(this.items);
 	}
 
-	async updateItems(request: IUpdateRequest): Promise<void> {
+	updateItems(request: IUpdateRequest): Promise<void> {
 		if (request.insert) {
 			request.insert.forEach((value, key) => this.items.set(key, value));
 		}
@@ -308,7 +310,11 @@ export class InMemoryStorageDatabase implements IStorageDatabase {
 		if (request.delete) {
 			request.delete.forEach(key => this.items.delete(key));
 		}
+
+		return Promise.resolve();
 	}
 
-	async close(): Promise<void> { }
+	close(): Promise<void> {
+		return Promise.resolve();
+	}
 }

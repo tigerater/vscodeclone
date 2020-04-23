@@ -31,11 +31,13 @@ class KeybindingsReferenceAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<void> {
 		const url = isLinux ? this.productService.keyboardShortcutsUrlLinux : isMacintosh ? this.productService.keyboardShortcutsUrlMac : this.productService.keyboardShortcutsUrlWin;
 		if (url) {
 			this.openerService.open(URI.parse(url));
 		}
+
+		return Promise.resolve();
 	}
 }
 
@@ -54,10 +56,12 @@ class OpenDocumentationUrlAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<void> {
 		if (this.productService.documentationUrl) {
 			this.openerService.open(URI.parse(this.productService.documentationUrl));
 		}
+
+		return Promise.resolve();
 	}
 }
 
@@ -76,10 +80,12 @@ class OpenIntroductoryVideosUrlAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<void> {
 		if (this.productService.introductoryVideosUrl) {
 			this.openerService.open(URI.parse(this.productService.introductoryVideosUrl));
 		}
+
+		return Promise.resolve();
 	}
 }
 
@@ -98,10 +104,12 @@ class OpenTipsAndTricksUrlAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<void> {
 		if (this.productService.tipsAndTricksUrl) {
 			this.openerService.open(URI.parse(this.productService.tipsAndTricksUrl));
 		}
+
+		return Promise.resolve();
 	}
 }
 
@@ -143,10 +151,12 @@ class OpenTwitterUrlAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<void> {
 		if (this.productService.twitterUrl) {
 			this.openerService.open(URI.parse(this.productService.twitterUrl));
 		}
+
+		return Promise.resolve();
 	}
 }
 
@@ -165,10 +175,12 @@ class OpenRequestFeatureUrlAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<void> {
 		if (this.productService.requestFeatureUrl) {
 			this.openerService.open(URI.parse(this.productService.requestFeatureUrl));
 		}
+
+		return Promise.resolve();
 	}
 }
 
@@ -187,7 +199,7 @@ class OpenLicenseUrlAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<void> {
 		if (this.productService.licenseUrl) {
 			if (language) {
 				const queryArgChar = this.productService.licenseUrl.indexOf('?') > 0 ? '&' : '?';
@@ -196,6 +208,8 @@ class OpenLicenseUrlAction extends Action {
 				this.openerService.open(URI.parse(this.productService.licenseUrl));
 			}
 		}
+
+		return Promise.resolve();
 	}
 }
 
@@ -214,7 +228,7 @@ class OpenPrivacyStatementUrlAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<void> {
 		if (this.productService.privacyStatementUrl) {
 			if (language) {
 				const queryArgChar = this.productService.privacyStatementUrl.indexOf('?') > 0 ? '&' : '?';
@@ -223,6 +237,8 @@ class OpenPrivacyStatementUrlAction extends Action {
 				this.openerService.open(URI.parse(this.productService.privacyStatementUrl));
 			}
 		}
+
+		return Promise.resolve();
 	}
 }
 

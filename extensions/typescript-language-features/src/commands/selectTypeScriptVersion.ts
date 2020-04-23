@@ -15,6 +15,6 @@ export class SelectTypeScriptVersionCommand implements Command {
 	) { }
 
 	public execute() {
-		this.lazyClientHost.value.serviceClient.showVersionPicker();
+		this.lazyClientHost.value.serviceClient.onVersionStatusClicked();
 	}
 }

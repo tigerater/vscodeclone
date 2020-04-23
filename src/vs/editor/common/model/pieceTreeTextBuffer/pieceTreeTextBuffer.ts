@@ -9,8 +9,6 @@ import { Range } from 'vs/editor/common/core/range';
 import { ApplyEditsResult, EndOfLinePreference, FindMatch, IInternalModelContentChange, ISingleEditOperationIdentifier, ITextBuffer, ITextSnapshot, ValidAnnotatedEditOperation, IValidEditOperation } from 'vs/editor/common/model';
 import { PieceTreeBase, StringBuffer } from 'vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase';
 import { SearchData } from 'vs/editor/common/model/textModelSearch';
-import { countEOL, StringEOL } from 'vs/editor/common/model/tokensStore';
-import { TextChange } from 'vs/editor/common/model/textChange';
 
 export interface IValidatedEditOperation {
 	sortIndex: number;
@@ -18,10 +16,7 @@ export interface IValidatedEditOperation {
 	range: Range;
 	rangeOffset: number;
 	rangeLength: number;
-	text: string;
-	eolCount: number;
-	firstLineLength: number;
-	lastLineLength: number;
+	lines: string[] | null;
 	forceMoveMarkers: boolean;
 	isAutoWhitespaceEdit: boolean;
 }
@@ -65,7 +60,7 @@ export class PieceTreeTextBuffer implements ITextBuffer {
 	public getBOM(): string {
 		return this._BOM;
 	}
-	public getEOL(): '\r\n' | '\n' {
+	public getEOL(): string {
 		return this._pieceTree.getEOL();
 	}
 
@@ -206,7 +201,7 @@ export class PieceTreeTextBuffer implements ITextBuffer {
 		this._pieceTree.setEOL(newEOL);
 	}
 
-	public applyEdits(rawOperations: ValidAnnotatedEditOperation[], recordTrimAutoWhitespace: boolean, computeUndoEdits: boolean): ApplyEditsResult {
+	public applyEdits(rawOperations: ValidAnnotatedEditOperation[], recordTrimAutoWhitespace: boolean): ApplyEditsResult {
 		let mightContainRTL = this._mightContainRTL;
 		let mightContainNonBasicASCII = this._mightContainNonBasicASCII;
 		let canReduceOperations = true;
@@ -225,34 +220,13 @@ export class PieceTreeTextBuffer implements ITextBuffer {
 			if (!mightContainNonBasicASCII && op.text) {
 				mightContainNonBasicASCII = !strings.isBasicASCII(op.text);
 			}
-
-			let validText = '';
-			let eolCount = 0;
-			let firstLineLength = 0;
-			let lastLineLength = 0;
-			if (op.text) {
-				let strEOL: StringEOL;
-				[eolCount, firstLineLength, lastLineLength, strEOL] = countEOL(op.text);
-
-				const bufferEOL = this.getEOL();
-				const expectedStrEOL = (bufferEOL === '\r\n' ? StringEOL.CRLF : StringEOL.LF);
-				if (strEOL === StringEOL.Unknown || strEOL === expectedStrEOL) {
-					validText = op.text;
-				} else {
-					validText = op.text.replace(/\r\n|\r|\n/g, bufferEOL);
-				}
-			}
-
 			operations[i] = {
 				sortIndex: i,
 				identifier: op.identifier || null,
 				range: validatedRange,
 				rangeOffset: this.getOffsetAt(validatedRange.startLineNumber, validatedRange.startColumn),
 				rangeLength: this.getValueLengthInRange(validatedRange),
-				text: validText,
-				eolCount: eolCount,
-				firstLineLength: firstLineLength,
-				lastLineLength: lastLineLength,
+				lines: op.text ? op.text.split(/\r\n|\r|\n/) : null,
 				forceMoveMarkers: Boolean(op.forceMoveMarkers),
 				isAutoWhitespaceEdit: op.isAutoWhitespaceEdit || false
 			};
@@ -280,56 +254,46 @@ export class PieceTreeTextBuffer implements ITextBuffer {
 		}
 
 		// Delta encode operations
-		let reverseRanges = (computeUndoEdits || recordTrimAutoWhitespace ? PieceTreeTextBuffer._getInverseEditRanges(operations) : []);
+		let reverseRanges = PieceTreeTextBuffer._getInverseEditRanges(operations);
 		let newTrimAutoWhitespaceCandidates: { lineNumber: number, oldContent: string }[] = [];
-		if (recordTrimAutoWhitespace) {
-			for (let i = 0; i < operations.length; i++) {
-				let op = operations[i];
-				let reverseRange = reverseRanges[i];
 
-				if (op.isAutoWhitespaceEdit && op.range.isEmpty()) {
-					// Record already the future line numbers that might be auto whitespace removal candidates on next edit
-					for (let lineNumber = reverseRange.startLineNumber; lineNumber <= reverseRange.endLineNumber; lineNumber++) {
-						let currentLineContent = '';
-						if (lineNumber === reverseRange.startLineNumber) {
-							currentLineContent = this.getLineContent(op.range.startLineNumber);
-							if (strings.firstNonWhitespaceIndex(currentLineContent) !== -1) {
-								continue;
-							}
+		for (let i = 0; i < operations.length; i++) {
+			let op = operations[i];
+			let reverseRange = reverseRanges[i];
+
+			if (recordTrimAutoWhitespace && op.isAutoWhitespaceEdit && op.range.isEmpty()) {
+				// Record already the future line numbers that might be auto whitespace removal candidates on next edit
+				for (let lineNumber = reverseRange.startLineNumber; lineNumber <= reverseRange.endLineNumber; lineNumber++) {
+					let currentLineContent = '';
+					if (lineNumber === reverseRange.startLineNumber) {
+						currentLineContent = this.getLineContent(op.range.startLineNumber);
+						if (strings.firstNonWhitespaceIndex(currentLineContent) !== -1) {
+							continue;
 						}
-						newTrimAutoWhitespaceCandidates.push({ lineNumber: lineNumber, oldContent: currentLineContent });
 					}
+					newTrimAutoWhitespaceCandidates.push({ lineNumber: lineNumber, oldContent: currentLineContent });
 				}
 			}
 		}
 
-		let reverseOperations: IReverseSingleEditOperation[] | null = null;
-		if (computeUndoEdits) {
+		let reverseOperations: IReverseSingleEditOperation[] = [];
+		for (let i = 0; i < operations.length; i++) {
+			let op = operations[i];
+			let reverseRange = reverseRanges[i];
 
-			let reverseRangeDeltaOffset = 0;
-			reverseOperations = [];
-			for (let i = 0; i < operations.length; i++) {
-				const op = operations[i];
-				const reverseRange = reverseRanges[i];
-				const bufferText = this.getValueInRange(op.range);
-				const reverseRangeOffset = op.rangeOffset + reverseRangeDeltaOffset;
-				reverseRangeDeltaOffset += (op.text.length - bufferText.length);
-
-				reverseOperations[i] = {
-					sortIndex: op.sortIndex,
-					identifier: op.identifier,
-					range: reverseRange,
-					text: bufferText,
-					textChange: new TextChange(op.rangeOffset, bufferText, reverseRangeOffset, op.text)
-				};
-			}
-
-			// Can only sort reverse operations when the order is not significant
-			if (!hasTouchingRanges) {
-				reverseOperations.sort((a, b) => a.sortIndex - b.sortIndex);
-			}
+			reverseOperations[i] = {
+				sortIndex: op.sortIndex,
+				identifier: op.identifier,
+				range: reverseRange,
+				text: this.getValueInRange(op.range),
+				forceMoveMarkers: op.forceMoveMarkers
+			};
 		}
 
+		// Can only sort reverse operations when the order is not significant
+		if (!hasTouchingRanges) {
+			reverseOperations.sort((a, b) => a.sortIndex - b.sortIndex);
+		}
 
 		this._mightContainRTL = mightContainRTL;
 		this._mightContainNonBasicASCII = mightContainNonBasicASCII;
@@ -386,34 +350,50 @@ export class PieceTreeTextBuffer implements ITextBuffer {
 	}
 
 	_toSingleEditOperation(operations: IValidatedEditOperation[]): IValidatedEditOperation {
-		let forceMoveMarkers = false;
-		const firstEditRange = operations[0].range;
-		const lastEditRange = operations[operations.length - 1].range;
-		const entireEditRange = new Range(firstEditRange.startLineNumber, firstEditRange.startColumn, lastEditRange.endLineNumber, lastEditRange.endColumn);
-		let lastEndLineNumber = firstEditRange.startLineNumber;
-		let lastEndColumn = firstEditRange.startColumn;
-		const result: string[] = [];
+		let forceMoveMarkers = false,
+			firstEditRange = operations[0].range,
+			lastEditRange = operations[operations.length - 1].range,
+			entireEditRange = new Range(firstEditRange.startLineNumber, firstEditRange.startColumn, lastEditRange.endLineNumber, lastEditRange.endColumn),
+			lastEndLineNumber = firstEditRange.startLineNumber,
+			lastEndColumn = firstEditRange.startColumn,
+			result: string[] = [];
 
 		for (let i = 0, len = operations.length; i < len; i++) {
-			const operation = operations[i];
-			const range = operation.range;
+			let operation = operations[i],
+				range = operation.range;
 
 			forceMoveMarkers = forceMoveMarkers || operation.forceMoveMarkers;
 
 			// (1) -- Push old text
-			result.push(this.getValueInRange(new Range(lastEndLineNumber, lastEndColumn, range.startLineNumber, range.startColumn)));
-
-			// (2) -- Push new text
-			if (operation.text.length > 0) {
-				result.push(operation.text);
+			for (let lineNumber = lastEndLineNumber; lineNumber < range.startLineNumber; lineNumber++) {
+				if (lineNumber === lastEndLineNumber) {
+					result.push(this.getLineContent(lineNumber).substring(lastEndColumn - 1));
+				} else {
+					result.push('\n');
+					result.push(this.getLineContent(lineNumber));
+				}
 			}
 
-			lastEndLineNumber = range.endLineNumber;
-			lastEndColumn = range.endColumn;
-		}
+			if (range.startLineNumber === lastEndLineNumber) {
+				result.push(this.getLineContent(range.startLineNumber).substring(lastEndColumn - 1, range.startColumn - 1));
+			} else {
+				result.push('\n');
+				result.push(this.getLineContent(range.startLineNumber).substring(0, range.startColumn - 1));
+			}
 
-		const text = result.join('');
-		const [eolCount, firstLineLength, lastLineLength] = countEOL(text);
+			// (2) -- Push new text
+			if (operation.lines) {
+				for (let j = 0, lenJ = operation.lines.length; j < lenJ; j++) {
+					if (j !== 0) {
+						result.push('\n');
+					}
+					result.push(operation.lines[j]);
+				}
+			}
+
+			lastEndLineNumber = operation.range.endLineNumber;
+			lastEndColumn = operation.range.endColumn;
+		}
 
 		return {
 			sortIndex: 0,
@@ -421,10 +401,7 @@ export class PieceTreeTextBuffer implements ITextBuffer {
 			range: entireEditRange,
 			rangeOffset: this.getOffsetAt(entireEditRange.startLineNumber, entireEditRange.startColumn),
 			rangeLength: this.getValueLengthInRange(entireEditRange, EndOfLinePreference.TextDefined),
-			text: text,
-			eolCount: eolCount,
-			firstLineLength: firstLineLength,
-			lastLineLength: lastLineLength,
+			lines: result.join('').split('\n'),
 			forceMoveMarkers: forceMoveMarkers,
 			isAutoWhitespaceEdit: false
 		};
@@ -444,26 +421,41 @@ export class PieceTreeTextBuffer implements ITextBuffer {
 			const endLineNumber = op.range.endLineNumber;
 			const endColumn = op.range.endColumn;
 
-			if (startLineNumber === endLineNumber && startColumn === endColumn && op.text.length === 0) {
+			if (startLineNumber === endLineNumber && startColumn === endColumn && (!op.lines || op.lines.length === 0)) {
 				// no-op
 				continue;
 			}
 
-			if (op.text) {
+			const deletingLinesCnt = endLineNumber - startLineNumber;
+			const insertingLinesCnt = (op.lines ? op.lines.length - 1 : 0);
+			const editingLinesCnt = Math.min(deletingLinesCnt, insertingLinesCnt);
+
+			const text = (op.lines ? op.lines.join(this.getEOL()) : '');
+
+			if (text) {
 				// replacement
 				this._pieceTree.delete(op.rangeOffset, op.rangeLength);
-				this._pieceTree.insert(op.rangeOffset, op.text, true);
+				this._pieceTree.insert(op.rangeOffset, text, true);
 
 			} else {
 				// deletion
 				this._pieceTree.delete(op.rangeOffset, op.rangeLength);
 			}
 
+			if (editingLinesCnt < insertingLinesCnt) {
+				let newLinesContent: string[] = [];
+				for (let j = editingLinesCnt + 1; j <= insertingLinesCnt; j++) {
+					newLinesContent.push(op.lines![j]);
+				}
+
+				newLinesContent[newLinesContent.length - 1] = this.getLineContent(startLineNumber + insertingLinesCnt - 1);
+			}
+
 			const contentChangeRange = new Range(startLineNumber, startColumn, endLineNumber, endColumn);
 			contentChanges.push({
 				range: contentChangeRange,
 				rangeLength: op.rangeLength,
-				text: op.text,
+				text: text,
 				rangeOffset: op.rangeOffset,
 				forceMoveMarkers: op.forceMoveMarkers
 			});
@@ -512,16 +504,18 @@ export class PieceTreeTextBuffer implements ITextBuffer {
 
 			let resultRange: Range;
 
-			if (op.text.length > 0) {
+			if (op.lines && op.lines.length > 0) {
 				// the operation inserts something
-				const lineCount = op.eolCount + 1;
+				let lineCount = op.lines.length;
+				let firstLine = op.lines[0];
+				let lastLine = op.lines[lineCount - 1];
 
 				if (lineCount === 1) {
 					// single line insert
-					resultRange = new Range(startLineNumber, startColumn, startLineNumber, startColumn + op.firstLineLength);
+					resultRange = new Range(startLineNumber, startColumn, startLineNumber, startColumn + firstLine.length);
 				} else {
 					// multi line insert
-					resultRange = new Range(startLineNumber, startColumn, startLineNumber + lineCount - 1, op.lastLineLength + 1);
+					resultRange = new Range(startLineNumber, startColumn, startLineNumber + lineCount - 1, lastLine.length + 1);
 				}
 			} else {
 				// There is nothing to insert

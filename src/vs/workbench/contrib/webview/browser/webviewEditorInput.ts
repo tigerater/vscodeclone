@@ -3,11 +3,14 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { Emitter } from 'vs/base/common/event';
 import { Lazy } from 'vs/base/common/lazy';
 import { URI } from 'vs/base/common/uri';
-import { EditorInput, GroupIdentifier, IEditorInput, Verbosity } from 'vs/workbench/common/editor';
-import { IWebviewService, WebviewIcons, WebviewOverlay } from 'vs/workbench/contrib/webview/browser/webview';
-import { Schemas } from 'vs/base/common/network';
+import { IEditorModel } from 'vs/platform/editor/common/editor';
+import { EditorInput, EditorModel, GroupIdentifier, IEditorInput, Verbosity } from 'vs/workbench/common/editor';
+import { IWebviewService, WebviewEditorOverlay, WebviewIcons } from 'vs/workbench/contrib/webview/browser/webview';
+
+const WebviewPanelResourceScheme = 'webview-panel';
 
 export class WebviewInput extends EditorInput {
 
@@ -17,13 +20,15 @@ export class WebviewInput extends EditorInput {
 	private _iconPath?: WebviewIcons;
 	private _group?: GroupIdentifier;
 
-	private _webview: Lazy<WebviewOverlay>;
+	private readonly _webview: Lazy<WebviewEditorOverlay>;
+	private _didSomeoneTakeMyWebview = false;
 
-	private _hasTransfered = false;
+	private readonly _onDisposeWebview = this._register(new Emitter<void>());
+	readonly onDisposeWebview = this._onDisposeWebview.event;
 
 	get resource() {
 		return URI.from({
-			scheme: Schemas.webviewPanel,
+			scheme: WebviewPanelResourceScheme,
 			path: `webview-panel/webview-${this.id}`
 		});
 	}
@@ -32,7 +37,7 @@ export class WebviewInput extends EditorInput {
 		public readonly id: string,
 		public readonly viewType: string,
 		name: string,
-		webview: Lazy<WebviewOverlay>,
+		webview: Lazy<WebviewEditorOverlay>,
 		@IWebviewService private readonly _webviewService: IWebviewService,
 	) {
 		super();
@@ -42,8 +47,9 @@ export class WebviewInput extends EditorInput {
 
 	dispose() {
 		if (!this.isDisposed()) {
-			if (!this._hasTransfered) {
-				this._webview.rawValue?.dispose();
+			if (!this._didSomeoneTakeMyWebview) {
+				this._webview?.rawValue?.dispose();
+				this._onDisposeWebview.fire();
 			}
 		}
 		super.dispose();
@@ -70,7 +76,7 @@ export class WebviewInput extends EditorInput {
 		this._onDidChangeLabel.fire();
 	}
 
-	public get webview(): WebviewOverlay {
+	public get webview(): WebviewEditorOverlay {
 		return this._webview.getValue();
 	}
 
@@ -99,20 +105,19 @@ export class WebviewInput extends EditorInput {
 		this._group = group;
 	}
 
-	public async resolve(): Promise<null> {
-		return null;
+	public async resolve(): Promise<IEditorModel> {
+		return new EditorModel();
 	}
 
 	public supportsSplitEditor() {
 		return false;
 	}
 
-	protected transfer(other: WebviewInput): WebviewInput | undefined {
-		if (this._hasTransfered) {
+	protected takeOwnershipOfWebview(): WebviewEditorOverlay | undefined {
+		if (this._didSomeoneTakeMyWebview) {
 			return undefined;
 		}
-		this._hasTransfered = true;
-		other._webview = this._webview;
-		return other;
+		this._didSomeoneTakeMyWebview = true;
+		return this.webview;
 	}
 }

@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { IEnvironmentService } from 'vs/platform/environment/common/environment';
-import { INativeEnvironmentService } from 'vs/platform/environment/node/environmentService';
 import { join } from 'vs/base/common/path';
 import { readdir, readFile, rimraf } from 'vs/base/node/pfs';
 import { onUnexpectedError } from 'vs/base/common/errors';
@@ -17,7 +16,7 @@ export class StorageDataCleaner extends Disposable {
 	private static readonly NON_EMPTY_WORKSPACE_ID_LENGTH = 128 / 4;
 
 	constructor(
-		@IEnvironmentService private readonly environmentService: INativeEnvironmentService
+		@IEnvironmentService private readonly environmentService: IEnvironmentService
 	) {
 		super();
 

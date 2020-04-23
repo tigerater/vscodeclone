@@ -15,7 +15,6 @@ import { SearchData } from 'vs/editor/common/model/textModelSearch';
 import { LanguageId, LanguageIdentifier, FormattingOptions } from 'vs/editor/common/modes';
 import { ThemeColor } from 'vs/platform/theme/common/themeService';
 import { MultilineTokens, MultilineTokens2 } from 'vs/editor/common/model/tokensStore';
-import { TextChange } from 'vs/editor/common/model/textChange';
 
 /**
  * Vertical Lane in the overview ruler of the editor.
@@ -124,10 +123,6 @@ export interface IModelDecorationOptions {
 	 * If set, the decoration will be rendered in the lines decorations with this CSS class name.
 	 */
 	linesDecorationsClassName?: string | null;
-	/**
-	 * If set, the decoration will be rendered in the lines decorations with this CSS class name, but only for the first line in case of line wrapping.
-	 */
-	firstLineDecorationClassName?: string | null;
 	/**
 	 * If set, the decoration will be rendered in the margin (covering its full width) with this CSS class name.
 	 */
@@ -374,13 +369,21 @@ export interface IValidEditOperation {
 	 */
 	range: Range;
 	/**
-	 * The text to replace with. This can be empty to emulate a simple delete.
+	 * The text to replace with. This can be null to emulate a simple delete.
 	 */
-	text: string;
+	text: string | null;
 	/**
-	 * @internal
+	 * This indicates that this operation has "insert" semantics.
+	 * i.e. forceMoveMarkers = true => if `range` is collapsed, all markers at the position will be moved.
 	 */
-	textChange: TextChange;
+	forceMoveMarkers: boolean;
+}
+
+/**
+ * @internal
+ */
+export interface IValidEditOperations {
+	operations: IValidEditOperation[];
 }
 
 /**
@@ -621,12 +624,6 @@ export interface ITextModel {
 	equalsTextBuffer(other: ITextBuffer): boolean;
 
 	/**
-	 * Get the underling text buffer.
-	 * @internal
-	 */
-	getTextBuffer(): ITextBuffer;
-
-	/**
 	 * Get the text in a certain range.
 	 * @param range The range describing what text to get.
 	 * @param eol The end of line character preference. This will only be used for multiline ranges. Defaults to `EndOfLinePreference.TextDefined`.
@@ -827,17 +824,7 @@ export interface ITextModel {
 	/**
 	 * @internal
 	 */
-	setSemanticTokens(tokens: MultilineTokens2[] | null, isComplete: boolean): void;
-
-	/**
-	 * @internal
-	 */
-	setPartialSemanticTokens(range: Range, tokens: MultilineTokens2[] | null): void;
-
-	/**
-	 * @internal
-	 */
-	hasSemanticTokens(): boolean;
+	setSemanticTokens(tokens: MultilineTokens2[] | null): void;
 
 	/**
 	 * Flush all tokenization state.
@@ -1102,11 +1089,9 @@ export interface ITextModel {
 	 * Edit the model without adding the edits to the undo stack.
 	 * This can have dire consequences on the undo stack! See @pushEditOperations for the preferred way.
 	 * @param operations The edit operations.
-	 * @return If desired, the inverse edit operations, that, when applied, will bring the model back to the previous state.
+	 * @return The inverse edit operations, that, when applied, will bring the model back to the previous state.
 	 */
-	applyEdits(operations: IIdentifiedSingleEditOperation[]): void;
-	applyEdits(operations: IIdentifiedSingleEditOperation[], computeUndoEdits: false): void;
-	applyEdits(operations: IIdentifiedSingleEditOperation[], computeUndoEdits: true): IValidEditOperation[];
+	applyEdits(operations: IIdentifiedSingleEditOperation[]): IValidEditOperation[];
 
 	/**
 	 * Change the end of line sequence without recording in the undo stack.
@@ -1117,12 +1102,7 @@ export interface ITextModel {
 	/**
 	 * @internal
 	 */
-	_applyUndo(changes: TextChange[], eol: EndOfLineSequence, resultingAlternativeVersionId: number, resultingSelection: Selection[] | null): void;
-
-	/**
-	 * @internal
-	 */
-	_applyRedo(changes: TextChange[], eol: EndOfLineSequence, resultingAlternativeVersionId: number, resultingSelection: Selection[] | null): void;
+	_applyUndoRedoEdits(edits: IValidEditOperations[], eol: EndOfLineSequence, isUndoing: boolean, isRedoing: boolean, resultingAlternativeVersionId: number, resultingSelection: Selection[] | null): IValidEditOperations[];
 
 	/**
 	 * Undo edit operations until the first previous stop point created by `pushStackElement`.
@@ -1301,7 +1281,7 @@ export interface ITextBuffer {
 	getLineLastNonWhitespaceColumn(lineNumber: number): number;
 
 	setEOL(newEOL: '\r\n' | '\n'): void;
-	applyEdits(rawOperations: ValidAnnotatedEditOperation[], recordTrimAutoWhitespace: boolean, computeUndoEdits: boolean): ApplyEditsResult;
+	applyEdits(rawOperations: ValidAnnotatedEditOperation[], recordTrimAutoWhitespace: boolean): ApplyEditsResult;
 	findMatchesLineByLine(searchRange: Range, searchData: SearchData, captureMatches: boolean, limitResultCount: number): FindMatch[];
 }
 
@@ -1311,7 +1291,7 @@ export interface ITextBuffer {
 export class ApplyEditsResult {
 
 	constructor(
-		public readonly reverseEdits: IValidEditOperation[] | null,
+		public readonly reverseEdits: IValidEditOperation[],
 		public readonly changes: IInternalModelContentChange[],
 		public readonly trimAutoWhitespaceLineNumbers: number[] | null
 	) { }

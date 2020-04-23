@@ -6,7 +6,7 @@
 import * as browser from 'vs/base/browser/browser';
 import * as dom from 'vs/base/browser/dom';
 import { StandardWheelEvent, IMouseWheelEvent } from 'vs/base/browser/mouseEvent';
-import { TimeoutTimer } from 'vs/base/common/async';
+import { RunOnceScheduler, TimeoutTimer } from 'vs/base/common/async';
 import { Disposable } from 'vs/base/common/lifecycle';
 import * as platform from 'vs/base/common/platform';
 import { HitTestContext, IViewZoneData, MouseTarget, MouseTargetFactory, PointerHandlerLastRenderData } from 'vs/editor/browser/controller/mouseTarget';
@@ -69,6 +69,7 @@ export class MouseHandler extends ViewEventHandler {
 	protected viewController: ViewController;
 	protected viewHelper: IPointerHandlerHelper;
 	protected mouseTargetFactory: MouseTargetFactory;
+	private readonly _asyncFocus: RunOnceScheduler;
 	protected readonly _mouseDownOperation: MouseDownOperation;
 	private lastMouseLeaveTime: number;
 
@@ -87,6 +88,8 @@ export class MouseHandler extends ViewEventHandler {
 			(e, testEventTarget) => this._createMouseTarget(e, testEventTarget),
 			(e) => this._getMouseColumn(e)
 		));
+
+		this._asyncFocus = this._register(new RunOnceScheduler(() => this.viewHelper.focusTextArea(), 0));
 
 		this.lastMouseLeaveTime = -1;
 
@@ -119,7 +122,7 @@ export class MouseHandler extends ViewEventHandler {
 				e.stopPropagation();
 			}
 		};
-		this._register(dom.addDisposableListener(this.viewHelper.viewDomNode, browser.isEdge ? 'mousewheel' : 'wheel', onMouseWheel, { capture: true, passive: false }));
+		this._register(dom.addDisposableListener(this.viewHelper.viewDomNode, browser.isEdgeOrIE ? 'mousewheel' : 'wheel', onMouseWheel, { capture: true, passive: false }));
 
 		this._context.addEventHandler(this);
 	}
@@ -134,7 +137,9 @@ export class MouseHandler extends ViewEventHandler {
 		this._mouseDownOperation.onCursorStateChanged(e);
 		return false;
 	}
+	private _isFocused = false;
 	public onFocusChanged(e: viewEvents.ViewFocusChangedEvent): boolean {
+		this._isFocused = e.isFocused;
 		return false;
 	}
 	public onScrollChanged(e: viewEvents.ViewScrollChangedEvent): boolean {
@@ -218,8 +223,15 @@ export class MouseHandler extends ViewEventHandler {
 		}
 
 		const focus = () => {
-			e.preventDefault();
-			this.viewHelper.focusTextArea();
+			// In IE11, if the focus is in the browser's address bar and
+			// then you click in the editor, calling preventDefault()
+			// will not move focus properly (focus remains the address bar)
+			if (browser.isIE && !this._isFocused) {
+				this._asyncFocus.schedule();
+			} else {
+				e.preventDefault();
+				this.viewHelper.focusTextArea();
+			}
 		};
 
 		if (shouldHandle && (targetIsContent || (targetIsLineNumbers && selectOnLineNumbers))) {

@@ -82,16 +82,12 @@ class BufferSynchronizer {
 		}
 	}
 
-	/**
-	 * @return Was the buffer open?
-	 */
-	public close(resource: vscode.Uri, filepath: string): boolean {
+	public close(resource: vscode.Uri, filepath: string) {
 		if (this.supportsBatching) {
-			return this.updatePending(resource, new CloseOperation(filepath));
+			this.updatePending(resource, new CloseOperation(filepath));
 		} else {
 			const args: Proto.FileRequestArgs = { file: filepath };
 			this.client.executeWithoutWaitingForResponse('close', args);
-			return true;
 		}
 	}
 
@@ -159,14 +155,14 @@ class BufferSynchronizer {
 		return this.client.apiVersion.gte(API.v340);
 	}
 
-	private updatePending(resource: vscode.Uri, op: BufferOperation): boolean {
+	private updatePending(resource: vscode.Uri, op: BufferOperation): void {
 		switch (op.type) {
 			case BufferOperationType.Close:
 				const existing = this._pending.get(resource);
 				switch (existing?.type) {
 					case BufferOperationType.Open:
 						this._pending.delete(resource);
-						return false; // Open then close. No need to do anything
+						return; // Open then close. No need to do anything
 				}
 				break;
 		}
@@ -176,7 +172,6 @@ class BufferSynchronizer {
 			this.flush();
 		}
 		this._pending.set(resource, op);
-		return true;
 	}
 }
 
@@ -237,16 +232,9 @@ class SyncedBuffer {
 		}
 	}
 
-	/**
-	 * @return Was the buffer open?
-	 */
-	public close(): boolean {
-		if (this.state !== BufferState.Open) {
-			this.state = BufferState.Closed;
-			return false;
-		}
+	public close(): void {
+		this.synchronizer.close(this.resource, this.filepath);
 		this.state = BufferState.Closed;
-		return this.synchronizer.close(this.resource, this.filepath);
 	}
 
 	public onContentChanged(events: readonly vscode.TextDocumentContentChangeEvent[]): void {
@@ -466,11 +454,9 @@ export default class BufferSyncSupport extends Disposable {
 		this.pendingDiagnostics.delete(resource);
 		this.pendingGetErr?.files.delete(resource);
 		this.syncedBuffers.delete(resource);
-		const wasBufferOpen = syncedBuffer.close();
+		syncedBuffer.close();
 		this._onDelete.fire(resource);
-		if (wasBufferOpen) {
-			this.requestAllDiagnostics();
-		}
+		this.requestAllDiagnostics();
 	}
 
 	public interuptGetErr<R>(f: () => R): R {

@@ -77,9 +77,6 @@ export default class MarkdownFoldingProvider implements vscode.FoldingRangeProvi
 					return token.map[1] > token.map[0];
 
 				case 'html_block':
-					if (isRegionMarker(token)) {
-						return false;
-					}
 					return token.map[1] > token.map[0] + 1;
 
 				default:
@@ -95,7 +92,7 @@ export default class MarkdownFoldingProvider implements vscode.FoldingRangeProvi
 			if (document.lineAt(end).isEmptyOrWhitespace && end >= start + 1) {
 				end = end - 1;
 			}
-			return new vscode.FoldingRange(start, end, listItem.type === 'html_block' && listItem.content.startsWith('<!--') ? vscode.FoldingRangeKind.Comment : undefined);
+			return new vscode.FoldingRange(start, end);
 		});
 	}
 }

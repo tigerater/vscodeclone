@@ -14,7 +14,7 @@ const webviewId = 'myWebview';
 
 const testDocument = join(vscode.workspace.rootPath || '', './bower.json');
 
-suite('vscode API - webview', () => {
+suite('Webview tests', () => {
 	const disposables: vscode.Disposable[] = [];
 
 	function _register<T extends vscode.Disposable>(disposable: T) {

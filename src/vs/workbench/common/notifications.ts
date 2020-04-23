@@ -41,26 +41,8 @@ export interface INotificationsModel {
 }
 
 export const enum NotificationChangeType {
-
-	/**
-	 * A notification was added.
-	 */
 	ADD,
-
-	/**
-	 * A notification changed. Check `detail` property
-	 * on the event for additional information.
-	 */
 	CHANGE,
-
-	/**
-	 * A notification expanded or collapsed.
-	 */
-	EXPAND_COLLAPSE,
-
-	/**
-	 * A notification was removed.
-	 */
 	REMOVE
 }
 
@@ -80,12 +62,6 @@ export interface INotificationChangeEvent {
 	 * The kind of notification change.
 	 */
 	kind: NotificationChangeType;
-
-	/**
-	 * Additional detail about the item change. Only applies to
-	 * `NotificationChangeType.CHANGE`.
-	 */
-	detail?: NotificationViewItemContentChangeKind
 }
 
 export const enum StatusMessageChangeType {
@@ -230,19 +206,26 @@ export class NotificationsModel extends Disposable implements INotificationsMode
 		}
 
 		// Item Events
-		const fireNotificationChangeEvent = (kind: NotificationChangeType, detail?: NotificationViewItemContentChangeKind) => {
+		const onItemChangeEvent = () => {
 			const index = this._notifications.indexOf(item);
 			if (index >= 0) {
-				this._onDidChangeNotification.fire({ item, index, kind, detail });
+				this._onDidChangeNotification.fire({ item, index, kind: NotificationChangeType.CHANGE });
 			}
 		};
 
-		const itemExpansionChangeListener = item.onDidChangeExpansion(() => fireNotificationChangeEvent(NotificationChangeType.EXPAND_COLLAPSE));
-		const itemContentChangeListener = item.onDidChangeContent(e => fireNotificationChangeEvent(NotificationChangeType.CHANGE, e.kind));
+		const itemExpansionChangeListener = item.onDidChangeExpansion(() => onItemChangeEvent());
+
+		const itemLabelChangeListener = item.onDidChangeLabel(e => {
+			// a label change in the area of actions or the message is a change that potentially has an impact
+			// on the size of the notification and as such we emit a change event so that viewers can redraw
+			if (e.kind === NotificationViewItemLabelKind.ACTIONS || e.kind === NotificationViewItemLabelKind.MESSAGE) {
+				onItemChangeEvent();
+			}
+		});
 
 		Event.once(item.onDidClose)(() => {
 			itemExpansionChangeListener.dispose();
-			itemContentChangeListener.dispose();
+			itemLabelChangeListener.dispose();
 
 			const index = this._notifications.indexOf(item);
 			if (index >= 0) {
@@ -289,9 +272,9 @@ export interface INotificationViewItem {
 	readonly hasProgress: boolean;
 
 	readonly onDidChangeExpansion: Event<void>;
-	readonly onDidChangeVisibility: Event<boolean>;
-	readonly onDidChangeContent: Event<INotificationViewItemContentChangeEvent>;
 	readonly onDidClose: Event<void>;
+	readonly onDidChangeVisibility: Event<boolean>;
+	readonly onDidChangeLabel: Event<INotificationViewItemLabelChangeEvent>;
 
 	expand(): void;
 	collapse(skipEvents?: boolean): void;
@@ -312,15 +295,15 @@ export function isNotificationViewItem(obj: unknown): obj is INotificationViewIt
 	return obj instanceof NotificationViewItem;
 }
 
-export const enum NotificationViewItemContentChangeKind {
+export const enum NotificationViewItemLabelKind {
 	SEVERITY,
 	MESSAGE,
 	ACTIONS,
 	PROGRESS
 }
 
-export interface INotificationViewItemContentChangeEvent {
-	kind: NotificationViewItemContentChangeKind;
+export interface INotificationViewItemLabelChangeEvent {
+	kind: NotificationViewItemLabelKind;
 }
 
 export interface INotificationViewItemProgressState {
@@ -437,8 +420,8 @@ export class NotificationViewItem extends Disposable implements INotificationVie
 	private readonly _onDidClose = this._register(new Emitter<void>());
 	readonly onDidClose = this._onDidClose.event;
 
-	private readonly _onDidChangeContent = this._register(new Emitter<INotificationViewItemContentChangeEvent>());
-	readonly onDidChangeContent = this._onDidChangeContent.event;
+	private readonly _onDidChangeLabel = this._register(new Emitter<INotificationViewItemLabelChangeEvent>());
+	readonly onDidChangeLabel = this._onDidChangeLabel.event;
 
 	private readonly _onDidChangeVisibility = this._register(new Emitter<boolean>());
 	readonly onDidChangeVisibility = this._onDidChangeVisibility.event;
@@ -529,16 +512,20 @@ export class NotificationViewItem extends Disposable implements INotificationVie
 	}
 
 	private setActions(actions: INotificationActions = { primary: [], secondary: [] }): void {
-		this._actions = {
-			primary: Array.isArray(actions.primary) ? actions.primary : [],
-			secondary: Array.isArray(actions.secondary) ? actions.secondary : []
-		};
+		if (!Array.isArray(actions.primary)) {
+			actions.primary = [];
+		}
 
-		this._expanded = actions.primary && actions.primary.length > 0;
+		if (!Array.isArray(actions.secondary)) {
+			actions.secondary = [];
+		}
+
+		this._actions = actions;
+		this._expanded = actions.primary.length > 0;
 	}
 
 	get canCollapse(): boolean {
-		return !this.hasActions;
+		return !this.hasPrompt;
 	}
 
 	get expanded(): boolean {
@@ -554,11 +541,11 @@ export class NotificationViewItem extends Disposable implements INotificationVie
 			return true; // explicitly sticky
 		}
 
-		const hasActions = this.hasActions;
+		const hasPrompt = this.hasPrompt;
 		if (
-			(hasActions && this._severity === Severity.Error) || // notification errors with actions are sticky
-			(!hasActions && this._expanded) ||					 // notifications that got expanded are sticky
-			(this._progress && !this._progress.state.done)		 // notifications with running progress are sticky
+			(hasPrompt && this._severity === Severity.Error) || // notification errors with actions are sticky
+			(!hasPrompt && this._expanded) ||					// notifications that got expanded are sticky
+			(this._progress && !this._progress.state.done)		// notifications with running progress are sticky
 		) {
 			return true;
 		}
@@ -570,7 +557,7 @@ export class NotificationViewItem extends Disposable implements INotificationVie
 		return !!this._silent;
 	}
 
-	private get hasActions(): boolean {
+	private get hasPrompt(): boolean {
 		if (!this._actions) {
 			return false;
 		}
@@ -589,7 +576,7 @@ export class NotificationViewItem extends Disposable implements INotificationVie
 	get progress(): INotificationViewItemProgress {
 		if (!this._progress) {
 			this._progress = this._register(new NotificationViewItemProgress());
-			this._register(this._progress.onDidChange(() => this._onDidChangeContent.fire({ kind: NotificationViewItemContentChangeKind.PROGRESS })));
+			this._register(this._progress.onDidChange(() => this._onDidChangeLabel.fire({ kind: NotificationViewItemLabelKind.PROGRESS })));
 		}
 
 		return this._progress;
@@ -609,7 +596,7 @@ export class NotificationViewItem extends Disposable implements INotificationVie
 
 	updateSeverity(severity: Severity): void {
 		this._severity = severity;
-		this._onDidChangeContent.fire({ kind: NotificationViewItemContentChangeKind.SEVERITY });
+		this._onDidChangeLabel.fire({ kind: NotificationViewItemLabelKind.SEVERITY });
 	}
 
 	updateMessage(input: NotificationMessage): void {
@@ -619,12 +606,13 @@ export class NotificationViewItem extends Disposable implements INotificationVie
 		}
 
 		this._message = message;
-		this._onDidChangeContent.fire({ kind: NotificationViewItemContentChangeKind.MESSAGE });
+		this._onDidChangeLabel.fire({ kind: NotificationViewItemLabelKind.MESSAGE });
 	}
 
 	updateActions(actions?: INotificationActions): void {
 		this.setActions(actions);
-		this._onDidChangeContent.fire({ kind: NotificationViewItemContentChangeKind.ACTIONS });
+
+		this._onDidChangeLabel.fire({ kind: NotificationViewItemLabelKind.ACTIONS });
 	}
 
 	updateVisibility(visible: boolean): void {
@@ -697,13 +685,15 @@ export class ChoiceAction extends Action {
 	private readonly _keepOpen: boolean;
 
 	constructor(id: string, choice: IPromptChoice) {
-		super(id, choice.label, undefined, true, async () => {
+		super(id, choice.label, undefined, true, () => {
 
 			// Pass to runner
 			choice.run();
 
 			// Emit Event
 			this._onDidRun.fire();
+
+			return Promise.resolve();
 		});
 
 		this._keepOpen = !!choice.keepOpen;

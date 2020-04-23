@@ -14,7 +14,6 @@ import { ModesRegistry, PLAINTEXT_MODE_ID } from 'vs/editor/common/modes/modesRe
 import { IIdentifiedSingleEditOperation } from 'vs/editor/common/model';
 import { Range } from 'vs/editor/common/core/range';
 import { UntitledTextEditorInput } from 'vs/workbench/services/untitled/common/untitledTextEditorInput';
-import { IUntitledTextEditorModel } from 'vs/workbench/services/untitled/common/untitledTextEditorModel';
 
 suite('Untitled text editors', () => {
 
@@ -83,7 +82,7 @@ suite('Untitled text editors', () => {
 		assert.ok(!workingCopyService.isDirty(input2.resource));
 		assert.equal(workingCopyService.dirtyCount, 0);
 
-		await input1.revert(0);
+		assert.equal(await input1.revert(0), false);
 		assert.ok(input1.isDisposed());
 		assert.ok(!service.get(input1.resource));
 
@@ -121,23 +120,15 @@ suite('Untitled text editors', () => {
 		const service = accessor.untitledTextEditorService;
 		const file = URI.file(join('C:\\', '/foo/file.txt'));
 
-		let onDidChangeDirtyModel: IUntitledTextEditorModel | undefined = undefined;
-		const listener = service.onDidChangeDirty(model => {
-			onDidChangeDirtyModel = model;
-		});
-
-		const model = service.create({ associatedResource: file });
-		const untitled = instantiationService.createInstance(UntitledTextEditorInput, model);
+		const untitled = instantiationService.createInstance(UntitledTextEditorInput, service.create({ associatedResource: file }));
 		assert.ok(untitled.isDirty());
-		assert.equal(model, onDidChangeDirtyModel);
 
-		const resolvedModel = await untitled.resolve();
+		const model = await untitled.resolve();
 
-		assert.ok(resolvedModel.hasAssociatedFilePath);
+		assert.ok(model.hasAssociatedFilePath);
 		assert.equal(untitled.isDirty(), true);
 
 		untitled.dispose();
-		listener.dispose();
 	});
 
 	test('no longer dirty when content gets empty (not with associated resource)', async () => {

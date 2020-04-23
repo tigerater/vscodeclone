@@ -269,15 +269,9 @@ export class TypeOperations {
 				commands[i] = null;
 				continue;
 			}
-			const pos = selection.getPosition();
-			const startColumn = Math.max(1, pos.column - replaceCharCnt);
-			const range = new Range(pos.lineNumber, startColumn, pos.lineNumber, pos.column);
-			const oldText = model.getValueInRange(range);
-			if (oldText === txt) {
-				// => ignore composition that doesn't do anything
-				commands[i] = null;
-				continue;
-			}
+			let pos = selection.getPosition();
+			let startColumn = Math.max(1, pos.column - replaceCharCnt);
+			let range = new Range(pos.lineNumber, startColumn, pos.lineNumber, pos.column);
 			commands[i] = new ReplaceCommand(range, txt);
 		}
 		return new EditOperationResult(EditOperationType.Typing, commands, {
@@ -802,9 +796,9 @@ export class TypeOperations {
 		return null;
 	}
 
-	public static typeWithInterceptors(isDoingComposition: boolean, prevEditOperationType: EditOperationType, config: CursorConfiguration, model: ITextModel, selections: Selection[], autoClosedCharacters: Range[], ch: string): EditOperationResult {
+	public static typeWithInterceptors(prevEditOperationType: EditOperationType, config: CursorConfiguration, model: ITextModel, selections: Selection[], autoClosedCharacters: Range[], ch: string): EditOperationResult {
 
-		if (!isDoingComposition && ch === '\n') {
+		if (ch === '\n') {
 			let commands: ICommand[] = [];
 			for (let i = 0, len = selections.length; i < len; i++) {
 				commands[i] = TypeOperations._enter(config, model, false, selections[i]);
@@ -815,7 +809,7 @@ export class TypeOperations {
 			});
 		}
 
-		if (!isDoingComposition && this._isAutoIndentType(config, model, selections)) {
+		if (this._isAutoIndentType(config, model, selections)) {
 			let commands: Array<ICommand | null> = [];
 			let autoIndentFails = false;
 			for (let i = 0, len = selections.length; i < len; i++) {
@@ -833,15 +827,13 @@ export class TypeOperations {
 			}
 		}
 
-		if (!isDoingComposition && this._isAutoClosingOvertype(config, model, selections, autoClosedCharacters, ch)) {
+		if (this._isAutoClosingOvertype(config, model, selections, autoClosedCharacters, ch)) {
 			return this._runAutoClosingOvertype(prevEditOperationType, config, model, selections, ch);
 		}
 
-		if (!isDoingComposition) {
-			const autoClosingPairOpenCharType = this._isAutoClosingOpenCharType(config, model, selections, ch, true);
-			if (autoClosingPairOpenCharType) {
-				return this._runAutoClosingOpenCharType(prevEditOperationType, config, model, selections, ch, true, autoClosingPairOpenCharType);
-			}
+		const autoClosingPairOpenCharType = this._isAutoClosingOpenCharType(config, model, selections, ch, true);
+		if (autoClosingPairOpenCharType) {
+			return this._runAutoClosingOpenCharType(prevEditOperationType, config, model, selections, ch, true, autoClosingPairOpenCharType);
 		}
 
 		if (this._isSurroundSelectionType(config, model, selections, ch)) {
@@ -850,7 +842,7 @@ export class TypeOperations {
 
 		// Electric characters make sense only when dealing with a single cursor,
 		// as multiple cursors typing brackets for example would interfer with bracket matching
-		if (!isDoingComposition && this._isTypeInterceptorElectricChar(config, model, selections)) {
+		if (this._isTypeInterceptorElectricChar(config, model, selections)) {
 			const r = this._typeInterceptorElectricChar(prevEditOperationType, config, model, selections[0], ch);
 			if (r) {
 				return r;

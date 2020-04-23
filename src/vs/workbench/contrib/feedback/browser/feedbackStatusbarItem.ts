@@ -14,7 +14,6 @@ import { localize } from 'vs/nls';
 import { CommandsRegistry } from 'vs/platform/commands/common/commands';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
 import { URI } from 'vs/base/common/uri';
-import { MenuRegistry, MenuId } from 'vs/platform/actions/common/actions';
 
 class TwitterFeedbackService implements IFeedbackDelegate {
 
@@ -64,14 +63,7 @@ export class FeedbackStatusbarConribution extends Disposable implements IWorkben
 		if (productService.sendASmile) {
 			this.entry = this._register(statusbarService.addEntry(this.getStatusEntry(), 'status.feedback', localize('status.feedback', "Tweet Feedback"), StatusbarAlignment.RIGHT, -100 /* towards the end of the right hand side */));
 
-			CommandsRegistry.registerCommand('help.tweetFeedback', () => this.toggleFeedback());
-			MenuRegistry.appendMenuItem(MenuId.CommandPalette, {
-				command: {
-					id: 'help.tweetFeedback',
-					category: localize('help', "Help"),
-					title: localize('status.feedback', "Tweet Feedback")
-				}
-			});
+			CommandsRegistry.registerCommand('_feedback.open', () => this.toggleFeedback());
 		}
 	}
 
@@ -103,10 +95,10 @@ export class FeedbackStatusbarConribution extends Disposable implements IWorkben
 	private getStatusEntry(showBeak?: boolean): IStatusbarEntry {
 		return {
 			text: '$(feedback)',
-			ariaLabel: localize('status.feedback', "Tweet Feedback"),
 			tooltip: localize('status.feedback', "Tweet Feedback"),
-			command: 'help.tweetFeedback',
+			command: '_feedback.open',
 			showBeak
 		};
 	}
+
 }

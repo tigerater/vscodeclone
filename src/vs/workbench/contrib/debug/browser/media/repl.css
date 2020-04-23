@@ -53,10 +53,6 @@
 	margin-right: 8px;
 	cursor: pointer;
 	text-decoration: underline;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	max-width: 150px;
 }
 
 .repl .repl-tree .monaco-list-row {
@@ -79,8 +75,8 @@
 }
 
 .repl .repl-input-wrapper {
-	display: flex;
-	align-items: center;
+	padding-left: 20px;
+	border-top: 1px solid rgba(128, 128, 128, 0.35);
 }
 
 /* Only show 'stale expansion' info when the element gets expanded. */
@@ -88,31 +84,24 @@
 	content: '';
 }
 
-.repl .repl-input-wrapper .repl-input-chevron {
-	padding: 0 6px 0 8px;
-	width: 16px;
-	height: 100%;
-	display: flex;
-	flex-shrink: 0;
-	justify-content: center;
-	font-weight: 600;
+.hc-black .repl .repl-input-wrapper {
+	border-top-color: #6FC3DF;
+}
+
+.repl .repl-input-wrapper:before {
+	left: 8px;
+	position: absolute;
+	content: '\276f';
+	line-height: 18px;
+}
+
+.monaco-workbench.linux .repl .repl-input-wrapper:before {
+	font-size: 9px;
 }
 
 /* Output coloring  and styling */
 .repl .repl-tree .output.expression > .ignore {
 	font-style: italic;
-}
-
-.vs .repl .repl-tree .output.expression > .annotation {
-	color: #007ACC;
-}
-
-.vs-dark .repl .repl-tree .output.expression > .annotation {
-	color: #1B80B2;
-}
-
-.hc-black .repl .repl-tree .output.expression > .annotation {
-	color: #0000FF;
 }
 
 .vs .repl .repl-tree .output.expression > .warn {
@@ -125,6 +114,18 @@
 
 .hc-black .repl .repl-tree .output.expression > .warn {
 	color: #008000;
+}
+
+.vs .repl .repl-tree .output.expression > .annotation {
+	color: #007ACC;
+}
+
+.vs-dark .repl .repl-tree .output.expression > .annotation {
+	color: #1B80B2;
+}
+
+.hc-black .repl .repl-tree .output.expression > .annotation {
+	color: #0000FF;
 }
 
 /* ANSI Codes */

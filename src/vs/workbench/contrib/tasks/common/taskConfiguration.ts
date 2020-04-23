@@ -1242,20 +1242,18 @@ namespace GroupKind {
 }
 
 namespace TaskDependency {
-	function uriFromSource(context: ParseContext, source: TaskConfigSource): URI | string {
-		switch (source) {
-			case TaskConfigSource.User: return USER_TASKS_GROUP_KEY;
-			case TaskConfigSource.TasksJson: return context.workspaceFolder.uri;
-			default: return context.workspace && context.workspace.configuration ? context.workspace.configuration : context.workspaceFolder.uri;
-		}
-	}
-
 	export function from(this: void, external: string | TaskIdentifier, context: ParseContext, source: TaskConfigSource): Tasks.TaskDependency | undefined {
 		if (Types.isString(external)) {
-			return { uri: uriFromSource(context, source), task: external };
+			let uri: URI | string;
+			if (source === TaskConfigSource.User) {
+				uri = USER_TASKS_GROUP_KEY;
+			} else {
+				uri = context.workspace && context.workspace.configuration ? context.workspace.configuration : context.workspaceFolder.uri;
+			}
+			return { uri, task: external };
 		} else if (TaskIdentifier.is(external)) {
 			return {
-				uri: uriFromSource(context, source),
+				uri: context.workspace && context.workspace.configuration ? context.workspace.configuration : context.workspaceFolder.uri,
 				task: Tasks.TaskDefinition.createTaskIdentifier(external as Tasks.TaskIdentifier, context.problemReporter)
 			};
 		} else {
@@ -2079,19 +2077,12 @@ class ConfigurationParser {
 	}
 }
 
-let uuidMaps: Map<TaskConfigSource, Map<string, UUIDMap>> = new Map();
-let recentUuidMaps: Map<TaskConfigSource, Map<string, UUIDMap>> = new Map();
-export function parse(workspaceFolder: IWorkspaceFolder, workspace: IWorkspace | undefined, platform: Platform, configuration: ExternalTaskRunnerConfiguration, logger: IProblemReporter, source: TaskConfigSource, isRecents: boolean = false): ParseResult {
-	let recentOrOtherMaps = isRecents ? recentUuidMaps : uuidMaps;
-	let selectedUuidMaps = recentOrOtherMaps.get(source);
-	if (!selectedUuidMaps) {
-		recentOrOtherMaps.set(source, new Map());
-		selectedUuidMaps = recentOrOtherMaps.get(source)!;
-	}
-	let uuidMap = selectedUuidMaps.get(workspaceFolder.uri.toString());
+let uuidMaps: Map<string, UUIDMap> = new Map();
+export function parse(workspaceFolder: IWorkspaceFolder, workspace: IWorkspace | undefined, platform: Platform, configuration: ExternalTaskRunnerConfiguration, logger: IProblemReporter, source: TaskConfigSource): ParseResult {
+	let uuidMap = uuidMaps.get(workspaceFolder.uri.toString());
 	if (!uuidMap) {
 		uuidMap = new UUIDMap();
-		selectedUuidMaps.set(workspaceFolder.uri.toString(), uuidMap);
+		uuidMaps.set(workspaceFolder.uri.toString(), uuidMap);
 	}
 	try {
 		uuidMap.start();
@@ -2100,8 +2091,6 @@ export function parse(workspaceFolder: IWorkspaceFolder, workspace: IWorkspace |
 		uuidMap.finish();
 	}
 }
-
-
 
 export function createCustomTask(contributedTask: Tasks.ContributedTask, configuredProps: Tasks.ConfiguringTask | Tasks.CustomTask): Tasks.CustomTask {
 	return CustomTask.createCustomTask(contributedTask, configuredProps);

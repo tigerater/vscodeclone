@@ -8,7 +8,7 @@ import * as nls from 'vs/nls';
 import { IAction } from 'vs/base/common/actions';
 import * as DOM from 'vs/base/browser/dom';
 import { IActionViewItem } from 'vs/base/browser/ui/actionbar/actionbar';
-import { IDebugService, VIEWLET_ID, State, BREAKPOINTS_VIEW_ID, IDebugConfiguration, CONTEXT_DEBUG_UX, CONTEXT_DEBUG_UX_KEY, REPL_VIEW_ID } from 'vs/workbench/contrib/debug/common/debug';
+import { IDebugService, VIEWLET_ID, State, BREAKPOINTS_VIEW_ID, IDebugConfiguration, DEBUG_PANEL_ID, CONTEXT_DEBUG_UX, CONTEXT_DEBUG_UX_KEY } from 'vs/workbench/contrib/debug/common/debug';
 import { StartAction, ConfigureAction, SelectAndStartAction, FocusSessionAction } from 'vs/workbench/contrib/debug/browser/debugActions';
 import { StartDebugActionViewItem, FocusSessionActionViewItem } from 'vs/workbench/contrib/debug/browser/debugActionViewItems';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
@@ -30,9 +30,10 @@ import { IMenu, MenuId, IMenuService, MenuItemAction } from 'vs/platform/actions
 import { IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 import { MenuEntryActionViewItem } from 'vs/platform/actions/browser/menuEntryActionViewItem';
 import { INotificationService } from 'vs/platform/notification/common/notification';
-import { IViewDescriptorService, IViewsService } from 'vs/workbench/common/views';
-import { WelcomeView } from 'vs/workbench/contrib/debug/browser/welcomeView';
-import { ToggleViewAction } from 'vs/workbench/browser/actions/layoutActions';
+import { TogglePanelAction } from 'vs/workbench/browser/panel';
+import { IPanelService } from 'vs/workbench/services/panel/common/panelService';
+import { StartView } from 'vs/workbench/contrib/debug/browser/startView';
+import { IViewDescriptorService } from 'vs/workbench/common/views';
 
 export class DebugViewPaneContainer extends ViewPaneContainer {
 
@@ -91,7 +92,7 @@ export class DebugViewPaneContainer extends ViewPaneContainer {
 		if (this.startDebugActionViewItem) {
 			this.startDebugActionViewItem.focus();
 		} else {
-			this.focusView(WelcomeView.ID);
+			this.focusView(StartView.ID);
 		}
 	}
 
@@ -106,8 +107,8 @@ export class DebugViewPaneContainer extends ViewPaneContainer {
 	}
 
 	@memoize
-	private get toggleReplAction(): OpenDebugConsoleAction {
-		return this._register(this.instantiationService.createInstance(OpenDebugConsoleAction, OpenDebugConsoleAction.ID, OpenDebugConsoleAction.LABEL));
+	private get toggleReplAction(): OpenDebugPanelAction {
+		return this._register(this.instantiationService.createInstance(OpenDebugPanelAction, OpenDebugPanelAction.ID, OpenDebugPanelAction.LABEL));
 	}
 
 	@memoize
@@ -119,7 +120,6 @@ export class DebugViewPaneContainer extends ViewPaneContainer {
 		if (CONTEXT_DEBUG_UX.getValue(this.contextKeyService) === 'simple') {
 			return [];
 		}
-
 		if (!this.showInitialDebugActions) {
 
 			if (!this.debugToolBarMenu) {
@@ -185,7 +185,7 @@ export class DebugViewPaneContainer extends ViewPaneContainer {
 		}
 
 		if (state === State.Initializing) {
-			this.progressService.withProgress({ location: VIEWLET_ID, }, _progress => {
+			this.progressService.withProgress({ location: VIEWLET_ID }, _progress => {
 				return new Promise(resolve => this.progressResolve = resolve);
 			});
 		}
@@ -230,18 +230,16 @@ export class DebugViewPaneContainer extends ViewPaneContainer {
 	}
 }
 
-export class OpenDebugConsoleAction extends ToggleViewAction {
+export class OpenDebugPanelAction extends TogglePanelAction {
 	public static readonly ID = 'workbench.debug.action.toggleRepl';
 	public static readonly LABEL = nls.localize('toggleDebugPanel', "Debug Console");
 
 	constructor(
 		id: string,
 		label: string,
-		@IViewsService viewsService: IViewsService,
-		@IViewDescriptorService viewDescriptorService: IViewDescriptorService,
-		@IContextKeyService contextKeyService: IContextKeyService,
+		@IPanelService panelService: IPanelService,
 		@IWorkbenchLayoutService layoutService: IWorkbenchLayoutService
 	) {
-		super(id, label, REPL_VIEW_ID, viewsService, viewDescriptorService, contextKeyService, layoutService, 'codicon-debug-console');
+		super(id, label, DEBUG_PANEL_ID, panelService, layoutService, 'codicon-repl');
 	}
 }

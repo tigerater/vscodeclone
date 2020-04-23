@@ -7,10 +7,9 @@ import * as nls from 'vs/nls';
 import { ExtensionsRegistry } from 'vs/workbench/services/extensions/common/extensionsRegistry';
 import * as strings from 'vs/base/common/strings';
 import * as resources from 'vs/base/common/resources';
-import { isString } from 'vs/base/common/types';
 
 interface IJSONValidationExtensionPoint {
-	fileMatch: string | string[];
+	fileMatch: string;
 	url: string;
 }
 
@@ -26,11 +25,8 @@ const configurationExtPoint = ExtensionsRegistry.registerExtensionPoint<IJSONVal
 			defaultSnippets: [{ body: { fileMatch: '${1:file.json}', url: '${2:url}' } }],
 			properties: {
 				fileMatch: {
-					type: ['string', 'array'],
-					description: nls.localize('contributes.jsonValidation.fileMatch', 'The file pattern (or an array of patterns) to match, for example "package.json" or "*.launch". Exclusion patterns start with \'!\''),
-					items: {
-						type: ['string']
-					}
+					type: 'string',
+					description: nls.localize('contributes.jsonValidation.fileMatch', 'The file pattern to match, for example "package.json" or "*.launch".'),
 				},
 				url: {
 					description: nls.localize('contributes.jsonValidation.url', 'A schema URL (\'http:\', \'https:\') or relative path to the extension folder (\'./\').'),
@@ -55,12 +51,12 @@ export class JSONValidationExtensionPoint {
 					return;
 				}
 				extensionValue.forEach(extension => {
-					if (!isString(extension.fileMatch) && !(Array.isArray(extension.fileMatch) && extension.fileMatch.every(isString))) {
-						collector.error(nls.localize('invalid.fileMatch', "'configuration.jsonValidation.fileMatch' must be defined as a string or an array of strings."));
+					if (typeof extension.fileMatch !== 'string') {
+						collector.error(nls.localize('invalid.fileMatch', "'configuration.jsonValidation.fileMatch' must be defined"));
 						return;
 					}
 					let uri = extension.url;
-					if (!isString(uri)) {
+					if (typeof extension.url !== 'string') {
 						collector.error(nls.localize('invalid.url', "'configuration.jsonValidation.url' must be a URL or relative path"));
 						return;
 					}

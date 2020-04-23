@@ -12,7 +12,7 @@ import { URI as uri } from 'vs/base/common/uri';
 import * as resources from 'vs/base/common/resources';
 import { IJSONSchema } from 'vs/base/common/jsonSchema';
 import { ITextModel } from 'vs/editor/common/model';
-import { IEditorPane } from 'vs/workbench/common/editor';
+import { IEditor } from 'vs/workbench/common/editor';
 import { IStorageService, StorageScope } from 'vs/platform/storage/common/storage';
 import { IExtensionService } from 'vs/workbench/services/extensions/common/extensions';
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
@@ -160,15 +160,6 @@ export class ConfigurationManager implements IConfigurationManager {
 			// TODO@AW handle n > 1 case
 		}
 		return Promise.resolve(undefined);
-	}
-
-	getDebuggerLabel(session: IDebugSession): string | undefined {
-		const dbgr = this.getDebugger(session.configuration.type);
-		if (dbgr) {
-			return dbgr.label;
-		}
-
-		return undefined;
 	}
 
 	get onDidRegisterDebugger(): Event<void> {
@@ -346,7 +337,7 @@ export class ConfigurationManager implements IConfigurationManager {
 	private setCompoundSchemaValues(): void {
 		const compoundConfigurationsSchema = (<IJSONSchema>launchSchema.properties!['compounds'].items).properties!['configurations'];
 		const launchNames = this.launches.map(l =>
-			l.getConfigurationNames(true)).reduce((first, second) => first.concat(second), []);
+			l.getConfigurationNames(false)).reduce((first, second) => first.concat(second), []);
 		(<IJSONSchema>compoundConfigurationsSchema.items).oneOf![0].enum = launchNames;
 		(<IJSONSchema>compoundConfigurationsSchema.items).oneOf![1].properties!.name.enum = launchNames;
 
@@ -452,10 +443,10 @@ export class ConfigurationManager implements IConfigurationManager {
 			return Promise.resolve(adapter);
 		}
 
-		const activeTextEditorControl = this.editorService.activeTextEditorControl;
+		const activeTextEditorWidget = this.editorService.activeTextEditorWidget;
 		let candidates: Debugger[] | undefined;
-		if (isCodeEditor(activeTextEditorControl)) {
-			const model = activeTextEditorControl.getModel();
+		if (isCodeEditor(activeTextEditorWidget)) {
+			const model = activeTextEditorWidget.getModel();
 			const language = model ? model.getLanguageIdentifier().language : undefined;
 			const adapters = this.debuggers.filter(a => language && a.languages && a.languages.indexOf(language) >= 0);
 			if (adapters.length === 1) {
@@ -523,7 +514,7 @@ abstract class AbstractLaunch {
 		return config.compounds.filter(compound => compound.name === name).pop();
 	}
 
-	getConfigurationNames(ignoreCompoundsAndPresentation = false): string[] {
+	getConfigurationNames(includeCompounds = true): string[] {
 		const config = this.getConfig();
 		if (!config || (!Array.isArray(config.configurations) && !Array.isArray(config.compounds))) {
 			return [];
@@ -532,14 +523,12 @@ abstract class AbstractLaunch {
 			if (config.configurations) {
 				configurations.push(...config.configurations.filter(cfg => cfg && typeof cfg.name === 'string'));
 			}
-
-			if (ignoreCompoundsAndPresentation) {
-				return configurations.map(c => c.name);
+			if (includeCompounds && config.compounds) {
+				if (config.compounds) {
+					configurations.push(...config.compounds.filter(compound => typeof compound.name === 'string' && compound.configurations && compound.configurations.length));
+				}
 			}
 
-			if (config.compounds) {
-				configurations.push(...config.compounds.filter(compound => typeof compound.name === 'string' && compound.configurations && compound.configurations.length));
-			}
 			return getVisibleAndSorted(configurations).map(c => c.name);
 		}
 	}
@@ -584,7 +573,7 @@ class Launch extends AbstractLaunch implements ILaunch {
 		return this.configurationService.inspect<IGlobalConfig>('launch', { resource: this.workspace.uri }).workspaceFolderValue;
 	}
 
-	async openConfigFile(sideBySide: boolean, preserveFocus: boolean, type?: string, token?: CancellationToken): Promise<{ editor: IEditorPane | null, created: boolean }> {
+	async openConfigFile(sideBySide: boolean, preserveFocus: boolean, type?: string, token?: CancellationToken): Promise<{ editor: IEditor | null, created: boolean }> {
 		const resource = this.uri;
 		let created = false;
 		let content = '';
@@ -664,7 +653,7 @@ class WorkspaceLaunch extends AbstractLaunch implements ILaunch {
 		return this.configurationService.inspect<IGlobalConfig>('launch').workspaceValue;
 	}
 
-	async openConfigFile(sideBySide: boolean, preserveFocus: boolean): Promise<{ editor: IEditorPane | null, created: boolean }> {
+	async openConfigFile(sideBySide: boolean, preserveFocus: boolean): Promise<{ editor: IEditor | null, created: boolean }> {
 
 		const editor = await this.editorService.openEditor({
 			resource: this.contextService.getWorkspace().configuration!,
@@ -707,8 +696,8 @@ class UserLaunch extends AbstractLaunch implements ILaunch {
 		return this.configurationService.inspect<IGlobalConfig>('launch').userValue;
 	}
 
-	async openConfigFile(_: boolean, preserveFocus: boolean): Promise<{ editor: IEditorPane | null, created: boolean }> {
-		const editor = await this.preferencesService.openGlobalSettings(true, { preserveFocus });
+	async openConfigFile(_: boolean, preserveFocus: boolean): Promise<{ editor: IEditor | null, created: boolean }> {
+		const editor = await this.preferencesService.openGlobalSettings(false, { preserveFocus });
 		return ({
 			editor: withUndefinedAsNull(editor),
 			created: false

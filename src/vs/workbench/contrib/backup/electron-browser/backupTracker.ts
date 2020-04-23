@@ -9,6 +9,7 @@ import { IWorkbenchContribution } from 'vs/workbench/common/contributions';
 import { IFilesConfigurationService, AutoSaveMode } from 'vs/workbench/services/filesConfiguration/common/filesConfigurationService';
 import { IWorkingCopyService, IWorkingCopy, WorkingCopyCapabilities } from 'vs/workbench/services/workingCopy/common/workingCopyService';
 import { ILifecycleService, LifecyclePhase, ShutdownReason } from 'vs/platform/lifecycle/common/lifecycle';
+import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
 import { ConfirmResult, IFileDialogService, IDialogService } from 'vs/platform/dialogs/common/dialogs';
 import Severity from 'vs/base/common/severity';
 import { WorkbenchState, IWorkspaceContextService } from 'vs/platform/workspace/common/workspace';
@@ -19,7 +20,6 @@ import { BackupTracker } from 'vs/workbench/contrib/backup/common/backupTracker'
 import { ILogService } from 'vs/platform/log/common/log';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
 import { SaveReason } from 'vs/workbench/common/editor';
-import { IEnvironmentService } from 'vs/platform/environment/common/environment';
 
 export class NativeBackupTracker extends BackupTracker implements IWorkbenchContribution {
 
@@ -28,13 +28,13 @@ export class NativeBackupTracker extends BackupTracker implements IWorkbenchCont
 		@IFilesConfigurationService filesConfigurationService: IFilesConfigurationService,
 		@IWorkingCopyService workingCopyService: IWorkingCopyService,
 		@ILifecycleService lifecycleService: ILifecycleService,
+		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
 		@IFileDialogService private readonly fileDialogService: IFileDialogService,
 		@IDialogService private readonly dialogService: IDialogService,
 		@IWorkspaceContextService private readonly contextService: IWorkspaceContextService,
 		@IElectronService private readonly electronService: IElectronService,
 		@ILogService logService: ILogService,
-		@IEditorService private readonly editorService: IEditorService,
-		@IEnvironmentService private readonly environmentService: IEnvironmentService
+		@IEditorService private readonly editorService: IEditorService
 	) {
 		super(backupFileService, filesConfigurationService, workingCopyService, logService, lifecycleService);
 	}
@@ -47,8 +47,7 @@ export class NativeBackupTracker extends BackupTracker implements IWorkbenchCont
 			return this.onBeforeShutdownWithDirty(reason, dirtyWorkingCopies);
 		}
 
-		// No dirty working copies
-		return this.onBeforeShutdownWithoutDirty();
+		return false; // no veto (no dirty working copies)
 	}
 
 	protected async onBeforeShutdownWithDirty(reason: ShutdownReason, workingCopies: IWorkingCopy[]): Promise<boolean> {
@@ -121,36 +120,32 @@ export class NativeBackupTracker extends BackupTracker implements IWorkbenchCont
 		// ever activated when quit is requested.
 
 		let doBackup: boolean | undefined;
-		if (this.environmentService.isExtensionDevelopment) {
-			doBackup = true; // always backup closing extension development window without asking to speed up debugging
-		} else {
-			switch (reason) {
-				case ShutdownReason.CLOSE:
-					if (this.contextService.getWorkbenchState() !== WorkbenchState.EMPTY && this.filesConfigurationService.hotExitConfiguration === HotExitConfiguration.ON_EXIT_AND_WINDOW_CLOSE) {
-						doBackup = true; // backup if a folder is open and onExitAndWindowClose is configured
-					} else if (await this.electronService.getWindowCount() > 1 || isMacintosh) {
-						doBackup = false; // do not backup if a window is closed that does not cause quitting of the application
-					} else {
-						doBackup = true; // backup if last window is closed on win/linux where the application quits right after
-					}
-					break;
+		switch (reason) {
+			case ShutdownReason.CLOSE:
+				if (this.contextService.getWorkbenchState() !== WorkbenchState.EMPTY && this.filesConfigurationService.hotExitConfiguration === HotExitConfiguration.ON_EXIT_AND_WINDOW_CLOSE) {
+					doBackup = true; // backup if a folder is open and onExitAndWindowClose is configured
+				} else if (await this.electronService.getWindowCount() > 1 || isMacintosh) {
+					doBackup = false; // do not backup if a window is closed that does not cause quitting of the application
+				} else {
+					doBackup = true; // backup if last window is closed on win/linux where the application quits right after
+				}
+				break;
 
-				case ShutdownReason.QUIT:
-					doBackup = true; // backup because next start we restore all backups
-					break;
+			case ShutdownReason.QUIT:
+				doBackup = true; // backup because next start we restore all backups
+				break;
 
-				case ShutdownReason.RELOAD:
-					doBackup = true; // backup because after window reload, backups restore
-					break;
+			case ShutdownReason.RELOAD:
+				doBackup = true; // backup because after window reload, backups restore
+				break;
 
-				case ShutdownReason.LOAD:
-					if (this.contextService.getWorkbenchState() !== WorkbenchState.EMPTY && this.filesConfigurationService.hotExitConfiguration === HotExitConfiguration.ON_EXIT_AND_WINDOW_CLOSE) {
-						doBackup = true; // backup if a folder is open and onExitAndWindowClose is configured
-					} else {
-						doBackup = false; // do not backup because we are switching contexts
-					}
-					break;
-			}
+			case ShutdownReason.LOAD:
+				if (this.contextService.getWorkbenchState() !== WorkbenchState.EMPTY && this.filesConfigurationService.hotExitConfiguration === HotExitConfiguration.ON_EXIT_AND_WINDOW_CLOSE) {
+					doBackup = true; // backup if a folder is open and onExitAndWindowClose is configured
+				} else {
+					doBackup = false; // do not backup because we are switching contexts
+				}
+				break;
 		}
 
 		// Perform a backup of all dirty working copies unless a backup already exists
@@ -166,10 +161,12 @@ export class NativeBackupTracker extends BackupTracker implements IWorkbenchCont
 
 				// Backup does not exist
 				else {
-					const backup = await workingCopy.backup();
-					await this.backupFileService.backup(workingCopy.resource, backup.content, contentVersion, backup.meta);
+					if (typeof workingCopy.backup === 'function') {
+						const backup = await workingCopy.backup();
+						await this.backupFileService.backup(workingCopy.resource, backup.content, contentVersion, backup.meta);
 
-					backups.push(workingCopy);
+						backups.push(workingCopy);
+					}
 				}
 			}));
 		}
@@ -228,7 +225,7 @@ export class NativeBackupTracker extends BackupTracker implements IWorkbenchCont
 		// If we still have dirty working copies, save those directly
 		// unless the save was not successful (e.g. cancelled)
 		if (result !== false) {
-			await Promise.all(workingCopies.map(workingCopy => workingCopy.isDirty() ? workingCopy.save(saveOptions) : true));
+			await Promise.all(workingCopies.map(workingCopy => workingCopy.isDirty() ? workingCopy.save(saveOptions) : Promise.resolve(true)));
 		}
 	}
 
@@ -238,13 +235,16 @@ export class NativeBackupTracker extends BackupTracker implements IWorkbenchCont
 		const revertOptions = { soft: true };
 
 		// First revert through the editor service if we revert all
+		let result: boolean | undefined = undefined;
 		if (workingCopies.length === this.workingCopyService.dirtyCount) {
-			await this.editorService.revertAll(revertOptions);
+			result = await this.editorService.revertAll(revertOptions);
 		}
 
 		// If we still have dirty working copies, revert those directly
 		// unless the revert operation was not successful (e.g. cancelled)
-		await Promise.all(workingCopies.map(workingCopy => workingCopy.isDirty() ? workingCopy.revert(revertOptions) : undefined));
+		if (result !== false) {
+			await Promise.all(workingCopies.map(workingCopy => workingCopy.isDirty() ? workingCopy.revert(revertOptions) : Promise.resolve(true)));
+		}
 	}
 
 	private noVeto(backupsToDiscard: IWorkingCopy[]): boolean | Promise<boolean> {
@@ -252,23 +252,10 @@ export class NativeBackupTracker extends BackupTracker implements IWorkbenchCont
 			return false; // if editors have not restored, we are not up to speed with backups and thus should not discard them
 		}
 
-		return Promise.all(backupsToDiscard.map(workingCopy => this.backupFileService.discardBackup(workingCopy.resource))).then(() => false, () => false);
-	}
-
-	private async onBeforeShutdownWithoutDirty(): Promise<boolean> {
-		// If we have proceeded enough that editors and dirty state
-		// has restored, we make sure that no backups lure around
-		// given we have no known dirty working copy. This helps
-		// to clean up stale backups as for example reported in
-		// https://github.com/microsoft/vscode/issues/92962
-		if (this.lifecycleService.phase >= LifecyclePhase.Restored) {
-			try {
-				await this.backupFileService.discardBackups();
-			} catch (error) {
-				this.logService.error(`[backup tracker] error discarding backups: ${error}`);
-			}
+		if (this.environmentService.isExtensionDevelopment) {
+			return false; // extension development does not track any backups
 		}
 
-		return false; // no veto (no dirty)
+		return Promise.all(backupsToDiscard.map(workingCopy => this.backupFileService.discardBackup(workingCopy.resource))).then(() => false, () => false);
 	}
 }

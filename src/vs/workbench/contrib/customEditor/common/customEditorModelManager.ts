@@ -3,66 +3,60 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IReference } from 'vs/base/common/lifecycle';
+import { DisposableStore } from 'vs/base/common/lifecycle';
 import { URI } from 'vs/base/common/uri';
 import { ICustomEditorModel, ICustomEditorModelManager } from 'vs/workbench/contrib/customEditor/common/customEditor';
-import { once } from 'vs/base/common/functional';
+import { CustomEditorModel } from 'vs/workbench/contrib/customEditor/common/customEditorModel';
+import { IWorkingCopyService } from 'vs/workbench/services/workingCopy/common/workingCopyService';
+import { ILabelService } from 'vs/platform/label/common/label';
 
 export class CustomEditorModelManager implements ICustomEditorModelManager {
+	private readonly _models = new Map<string, { readonly model: CustomEditorModel, readonly disposables: DisposableStore }>();
 
-	private readonly _references = new Map<string, {
-		readonly viewType: string,
-		readonly model: Promise<ICustomEditorModel>,
-		counter: number
-	}>();
+	constructor(
+		@IWorkingCopyService private readonly _workingCopyService: IWorkingCopyService,
+		@ILabelService private readonly _labelService: ILabelService
+	) { }
 
-	public async get(resource: URI, viewType: string): Promise<ICustomEditorModel | undefined> {
-		const key = this.key(resource, viewType);
-		const entry = this._references.get(key);
-		return entry?.model;
+
+	public get(resource: URI, viewType: string): ICustomEditorModel | undefined {
+		return this._models.get(this.key(resource, viewType))?.model;
 	}
 
-	public tryRetain(resource: URI, viewType: string): Promise<IReference<ICustomEditorModel>> | undefined {
-		const key = this.key(resource, viewType);
-
-		const entry = this._references.get(key);
-		if (!entry) {
-			return undefined;
-		}
-
-		entry.counter++;
-
-		return entry.model.then(model => {
-			return {
-				object: model,
-				dispose: once(() => {
-					if (--entry!.counter <= 0) {
-						entry.model.then(x => x.dispose());
-						this._references.delete(key);
-					}
-				}),
-			};
-		});
-	}
-
-	public add(resource: URI, viewType: string, model: Promise<ICustomEditorModel>): Promise<IReference<ICustomEditorModel>> {
-		const key = this.key(resource, viewType);
-		const existing = this._references.get(key);
+	public async resolve(resource: URI, viewType: string): Promise<ICustomEditorModel> {
+		const existing = this.get(resource, viewType);
 		if (existing) {
-			throw new Error('Model already exists');
+			return existing;
 		}
 
-		this._references.set(key, { viewType, model, counter: 0 });
-		return this.tryRetain(resource, viewType)!;
+		const model = new CustomEditorModel(viewType, resource, this._labelService);
+		const disposables = new DisposableStore();
+		disposables.add(this._workingCopyService.registerWorkingCopy(model));
+		this._models.set(this.key(resource, viewType), { model, disposables });
+		return model;
+	}
+
+	public disposeModel(model: ICustomEditorModel): void {
+		let foundKey: string | undefined;
+		this._models.forEach((value, key) => {
+			if (model === value.model) {
+				value.disposables.dispose();
+				value.model.dispose();
+				foundKey = key;
+			}
+		});
+		if (typeof foundKey === 'string') {
+			this._models.delete(foundKey);
+		}
+		return;
 	}
 
 	public disposeAllModelsForView(viewType: string): void {
-		for (const [key, value] of this._references) {
-			if (value.viewType === viewType) {
-				value.model.then(x => x.dispose());
-				this._references.delete(key);
+		this._models.forEach((value) => {
+			if (value.model.viewType === viewType) {
+				this.disposeModel(value.model);
 			}
-		}
+		});
 	}
 
 	private key(resource: URI, viewType: string): string {

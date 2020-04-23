@@ -9,9 +9,8 @@ import { URI } from 'vs/base/common/uri';
 import * as nls from 'vs/nls';
 import { IElectronService } from 'vs/platform/electron/node/electron';
 import { IEnvironmentService } from 'vs/platform/environment/common/environment';
-import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
+import { IElectronEnvironmentService } from 'vs/workbench/services/electron/electron-browser/electronEnvironmentService';
 import { IFileService } from 'vs/platform/files/common/files';
-import { INativeWorkbenchEnvironmentService } from 'vs/workbench/services/environment/electron-browser/environmentService';
 
 export class OpenLogsFolderAction extends Action {
 
@@ -36,7 +35,7 @@ export class OpenExtensionLogsFolderAction extends Action {
 	static readonly LABEL = nls.localize('openExtensionLogsFolder', "Open Extension Logs Folder");
 
 	constructor(id: string, label: string,
-		@IWorkbenchEnvironmentService private readonly environmentSerice: INativeWorkbenchEnvironmentService,
+		@IElectronEnvironmentService private readonly electronEnvironmentSerice: IElectronEnvironmentService,
 		@IFileService private readonly fileService: IFileService,
 		@IElectronService private readonly electronService: IElectronService
 	) {
@@ -44,7 +43,7 @@ export class OpenExtensionLogsFolderAction extends Action {
 	}
 
 	async run(): Promise<void> {
-		const folderStat = await this.fileService.resolve(this.environmentSerice.extHostLogsPath);
+		const folderStat = await this.fileService.resolve(this.electronEnvironmentSerice.extHostLogsPath);
 		if (folderStat.children && folderStat.children[0]) {
 			return this.electronService.showItemInFolder(folderStat.children[0].resource.fsPath);
 		}

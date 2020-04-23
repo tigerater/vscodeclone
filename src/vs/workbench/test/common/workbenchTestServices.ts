@@ -15,7 +15,6 @@ import { ITextResourcePropertiesService } from 'vs/editor/common/services/textRe
 import { isLinux, isMacintosh } from 'vs/base/common/platform';
 import { InMemoryStorageService, IWillSaveStateEvent } from 'vs/platform/storage/common/storage';
 import { WorkingCopyService } from 'vs/workbench/services/workingCopy/common/workingCopyService';
-import { NullExtensionService } from 'vs/workbench/services/extensions/common/extensions';
 
 export class TestTextResourcePropertiesService implements ITextResourcePropertiesService {
 
@@ -36,27 +35,33 @@ export class TestTextResourcePropertiesService implements ITextResourcePropertie
 }
 
 export class TestContextService implements IWorkspaceContextService {
-
 	_serviceBrand: undefined;
 
 	private workspace: Workspace;
-	private options: object;
+	private options: any;
 
 	private readonly _onDidChangeWorkspaceName: Emitter<void>;
-	get onDidChangeWorkspaceName(): Event<void> { return this._onDidChangeWorkspaceName.event; }
-
 	private readonly _onDidChangeWorkspaceFolders: Emitter<IWorkspaceFoldersChangeEvent>;
-	get onDidChangeWorkspaceFolders(): Event<IWorkspaceFoldersChangeEvent> { return this._onDidChangeWorkspaceFolders.event; }
-
 	private readonly _onDidChangeWorkbenchState: Emitter<WorkbenchState>;
-	get onDidChangeWorkbenchState(): Event<WorkbenchState> { return this._onDidChangeWorkbenchState.event; }
 
-	constructor(workspace = TestWorkspace, options = null) {
+	constructor(workspace: any = TestWorkspace, options: any = null) {
 		this.workspace = workspace;
 		this.options = options || Object.create(null);
 		this._onDidChangeWorkspaceName = new Emitter<void>();
 		this._onDidChangeWorkspaceFolders = new Emitter<IWorkspaceFoldersChangeEvent>();
 		this._onDidChangeWorkbenchState = new Emitter<WorkbenchState>();
+	}
+
+	get onDidChangeWorkspaceName(): Event<void> {
+		return this._onDidChangeWorkspaceName.event;
+	}
+
+	get onDidChangeWorkspaceFolders(): Event<IWorkspaceFoldersChangeEvent> {
+		return this._onDidChangeWorkspaceFolders.event;
+	}
+
+	get onDidChangeWorkbenchState(): Event<WorkbenchState> {
+		return this._onDidChangeWorkbenchState.event;
 	}
 
 	getFolders(): IWorkspaceFolder[] {
@@ -95,7 +100,9 @@ export class TestContextService implements IWorkspaceContextService {
 		return this.options;
 	}
 
-	updateOptions() { }
+	updateOptions() {
+
+	}
 
 	isInsideWorkspace(resource: URI): boolean {
 		if (resource && this.workspace) {
@@ -128,5 +135,3 @@ export function mock<T>(): Ctor<T> {
 export interface Ctor<T> {
 	new(): T;
 }
-
-export class TestExtensionService extends NullExtensionService { }

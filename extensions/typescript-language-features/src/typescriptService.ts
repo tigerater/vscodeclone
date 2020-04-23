@@ -8,6 +8,7 @@ import BufferSyncSupport from './features/bufferSyncSupport';
 import * as Proto from './protocol';
 import API from './utils/api';
 import { TypeScriptServiceConfiguration } from './utils/configuration';
+import Logger from './utils/logger';
 import { PluginManager } from './utils/plugins';
 
 export namespace ServerResponse {
@@ -119,13 +120,10 @@ export interface ITypeScriptServiceClient {
 	readonly onDidEndInstallTypings: vscode.Event<Proto.EndInstallTypesEventBody>;
 	readonly onTypesInstallerInitializationFailed: vscode.Event<Proto.TypesInstallerInitializationFailedEventBody>;
 
-	onReady(f: () => void): Promise<void>;
-
-	showVersionPicker(): void;
-
 	readonly apiVersion: API;
 	readonly pluginManager: PluginManager;
 	readonly configuration: TypeScriptServiceConfiguration;
+	readonly logger: Logger;
 	readonly bufferSyncSupport: BufferSyncSupport;
 
 	execute<K extends keyof StandardTsServerRequests>(

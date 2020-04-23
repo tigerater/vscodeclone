@@ -5,7 +5,6 @@
 
 import { isWindows } from 'vs/base/common/platform';
 import { CharCode } from 'vs/base/common/charCode';
-import * as paths from 'vs/base/common/path';
 
 const _schemePattern = /^\w[\w\d+.-]*$/;
 const _singleSlashStart = /^\//;
@@ -84,7 +83,6 @@ const _regexp = /^(([^:/?#]+?):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
  * (http://tools.ietf.org/html/rfc3986#section-3) with minimal validation
  * and encoding.
  *
- * ```txt
  *       foo://example.com:8042/over/there?name=ferret#nose
  *       \_/   \______________/\_________/ \_________/ \__/
  *        |           |            |            |        |
@@ -92,7 +90,6 @@ const _regexp = /^(([^:/?#]+?):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
  *        |   _____________________|__
  *       / \ /                        \
  *       urn:example:animal:ferret:nose
- * ```
  */
 export class URI implements UriComponents {
 
@@ -205,7 +202,7 @@ export class URI implements UriComponents {
 		// if (this.scheme !== 'file') {
 		// 	console.warn(`[UriError] calling fsPath with scheme ${this.scheme}`);
 		// }
-		return uriToFsPath(this, false);
+		return _makeFsPath(this);
 	}
 
 	// ---- modify to new -------------------------
@@ -336,26 +333,6 @@ export class URI implements UriComponents {
 		);
 	}
 
-	/**
-	 * Join a URI path with path fragments and normalizes the resulting path.
-	 *
-	 * @param uri The input URI.
-	 * @param pathFragment The path fragment to add to the URI path.
-	 * @returns The resulting URI.
-	 */
-	static joinPath(uri: URI, ...pathFragment: string[]): URI {
-		if (!uri.path) {
-			throw new Error(`[UriError]: cannot call joinPaths on URI without path`);
-		}
-		let newPath: string;
-		if (isWindows && uri.scheme === 'file') {
-			newPath = URI.file(paths.win32.join(uriToFsPath(uri, true), ...pathFragment)).path;
-		} else {
-			newPath = paths.posix.join(uri.path, ...pathFragment);
-		}
-		return uri.with({ path: newPath });
-	}
-
 	// ---- printing/externalize ---------------------------
 
 	/**
@@ -420,7 +397,7 @@ class _URI extends URI {
 
 	get fsPath(): string {
 		if (!this._fsPath) {
-			this._fsPath = uriToFsPath(this, false);
+			this._fsPath = _makeFsPath(this);
 		}
 		return this._fsPath;
 	}
@@ -576,7 +553,7 @@ function encodeURIComponentMinimal(path: string): string {
 /**
  * Compute `fsPath` for the given uri
  */
-export function uriToFsPath(uri: URI, keepDriveLetterCasing: boolean): string {
+function _makeFsPath(uri: URI): string {
 
 	let value: string;
 	if (uri.authority && uri.path.length > 1 && uri.scheme === 'file') {
@@ -587,12 +564,8 @@ export function uriToFsPath(uri: URI, keepDriveLetterCasing: boolean): string {
 		&& (uri.path.charCodeAt(1) >= CharCode.A && uri.path.charCodeAt(1) <= CharCode.Z || uri.path.charCodeAt(1) >= CharCode.a && uri.path.charCodeAt(1) <= CharCode.z)
 		&& uri.path.charCodeAt(2) === CharCode.Colon
 	) {
-		if (!keepDriveLetterCasing) {
-			// windows drive letter: file:///c:/far/boo
-			value = uri.path[1].toLowerCase() + uri.path.substr(2);
-		} else {
-			value = uri.path.substr(1);
-		}
+		// windows drive letter: file:///c:/far/boo
+		value = uri.path[1].toLowerCase() + uri.path.substr(2);
 	} else {
 		// other path
 		value = uri.path;

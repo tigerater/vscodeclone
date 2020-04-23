@@ -21,7 +21,7 @@
 		}],
 		"snippets": [{
 			"language": "powershell",
-			"path": "./snippets/powershell.code-snippets"
+			"path": "./snippets/powershell.json"
 		}]
 	},
 	"scripts": {

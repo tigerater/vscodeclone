@@ -7,9 +7,12 @@ import 'mocha';
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 
-suite('vscode API - types', () => {
+
+suite('types', () => {
 
 	test('static properties, es5 compat class', function () {
+
+
 		assert.ok(vscode.ThemeIcon.File instanceof vscode.ThemeIcon);
 		assert.ok(vscode.ThemeIcon.Folder instanceof vscode.ThemeIcon);
 		assert.ok(vscode.CodeActionKind.Empty instanceof vscode.CodeActionKind);

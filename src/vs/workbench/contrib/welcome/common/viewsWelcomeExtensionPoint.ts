@@ -22,7 +22,7 @@ export type ViewsWelcomeExtensionPoint = ViewWelcome[];
 
 export const ViewIdentifierMap: { [key: string]: string } = {
 	'explorer': 'workbench.explorer.emptyView',
-	'debug': 'workbench.debug.welcome',
+	'debug': 'workbench.debug.startView',
 	'scm': 'workbench.scm',
 };
 
@@ -38,17 +38,9 @@ const viewsWelcomeExtensionPointSchema = Object.freeze<IConfigurationPropertySch
 		],
 		properties: {
 			[ViewsWelcomeExtensionPointFields.view]: {
-				anyOf: [
-					{
-						type: 'string',
-						description: nls.localize('contributes.viewsWelcome.view.view', "Target view identifier for this welcome content.")
-					},
-					{
-						type: 'string',
-						description: nls.localize('contributes.viewsWelcome.view.view', "Target view identifier for this welcome content."),
-						enum: Object.keys(ViewIdentifierMap)
-					}
-				]
+				type: 'string',
+				description: nls.localize('contributes.viewsWelcome.view.view', "Target view identifier for this welcome content."),
+				enum: Object.keys(ViewIdentifierMap),
 			},
 			[ViewsWelcomeExtensionPointFields.contents]: {
 				type: 'string',

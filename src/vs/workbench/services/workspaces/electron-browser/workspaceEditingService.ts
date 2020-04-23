@@ -31,7 +31,6 @@ import { IElectronService } from 'vs/platform/electron/node/electron';
 import { isMacintosh } from 'vs/base/common/platform';
 import { mnemonicButtonLabel } from 'vs/base/common/labels';
 import { BackupFileService } from 'vs/workbench/services/backup/common/backupFileService';
-import { INativeWorkbenchEnvironmentService } from 'vs/workbench/services/environment/electron-browser/environmentService';
 
 export class NativeWorkspaceEditingService extends AbstractWorkspaceEditingService {
 
@@ -50,7 +49,7 @@ export class NativeWorkspaceEditingService extends AbstractWorkspaceEditingServi
 		@IFileService fileService: IFileService,
 		@ITextFileService textFileService: ITextFileService,
 		@IWorkspacesService workspacesService: IWorkspacesService,
-		@IWorkbenchEnvironmentService protected environmentService: INativeWorkbenchEnvironmentService,
+		@IWorkbenchEnvironmentService environmentService: IWorkbenchEnvironmentService,
 		@IFileDialogService fileDialogService: IFileDialogService,
 		@IDialogService protected dialogService: IDialogService,
 		@ILifecycleService private readonly lifecycleService: ILifecycleService,
@@ -140,6 +139,8 @@ export class NativeWorkspaceEditingService extends AbstractWorkspaceEditingServi
 				return false;
 			}
 		}
+
+		return false;
 	}
 
 	async isValidTargetWorkspacePath(path: URI): Promise<boolean> {

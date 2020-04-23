@@ -183,7 +183,6 @@
 			],
 			"webRoot": "${workspaceFolder}",
 			// Settings for js-debug:
-			"userDataDir": false,
 			"pauseForSourceMap": false,
 			"outFiles": [
 				"${workspaceFolder}/out/**/*.js"

@@ -24,10 +24,10 @@ import { TextEdit, WorkspaceEdit, WorkspaceTextEdit } from 'vs/editor/common/mod
 import { IModelService } from 'vs/editor/common/services/modelService';
 import { IResolvedTextEditorModel, ITextModelContentProvider, ITextModelService } from 'vs/editor/common/services/resolverService';
 import { ITextResourceConfigurationService, ITextResourcePropertiesService, ITextResourceConfigurationChangeEvent } from 'vs/editor/common/services/textResourceConfigurationService';
-import { CommandsRegistry, ICommandEvent, ICommandHandler, ICommandService } from 'vs/platform/commands/common/commands';
+import { CommandsRegistry, ICommand, ICommandEvent, ICommandHandler, ICommandService } from 'vs/platform/commands/common/commands';
 import { IConfigurationChangeEvent, IConfigurationData, IConfigurationOverrides, IConfigurationService, IConfigurationModel, IConfigurationValue, ConfigurationTarget } from 'vs/platform/configuration/common/configuration';
 import { Configuration, ConfigurationModel, DefaultConfigurationModel, ConfigurationChangeEvent } from 'vs/platform/configuration/common/configurationModels';
-import { IContextKeyService, ContextKeyExpression } from 'vs/platform/contextkey/common/contextkey';
+import { ContextKeyExpr, IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 import { IConfirmation, IConfirmationResult, IDialogOptions, IDialogService, IShowResult } from 'vs/platform/dialogs/common/dialogs';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { AbstractKeybindingService } from 'vs/platform/keybinding/common/abstractKeybindingService';
@@ -36,17 +36,16 @@ import { KeybindingResolver } from 'vs/platform/keybinding/common/keybindingReso
 import { IKeybindingItem, KeybindingsRegistry } from 'vs/platform/keybinding/common/keybindingsRegistry';
 import { ResolvedKeybindingItem } from 'vs/platform/keybinding/common/resolvedKeybindingItem';
 import { USLayoutResolvedKeybinding } from 'vs/platform/keybinding/common/usLayoutResolvedKeybinding';
-import { ILabelService, ResourceLabelFormatter, IFormatterChangeEvent } from 'vs/platform/label/common/label';
+import { ILabelService, ResourceLabelFormatter } from 'vs/platform/label/common/label';
 import { INotification, INotificationHandle, INotificationService, IPromptChoice, IPromptOptions, NoOpNotification, IStatusMessageOptions, NotificationsFilter } from 'vs/platform/notification/common/notification';
 import { IProgressRunner, IEditorProgressService } from 'vs/platform/progress/common/progress';
 import { ITelemetryInfo, ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 import { IWorkspace, IWorkspaceContextService, IWorkspaceFolder, IWorkspaceFoldersChangeEvent, WorkbenchState, WorkspaceFolder } from 'vs/platform/workspace/common/workspace';
 import { ISingleFolderWorkspaceIdentifier, IWorkspaceIdentifier } from 'vs/platform/workspaces/common/workspaces';
-import { ILayoutService } from 'vs/platform/layout/browser/layoutService';
+import { ILayoutService, IDimension } from 'vs/platform/layout/browser/layoutService';
 import { SimpleServicesNLS } from 'vs/editor/common/standaloneStrings';
 import { ClassifiedEvent, StrictPropertyCheck, GDPRClassification } from 'vs/platform/telemetry/common/gdprTypings';
 import { basename } from 'vs/base/common/resources';
-import { ICodeEditorService } from 'vs/editor/browser/services/codeEditorService';
 
 export class SimpleModel implements IResolvedTextEditorModel {
 
@@ -255,6 +254,7 @@ export class StandaloneCommandService implements ICommandService {
 	_serviceBrand: undefined;
 
 	private readonly _instantiationService: IInstantiationService;
+	private readonly _dynamicCommands: { [id: string]: ICommand; };
 
 	private readonly _onWillExecuteCommand = new Emitter<ICommandEvent>();
 	private readonly _onDidExecuteCommand = new Emitter<ICommandEvent>();
@@ -263,10 +263,19 @@ export class StandaloneCommandService implements ICommandService {
 
 	constructor(instantiationService: IInstantiationService) {
 		this._instantiationService = instantiationService;
+		this._dynamicCommands = Object.create(null);
+	}
+
+	public addCommand(command: ICommand): IDisposable {
+		const { id } = command;
+		this._dynamicCommands[id] = command;
+		return toDisposable(() => {
+			delete this._dynamicCommands[id];
+		});
 	}
 
 	public executeCommand<T>(id: string, ...args: any[]): Promise<T> {
-		const command = CommandsRegistry.getCommand(id);
+		const command = (CommandsRegistry.getCommand(id) || this._dynamicCommands[id]);
 		if (!command) {
 			return Promise.reject(new Error(`command '${id}' not found`));
 		}
@@ -309,7 +318,7 @@ export class StandaloneKeybindingService extends AbstractKeybindingService {
 		}));
 	}
 
-	public addDynamicKeybinding(commandId: string, _keybinding: number, handler: ICommandHandler, when: ContextKeyExpression | undefined): IDisposable {
+	public addDynamicKeybinding(commandId: string, _keybinding: number, handler: ICommandHandler, when: ContextKeyExpr | undefined): IDisposable {
 		const keybinding = createKeybinding(_keybinding, OS);
 
 		const toDispose = new DisposableStore();
@@ -335,8 +344,15 @@ export class StandaloneKeybindingService extends AbstractKeybindingService {
 			}));
 		}
 
-		toDispose.add(CommandsRegistry.registerCommand(commandId, handler));
-
+		let commandService = this._commandService;
+		if (commandService instanceof StandaloneCommandService) {
+			toDispose.add(commandService.addCommand({
+				id: commandId,
+				handler: handler
+			}));
+		} else {
+			throw new Error('Unknown command service!');
+		}
 		this.updateResolver({ source: KeybindingSource.Default });
 
 		return toDispose;
@@ -697,7 +713,8 @@ export class SimpleUriLabelService implements ILabelService {
 
 	_serviceBrand: undefined;
 
-	public readonly onDidChangeFormatters: Event<IFormatterChangeEvent> = Event.None;
+	private readonly _onDidRegisterFormatter = new Emitter<void>();
+	public readonly onDidChangeFormatters: Event<void> = this._onDidRegisterFormatter.event;
 
 	public getUriLabel(resource: URI, options?: { relative?: boolean, forceNoTildify?: boolean }): string {
 		if (resource.scheme === 'file') {
@@ -732,8 +749,8 @@ export class SimpleLayoutService implements ILayoutService {
 
 	public onLayout = Event.None;
 
-	private _dimension?: dom.IDimension;
-	get dimension(): dom.IDimension {
+	private _dimension?: IDimension;
+	get dimension(): IDimension {
 		if (!this._dimension) {
 			this._dimension = dom.getClientArea(window.document.body);
 		}
@@ -745,9 +762,5 @@ export class SimpleLayoutService implements ILayoutService {
 		return this._container;
 	}
 
-	focus(): void {
-		this._codeEditorService.getFocusedCodeEditor()?.focus();
-	}
-
-	constructor(private _codeEditorService: ICodeEditorService, private _container: HTMLElement) { }
+	constructor(private _container: HTMLElement) { }
 }

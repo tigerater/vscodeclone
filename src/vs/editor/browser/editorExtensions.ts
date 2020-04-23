@@ -15,7 +15,7 @@ import { IModelService } from 'vs/editor/common/services/modelService';
 import { ITextModelService } from 'vs/editor/common/services/resolverService';
 import { MenuId, MenuRegistry } from 'vs/platform/actions/common/actions';
 import { CommandsRegistry, ICommandHandlerDescription } from 'vs/platform/commands/common/commands';
-import { ContextKeyExpr, IContextKeyService, ContextKeyExpression } from 'vs/platform/contextkey/common/contextkey';
+import { ContextKeyExpr, IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 import { IConstructorSignature1, ServicesAccessor as InstantiationServicesAccessor, BrandedService } from 'vs/platform/instantiation/common/instantiation';
 import { IKeybindings, KeybindingsRegistry } from 'vs/platform/keybinding/common/keybindingsRegistry';
 import { Registry } from 'vs/platform/registry/common/platform';
@@ -39,26 +39,26 @@ export interface IDiffEditorContributionDescription {
 //#region Command
 
 export interface ICommandKeybindingsOptions extends IKeybindings {
-	kbExpr?: ContextKeyExpression | null;
+	kbExpr?: ContextKeyExpr | null;
 	weight: number;
 }
 export interface ICommandMenuOptions {
 	menuId: MenuId;
 	group: string;
 	order: number;
-	when?: ContextKeyExpression;
+	when?: ContextKeyExpr;
 	title: string;
 }
 export interface ICommandOptions {
 	id: string;
-	precondition: ContextKeyExpression | undefined;
+	precondition: ContextKeyExpr | undefined;
 	kbOpts?: ICommandKeybindingsOptions;
 	description?: ICommandHandlerDescription;
 	menuOpts?: ICommandMenuOptions | ICommandMenuOptions[];
 }
 export abstract class Command {
 	public readonly id: string;
-	public readonly precondition: ContextKeyExpression | undefined;
+	public readonly precondition: ContextKeyExpr | undefined;
 	private readonly _kbOpts: ICommandKeybindingsOptions | undefined;
 	private readonly _menuOpts: ICommandMenuOptions | ICommandMenuOptions[] | undefined;
 	private readonly _description: ICommandHandlerDescription | undefined;
@@ -193,7 +193,7 @@ export abstract class EditorCommand extends Command {
 export interface IEditorActionContextMenuOptions {
 	group: string;
 	order: number;
-	when?: ContextKeyExpression;
+	when?: ContextKeyExpr;
 	menuId?: MenuId;
 }
 export interface IActionOptions extends ICommandOptions {
@@ -347,7 +347,7 @@ export function registerModelCommand(id: string, handler: (model: ITextModel, ..
 
 		const model = accessor.get(IModelService).getModel(resource);
 		if (model) {
-			return handler(model, ...args.slice(1));
+			return handler(model, args.slice(1));
 		}
 
 		return accessor.get(ITextModelService).createModelReference(resource).then(reference => {

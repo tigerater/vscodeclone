@@ -49,7 +49,8 @@ export interface IDisposable {
 }
 
 export function isDisposable<E extends object>(thing: E): thing is E & IDisposable {
-	return typeof (<IDisposable>thing).dispose === 'function' && (<IDisposable>thing).dispose.length === 0;
+	return typeof (<IDisposable><any>thing).dispose === 'function'
+		&& (<IDisposable><any>thing).dispose.length === 0;
 }
 
 export function dispose<T extends IDisposable>(disposable: T): T;
@@ -123,7 +124,7 @@ export class DisposableStore implements IDisposable {
 		if (!t) {
 			return t;
 		}
-		if ((t as unknown as DisposableStore) === this) {
+		if ((t as any as DisposableStore) === this) {
 			throw new Error('Cannot register a disposable on itself!');
 		}
 
@@ -157,7 +158,7 @@ export abstract class Disposable implements IDisposable {
 	}
 
 	protected _register<T extends IDisposable>(t: T): T {
-		if ((t as unknown as Disposable) === this) {
+		if ((t as any as Disposable) === this) {
 			throw new Error('Cannot register a disposable on itself!');
 		}
 		return this._store.add(t);

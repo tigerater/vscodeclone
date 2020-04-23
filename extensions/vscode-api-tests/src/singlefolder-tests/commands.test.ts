@@ -8,7 +8,7 @@ import * as assert from 'assert';
 import { join } from 'path';
 import { commands, workspace, window, Uri, Range, Position, ViewColumn } from 'vscode';
 
-suite('vscode API - commands', () => {
+suite('commands namespace tests', () => {
 
 	test('getCommands', function (done) {
 

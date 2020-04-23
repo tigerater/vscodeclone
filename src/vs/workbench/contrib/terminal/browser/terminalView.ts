@@ -12,7 +12,7 @@ import { IConfigurationService } from 'vs/platform/configuration/common/configur
 import { IContextMenuService } from 'vs/platform/contextview/browser/contextView';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
-import { IThemeService, IColorTheme, registerThemingParticipant, ICssStyleCollector } from 'vs/platform/theme/common/themeService';
+import { IThemeService, ITheme, registerThemingParticipant, ICssStyleCollector } from 'vs/platform/theme/common/themeService';
 import { TerminalFindWidget } from 'vs/workbench/contrib/terminal/browser/terminalFindWidget';
 import { editorHoverBackground, editorHoverBorder, editorHoverForeground } from 'vs/platform/theme/common/colorRegistry';
 import { KillTerminalAction, SwitchTerminalAction, SwitchTerminalActionViewItem, CopyTerminalSelectionAction, TerminalPasteAction, ClearTerminalAction, SelectAllTerminalAction, CreateNewTerminalAction, SplitTerminalAction } from 'vs/workbench/contrib/terminal/browser/terminalActions';
@@ -29,8 +29,6 @@ import { IKeybindingService } from 'vs/platform/keybinding/common/keybinding';
 import { IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 import { IViewDescriptorService } from 'vs/workbench/common/views';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
-import { PANEL_BACKGROUND, SIDE_BAR_BACKGROUND } from 'vs/workbench/common/theme';
-import { Orientation } from 'vs/base/browser/ui/sash/sash';
 
 const FIND_FOCUS_CLASS = 'find-focused';
 
@@ -43,7 +41,6 @@ export class TerminalViewPane extends ViewPane {
 	private _parentDomElement: HTMLElement | undefined;
 	private _terminalContainer: HTMLElement | undefined;
 	private _findWidget: TerminalFindWidget | undefined;
-	private _splitTerminalAction: IAction | undefined;
 
 	constructor(
 		options: IViewPaneOptions,
@@ -82,7 +79,7 @@ export class TerminalViewPane extends ViewPane {
 
 		this._terminalService.setContainers(container, this._terminalContainer);
 
-		this._register(this.themeService.onDidColorThemeChange(theme => this._updateTheme(theme)));
+		this._register(this.themeService.onThemeChange(theme => this._updateTheme(theme)));
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
 			if (e.affectsConfiguration('terminal.integrated') || e.affectsConfiguration('editor.fontFamily')) {
 				this._updateFont();
@@ -122,19 +119,14 @@ export class TerminalViewPane extends ViewPane {
 
 	protected layoutBody(height: number, width: number): void {
 		this._terminalService.terminalTabs.forEach(t => t.layout(width, height));
-		// Update orientation of split button icon
-		if (this._splitTerminalAction) {
-			this._splitTerminalAction.class = this.orientation === Orientation.HORIZONTAL ? SplitTerminalAction.HORIZONTAL_CLASS : SplitTerminalAction.VERTICAL_CLASS;
-		}
 	}
 
 	public getActions(): IAction[] {
 		if (!this._actions) {
-			this._splitTerminalAction = this._instantiationService.createInstance(SplitTerminalAction, SplitTerminalAction.ID, SplitTerminalAction.LABEL);
 			this._actions = [
 				this._instantiationService.createInstance(SwitchTerminalAction, SwitchTerminalAction.ID, SwitchTerminalAction.LABEL),
 				this._instantiationService.createInstance(CreateNewTerminalAction, CreateNewTerminalAction.ID, CreateNewTerminalAction.SHORT_LABEL),
-				this._splitTerminalAction,
+				this._instantiationService.createInstance(SplitTerminalAction, SplitTerminalAction.ID, SplitTerminalAction.LABEL),
 				this._instantiationService.createInstance(KillTerminalAction, KillTerminalAction.ID, KillTerminalAction.PANEL_LABEL)
 			];
 			this._actions.forEach(a => {
@@ -239,13 +231,6 @@ export class TerminalViewPane extends ViewPane {
 					if (!terminal) {
 						return;
 					}
-
-					// copyPaste: Shift+right click should open context menu
-					if (rightClickBehavior === 'copyPaste' && event.shiftKey) {
-						this._openContextMenu(event);
-						return;
-					}
-
 					if (rightClickBehavior === 'copyPaste' && terminal.hasSelection()) {
 						await terminal.copySelection();
 						terminal.clearSelection();
@@ -267,7 +252,13 @@ export class TerminalViewPane extends ViewPane {
 		}));
 		this._register(dom.addDisposableListener(parentDomElement, 'contextmenu', (event: MouseEvent) => {
 			if (!this._cancelContextMenu) {
-				this._openContextMenu(event);
+				const standardEvent = new StandardMouseEvent(event);
+				const anchor: { x: number, y: number } = { x: standardEvent.posx, y: standardEvent.posy };
+				this._contextMenuService.showContextMenu({
+					getAnchor: () => anchor,
+					getActions: () => this._getContextMenuActions(),
+					getActionsContext: () => this._parentDomElement
+				});
 			}
 			event.preventDefault();
 			event.stopImmediatePropagation();
@@ -314,19 +305,9 @@ export class TerminalViewPane extends ViewPane {
 		}));
 	}
 
-	private _openContextMenu(event: MouseEvent): void {
-		const standardEvent = new StandardMouseEvent(event);
-		const anchor: { x: number, y: number } = { x: standardEvent.posx, y: standardEvent.posy };
-		this._contextMenuService.showContextMenu({
-			getAnchor: () => anchor,
-			getActions: () => this._getContextMenuActions(),
-			getActionsContext: () => this._parentDomElement
-		});
-	}
-
-	private _updateTheme(theme?: IColorTheme): void {
+	private _updateTheme(theme?: ITheme): void {
 		if (!theme) {
-			theme = this.themeService.getColorTheme();
+			theme = this.themeService.getTheme();
 		}
 
 		if (this._findWidget) {
@@ -344,12 +325,9 @@ export class TerminalViewPane extends ViewPane {
 	}
 }
 
-registerThemingParticipant((theme: IColorTheme, collector: ICssStyleCollector) => {
-	const panelBackgroundColor = theme.getColor(TERMINAL_BACKGROUND_COLOR) || theme.getColor(PANEL_BACKGROUND);
-	collector.addRule(`.monaco-workbench .part.panel .pane-body.integrated-terminal .terminal-outer-container { background-color: ${panelBackgroundColor ? panelBackgroundColor.toString() : ''}; }`);
-
-	const sidebarBackgroundColor = theme.getColor(TERMINAL_BACKGROUND_COLOR) || theme.getColor(SIDE_BAR_BACKGROUND);
-	collector.addRule(`.monaco-workbench .part.sidebar .pane-body.integrated-terminal .terminal-outer-container { background-color: ${sidebarBackgroundColor ? sidebarBackgroundColor.toString() : ''}; }`);
+registerThemingParticipant((theme: ITheme, collector: ICssStyleCollector) => {
+	const backgroundColor = theme.getColor(TERMINAL_BACKGROUND_COLOR);
+	collector.addRule(`.monaco-workbench .pane-body.integrated-terminal .terminal-outer-container { background-color: ${backgroundColor ? backgroundColor.toString() : ''}; }`);
 
 	const borderColor = theme.getColor(TERMINAL_BORDER_COLOR);
 	if (borderColor) {

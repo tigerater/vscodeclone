@@ -23,7 +23,7 @@
 		}],
 		"snippets": [{
 			"language": "bat",
-			"path": "./snippets/batchfile.code-snippets"
+			"path": "./snippets/batchfile.snippets.json"
 		}]
 	}
 }

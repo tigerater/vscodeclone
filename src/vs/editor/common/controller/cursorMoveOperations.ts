@@ -91,10 +91,9 @@ export class MoveOperations {
 
 	public static down(config: CursorConfiguration, model: ICursorSimpleModel, lineNumber: number, column: number, leftoverVisibleColumns: number, count: number, allowMoveOnLastLine: boolean): CursorPosition {
 		const currentVisibleColumn = CursorColumns.visibleColumnFromColumn(model.getLineContent(lineNumber), column, config.tabSize) + leftoverVisibleColumns;
-		const lineCount = model.getLineCount();
-		const wasOnLastPosition = (lineNumber === lineCount && column === model.getLineMaxColumn(lineNumber));
 
 		lineNumber = lineNumber + count;
+		let lineCount = model.getLineCount();
 		if (lineNumber > lineCount) {
 			lineNumber = lineCount;
 			if (allowMoveOnLastLine) {
@@ -106,11 +105,7 @@ export class MoveOperations {
 			column = CursorColumns.columnFromVisibleColumn2(config, model, lineNumber, currentVisibleColumn);
 		}
 
-		if (wasOnLastPosition) {
-			leftoverVisibleColumns = 0;
-		} else {
-			leftoverVisibleColumns = currentVisibleColumn - CursorColumns.visibleColumnFromColumn(model.getLineContent(lineNumber), column, config.tabSize);
-		}
+		leftoverVisibleColumns = currentVisibleColumn - CursorColumns.visibleColumnFromColumn(model.getLineContent(lineNumber), column, config.tabSize);
 
 		return new CursorPosition(lineNumber, column, leftoverVisibleColumns);
 	}
@@ -149,7 +144,6 @@ export class MoveOperations {
 
 	public static up(config: CursorConfiguration, model: ICursorSimpleModel, lineNumber: number, column: number, leftoverVisibleColumns: number, count: number, allowMoveOnFirstLine: boolean): CursorPosition {
 		const currentVisibleColumn = CursorColumns.visibleColumnFromColumn(model.getLineContent(lineNumber), column, config.tabSize) + leftoverVisibleColumns;
-		const wasOnFirstPosition = (lineNumber === 1 && column === 1);
 
 		lineNumber = lineNumber - count;
 		if (lineNumber < 1) {
@@ -163,11 +157,7 @@ export class MoveOperations {
 			column = CursorColumns.columnFromVisibleColumn2(config, model, lineNumber, currentVisibleColumn);
 		}
 
-		if (wasOnFirstPosition) {
-			leftoverVisibleColumns = 0;
-		} else {
-			leftoverVisibleColumns = currentVisibleColumn - CursorColumns.visibleColumnFromColumn(model.getLineContent(lineNumber), column, config.tabSize);
-		}
+		leftoverVisibleColumns = currentVisibleColumn - CursorColumns.visibleColumnFromColumn(model.getLineContent(lineNumber), column, config.tabSize);
 
 		return new CursorPosition(lineNumber, column, leftoverVisibleColumns);
 	}

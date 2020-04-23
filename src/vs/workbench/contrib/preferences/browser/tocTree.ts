@@ -5,10 +5,10 @@
 
 import * as DOM from 'vs/base/browser/dom';
 import { IListVirtualDelegate } from 'vs/base/browser/ui/list/list';
-import { DefaultStyleController, IListAccessibilityProvider } from 'vs/base/browser/ui/list/listWidget';
+import { DefaultStyleController, IAccessibilityProvider } from 'vs/base/browser/ui/list/listWidget';
 import { IObjectTreeOptions, ObjectTree } from 'vs/base/browser/ui/tree/objectTree';
 import { ITreeElement, ITreeNode, ITreeRenderer } from 'vs/base/browser/ui/tree/tree';
-import { Iterable } from 'vs/base/common/iterator';
+import { Iterator } from 'vs/base/common/iterator';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { editorBackground, transparent, foreground } from 'vs/platform/theme/common/colorRegistry';
 import { attachStyler } from 'vs/platform/theme/common/styler';
@@ -138,10 +138,11 @@ class TOCTreeDelegate implements IListVirtualDelegate<SettingsTreeElement> {
 	}
 }
 
-export function createTOCIterator(model: TOCTreeModel | SettingsTreeGroupElement, tree: TOCTree): Iterable<ITreeElement<SettingsTreeGroupElement>> {
+export function createTOCIterator(model: TOCTreeModel | SettingsTreeGroupElement, tree: TOCTree): Iterator<ITreeElement<SettingsTreeGroupElement>> {
 	const groupChildren = <SettingsTreeGroupElement[]>model.children.filter(c => c instanceof SettingsTreeGroupElement);
+	const groupsIt = Iterator.fromArray(groupChildren);
 
-	return Iterable.map(groupChildren, g => {
+	return Iterator.map(groupsIt, g => {
 		const hasGroupChildren = g.children.some(c => c instanceof SettingsTreeGroupElement);
 
 		return {
@@ -155,7 +156,7 @@ export function createTOCIterator(model: TOCTreeModel | SettingsTreeGroupElement
 	});
 }
 
-class SettingsAccessibilityProvider implements IListAccessibilityProvider<SettingsTreeGroupElement> {
+class SettingsAccessibilityProvider implements IAccessibilityProvider<SettingsTreeGroupElement> {
 	getAriaLabel(element: SettingsTreeElement): string {
 		if (!element) {
 			return '';

@@ -18,7 +18,7 @@ const fancyLog = require('fancy-log');
 const ansiColors = require('ansi-colors');
 
 const root = path.dirname(path.dirname(__dirname));
-const builtInExtensions = JSON.parse(fs.readFileSync(path.join(__dirname, '../../product.json'), 'utf8')).builtInExtensions;
+const builtInExtensions = require('../builtInExtensions.json');
 const controlFilePath = path.join(os.homedir(), '.vscode-oss-dev', 'extensions', 'control.json');
 const ENABLE_LOGGING = !process.env['VSCODE_BUILD_BUILTIN_EXTENSIONS_SILENCE_PLEASE'];
 

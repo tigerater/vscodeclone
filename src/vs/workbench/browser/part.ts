@@ -5,9 +5,10 @@
 
 import 'vs/css!./media/part';
 import { Component } from 'vs/workbench/common/component';
-import { IThemeService, IColorTheme } from 'vs/platform/theme/common/themeService';
-import { Dimension, size, IDimension } from 'vs/base/browser/dom';
+import { IThemeService, ITheme } from 'vs/platform/theme/common/themeService';
+import { Dimension, size } from 'vs/base/browser/dom';
 import { IStorageService } from 'vs/platform/storage/common/storage';
+import { IDimension } from 'vs/platform/layout/browser/layoutService';
 import { ISerializableView, IViewSize } from 'vs/base/browser/ui/grid/grid';
 import { Event, Emitter } from 'vs/base/common/event';
 import { IWorkbenchLayoutService } from 'vs/workbench/services/layout/browser/layoutService';
@@ -52,7 +53,7 @@ export abstract class Part extends Component implements ISerializableView {
 		layoutService.registerPart(this);
 	}
 
-	protected onThemeChange(theme: IColorTheme): void {
+	protected onThemeChange(theme: ITheme): void {
 
 		// only call if our create() method has been called
 		if (this.parent) {

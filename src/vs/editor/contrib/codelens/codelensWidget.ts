@@ -336,10 +336,6 @@ export class CodeLensWidget {
 			}
 		}
 	}
-
-	getItems(): CodeLensItem[] {
-		return this._data;
-	}
 }
 
 registerThemingParticipant((theme, collector) => {

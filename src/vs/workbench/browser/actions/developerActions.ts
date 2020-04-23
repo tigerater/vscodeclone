@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import 'vs/css!./media/actions';
+import 'vs/css!./media/screencast';
 
 import { Action } from 'vs/base/common/actions';
 import * as nls from 'vs/nls';
@@ -17,7 +17,7 @@ import { IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 import { Context } from 'vs/platform/contextkey/browser/contextKeyService';
 import { StandardKeyboardEvent } from 'vs/base/browser/keyboardEvent';
 import { timeout } from 'vs/base/common/async';
-import { ILayoutService } from 'vs/platform/layout/browser/layoutService';
+import { IWorkbenchLayoutService } from 'vs/workbench/services/layout/browser/layoutService';
 import { Registry } from 'vs/platform/registry/common/platform';
 import { SyncActionDescriptor } from 'vs/platform/actions/common/actions';
 import { IWorkbenchActionRegistry, Extensions } from 'vs/workbench/common/actions';
@@ -41,7 +41,7 @@ class InspectContextKeysAction extends Action {
 		super(id, label);
 	}
 
-	async run(): Promise<void> {
+	run(): Promise<void> {
 		const disposables = new DisposableStore();
 
 		const stylesheet = createStyleSheet();
@@ -85,6 +85,8 @@ class InspectContextKeysAction extends Action {
 
 			dispose(disposables);
 		}, null, disposables);
+
+		return Promise.resolve();
 	}
 }
 
@@ -99,7 +101,7 @@ class ToggleScreencastModeAction extends Action {
 		id: string,
 		label: string,
 		@IKeybindingService private readonly keybindingService: IKeybindingService,
-		@ILayoutService private readonly layoutService: ILayoutService,
+		@IWorkbenchLayoutService private readonly layoutService: IWorkbenchLayoutService,
 		@IConfigurationService private readonly configurationService: IConfigurationService
 	) {
 		super(id, label);
@@ -114,7 +116,7 @@ class ToggleScreencastModeAction extends Action {
 
 		const disposables = new DisposableStore();
 
-		const container = this.layoutService.container;
+		const container = this.layoutService.getWorkbenchElement();
 		const mouseMarker = append(container, $('.screencast-mouse'));
 		disposables.add(toDisposable(() => mouseMarker.remove()));
 

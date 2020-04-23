@@ -4,8 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import 'vs/workbench/contrib/markers/browser/markersFileDecorations';
-import { ContextKeyExpr, IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
+import { ContextKeyExpr } from 'vs/platform/contextkey/common/contextkey';
 import { Extensions, IConfigurationRegistry } from 'vs/platform/configuration/common/configurationRegistry';
+import { IPanelService } from 'vs/workbench/services/panel/common/panelService';
 import { IWorkbenchActionRegistry, Extensions as ActionExtensions } from 'vs/workbench/common/actions';
 import { KeybindingsRegistry, KeybindingWeight } from 'vs/platform/keybinding/common/keybindingsRegistry';
 import { KeyCode, KeyMod } from 'vs/base/common/keyCodes';
@@ -13,6 +14,7 @@ import { localize } from 'vs/nls';
 import { Marker, RelatedInformation } from 'vs/workbench/contrib/markers/browser/markersModel';
 import { MarkersView } from 'vs/workbench/contrib/markers/browser/markersView';
 import { MenuId, MenuRegistry, SyncActionDescriptor, registerAction2, Action2 } from 'vs/platform/actions/common/actions';
+import { TogglePanelAction } from 'vs/workbench/browser/panel';
 import { Registry } from 'vs/platform/registry/common/platform';
 import { ShowProblemsPanelAction } from 'vs/workbench/contrib/markers/browser/markersViewActions';
 import Constants from 'vs/workbench/contrib/markers/browser/constants';
@@ -26,12 +28,11 @@ import { Disposable } from 'vs/base/common/lifecycle';
 import { IStatusbarEntryAccessor, IStatusbarService, StatusbarAlignment, IStatusbarEntry } from 'vs/workbench/services/statusbar/common/statusbar';
 import { IMarkerService, MarkerStatistics } from 'vs/platform/markers/common/markers';
 import { CommandsRegistry } from 'vs/platform/commands/common/commands';
-import { ViewContainer, IViewContainersRegistry, Extensions as ViewContainerExtensions, ViewContainerLocation, IViewsRegistry, IViewsService, getVisbileViewContextKey, FocusedViewContext, IViewDescriptorService } from 'vs/workbench/common/views';
+import { ViewContainer, IViewContainersRegistry, Extensions as ViewContainerExtensions, ViewContainerLocation, IViewsRegistry, IViewsService, getVisbileViewContextKey } from 'vs/workbench/common/views';
 import { ViewPaneContainer } from 'vs/workbench/browser/parts/views/viewPaneContainer';
 import { IWorkbenchLayoutService } from 'vs/workbench/services/layout/browser/layoutService';
 import { SyncDescriptor } from 'vs/platform/instantiation/common/descriptors';
 import type { ServicesAccessor } from 'vs/platform/instantiation/common/instantiation';
-import { ToggleViewAction } from 'vs/workbench/browser/actions/layoutActions';
 
 registerSingleton(IMarkersWorkbenchService, MarkersWorkbenchService, false);
 
@@ -93,18 +94,16 @@ Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfigurat
 	}
 });
 
-class ToggleMarkersPanelAction extends ToggleViewAction {
+class ToggleMarkersPanelAction extends TogglePanelAction {
 
 	public static readonly ID = 'workbench.actions.view.problems';
 	public static readonly LABEL = Messages.MARKERS_PANEL_TOGGLE_LABEL;
 
 	constructor(id: string, label: string,
-		@IViewsService viewsService: IViewsService,
-		@IViewDescriptorService viewDescriptorService: IViewDescriptorService,
-		@IContextKeyService contextKeyService: IContextKeyService,
-		@IWorkbenchLayoutService layoutService: IWorkbenchLayoutService
+		@IWorkbenchLayoutService layoutService: IWorkbenchLayoutService,
+		@IPanelService panelService: IPanelService
 	) {
-		super(id, label, Constants.MARKERS_VIEW_ID, viewsService, viewDescriptorService, contextKeyService, layoutService);
+		super(id, label, Constants.MARKERS_CONTAINER_ID, panelService, layoutService);
 	}
 }
 
@@ -112,8 +111,6 @@ class ToggleMarkersPanelAction extends ToggleViewAction {
 const VIEW_CONTAINER: ViewContainer = Registry.as<IViewContainersRegistry>(ViewContainerExtensions.ViewContainersRegistry).registerViewContainer({
 	id: Constants.MARKERS_CONTAINER_ID,
 	name: Messages.MARKERS_PANEL_TITLE_PROBLEMS,
-	hideIfEmpty: true,
-	order: 0,
 	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [Constants.MARKERS_CONTAINER_ID, Constants.MARKERS_VIEW_STORAGE_ID, { mergeViewWithContainerWhenSingleView: true, donotShowContainerTitleWhenMergedWithContainer: true }]),
 	focusCommand: {
 		id: ToggleMarkersPanelAction.ID, keybindings: {
@@ -124,10 +121,8 @@ const VIEW_CONTAINER: ViewContainer = Registry.as<IViewContainersRegistry>(ViewC
 
 Registry.as<IViewsRegistry>(ViewContainerExtensions.ViewsRegistry).registerViews([{
 	id: Constants.MARKERS_VIEW_ID,
-	containerIcon: 'codicon-warning',
 	name: Messages.MARKERS_PANEL_TITLE_PROBLEMS,
 	canToggleVisibility: false,
-	canMoveView: true,
 	ctorDescriptor: new SyncDescriptor(MarkersView),
 }], VIEW_CONTAINER);
 
@@ -216,7 +211,7 @@ registerAction2(class extends Action2 {
 			id: Constants.MARKERS_VIEW_FOCUS_FILTER,
 			title: localize('focusProblemsFilter', "Focus problems filter"),
 			keybinding: {
-				when: FocusedViewContext.isEqualTo(Constants.MARKERS_VIEW_ID),
+				when: Constants.MarkerViewFocusContextKey,
 				weight: KeybindingWeight.WorkbenchContrib,
 				primary: KeyMod.CtrlCmd | KeyCode.KEY_F
 			}
@@ -261,25 +256,6 @@ registerAction2(class extends Action2 {
 		const markersView = accessor.get(IViewsService).getActiveViewWithId<MarkersView>(Constants.MARKERS_VIEW_ID);
 		if (markersView) {
 			markersView.markersViewModel.multiline = false;
-		}
-	}
-});
-registerAction2(class extends Action2 {
-	constructor() {
-		super({
-			id: Constants.MARKERS_VIEW_CLEAR_FILTER_TEXT,
-			title: localize('clearFiltersText', "Clear filters text"),
-			category: localize('problems', "Problems"),
-			keybinding: {
-				when: Constants.MarkerViewFilterFocusContextKey,
-				weight: KeybindingWeight.WorkbenchContrib,
-			}
-		});
-	}
-	run(accessor: ServicesAccessor) {
-		const markersView = accessor.get(IViewsService).getActiveViewWithId<MarkersView>(Constants.MARKERS_VIEW_ID);
-		if (markersView) {
-			markersView.clearFilterText();
 		}
 	}
 });
@@ -361,11 +337,9 @@ class MarkersStatusBarContributions extends Disposable implements IWorkbenchCont
 
 	private getMarkersItem(): IStatusbarEntry {
 		const markersStatistics = this.markerService.getStatistics();
-		const tooltip = this.getMarkersTooltip(markersStatistics);
 		return {
 			text: this.getMarkersText(markersStatistics),
-			ariaLabel: tooltip,
-			tooltip,
+			tooltip: this.getMarkersTooltip(markersStatistics),
 			command: 'workbench.actions.view.toggleProblems'
 		};
 	}

@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import { UriComponents, URI } from 'vs/base/common/uri';
 import { createDecorator } from 'vs/platform/instantiation/common/instantiation';
 import { ExtHostTimelineShape, MainThreadTimelineShape, IMainContext, MainContext } from 'vs/workbench/api/common/extHost.protocol';
-import { Timeline, TimelineItem, TimelineOptions, TimelineProvider, InternalTimelineOptions } from 'vs/workbench/contrib/timeline/common/timeline';
+import { Timeline, TimelineItem, TimelineOptions, TimelineProvider } from 'vs/workbench/contrib/timeline/common/timeline';
 import { IDisposable, toDisposable, DisposableStore } from 'vs/base/common/lifecycle';
 import { CancellationToken } from 'vs/base/common/cancellation';
 import { CommandsConverter, ExtHostCommands } from 'vs/workbench/api/common/extHostCommands';
@@ -16,19 +16,21 @@ import { ExtensionIdentifier } from 'vs/platform/extensions/common/extensions';
 
 export interface IExtHostTimeline extends ExtHostTimelineShape {
 	readonly _serviceBrand: undefined;
-	$getTimeline(id: string, uri: UriComponents, options: vscode.TimelineOptions, token: vscode.CancellationToken, internalOptions?: InternalTimelineOptions): Promise<Timeline | undefined>;
+	$getTimeline(id: string, uri: UriComponents, options: vscode.TimelineOptions, token: vscode.CancellationToken, internalOptions?: { cacheResults?: boolean }): Promise<Timeline | undefined>;
 }
 
 export const IExtHostTimeline = createDecorator<IExtHostTimeline>('IExtHostTimeline');
 
 export class ExtHostTimeline implements IExtHostTimeline {
+	private static handlePool = 0;
+
 	_serviceBrand: undefined;
 
 	private _proxy: MainThreadTimelineShape;
 
 	private _providers = new Map<string, TimelineProvider>();
 
-	private _itemsBySourceAndUriMap = new Map<string, Map<string | undefined, Map<string, vscode.TimelineItem>>>();
+	private _itemsBySourceByUriMap = new Map<string | undefined, Map<string, Map<string, vscode.TimelineItem>>>();
 
 	constructor(
 		mainContext: IMainContext,
@@ -40,7 +42,7 @@ export class ExtHostTimeline implements IExtHostTimeline {
 			processArgument: arg => {
 				if (arg && arg.$mid === 11) {
 					const uri = arg.uri === undefined ? undefined : URI.revive(arg.uri);
-					return this._itemsBySourceAndUriMap.get(arg.source)?.get(getUriKey(uri))?.get(arg.handle);
+					return this._itemsBySourceByUriMap.get(getUriKey(uri))?.get(arg.source)?.get(arg.handle);
 				}
 
 				return arg;
@@ -48,7 +50,7 @@ export class ExtHostTimeline implements IExtHostTimeline {
 		});
 	}
 
-	async $getTimeline(id: string, uri: UriComponents, options: vscode.TimelineOptions, token: vscode.CancellationToken, internalOptions?: InternalTimelineOptions): Promise<Timeline | undefined> {
+	async $getTimeline(id: string, uri: UriComponents, options: vscode.TimelineOptions, token: vscode.CancellationToken, internalOptions?: { cacheResults?: boolean }): Promise<Timeline | undefined> {
 		const provider = this._providers.get(id);
 		return provider?.provideTimeline(URI.revive(uri), options, token, internalOptions);
 	}
@@ -60,21 +62,26 @@ export class ExtHostTimeline implements IExtHostTimeline {
 
 		let disposable: IDisposable | undefined;
 		if (provider.onDidChange) {
-			disposable = provider.onDidChange(e => this._proxy.$emitTimelineChangeEvent({ uri: undefined, reset: true, ...e, id: provider.id }), this);
+			disposable = provider.onDidChange(this.emitTimelineChangeEvent(provider.id), this);
 		}
 
-		const itemsBySourceAndUriMap = this._itemsBySourceAndUriMap;
+		const itemsBySourceByUriMap = this._itemsBySourceByUriMap;
 		return this.registerTimelineProviderCore({
 			...provider,
 			scheme: scheme,
 			onDidChange: undefined,
-			async provideTimeline(uri: URI, options: TimelineOptions, token: CancellationToken, internalOptions?: InternalTimelineOptions) {
-				if (internalOptions?.resetCache) {
-					timelineDisposables.clear();
+			async provideTimeline(uri: URI, options: TimelineOptions, token: CancellationToken, internalOptions?: { cacheResults?: boolean }) {
+				// For now, only allow the caching of a single Uri
+				if (internalOptions?.cacheResults) {
+					if (options.cursor === undefined) {
+						timelineDisposables.clear();
+					}
 
-					// For now, only allow the caching of a single Uri
-					// itemsBySourceAndUriMap.get(provider.id)?.get(getUriKey(uri))?.clear();
-					itemsBySourceAndUriMap.get(provider.id)?.clear();
+					if (!itemsBySourceByUriMap.has(getUriKey(uri))) {
+						itemsBySourceByUriMap.clear();
+					}
+				} else {
+					timelineDisposables.clear();
 				}
 
 				const result = await provider.provideTimeline(uri, options, token);
@@ -84,9 +91,8 @@ export class ExtHostTimeline implements IExtHostTimeline {
 					return undefined;
 				}
 
-				// TODO: Should we bother converting all the data if we aren't caching? Meaning it is being requested by an extension?
-
-				const convertItem = convertTimelineItem(uri, internalOptions);
+				// TODO: Determine if we should cache dependent on who calls us (internal vs external)
+				const convertItem = convertTimelineItem(uri, internalOptions?.cacheResults ?? false);
 				return {
 					...result,
 					source: provider.id,
@@ -94,10 +100,6 @@ export class ExtHostTimeline implements IExtHostTimeline {
 				};
 			},
 			dispose() {
-				for (const sourceMap of itemsBySourceAndUriMap.values()) {
-					sourceMap.get(provider.id)?.clear();
-				}
-
 				disposable?.dispose();
 				timelineDisposables.dispose();
 			}
@@ -105,28 +107,29 @@ export class ExtHostTimeline implements IExtHostTimeline {
 	}
 
 	private convertTimelineItem(source: string, commandConverter: CommandsConverter, disposables: DisposableStore) {
-		return (uri: URI, options?: InternalTimelineOptions) => {
-			let items: Map<string, vscode.TimelineItem> | undefined;
-			if (options?.cacheResults) {
-				let itemsByUri = this._itemsBySourceAndUriMap.get(source);
-				if (itemsByUri === undefined) {
-					itemsByUri = new Map();
-					this._itemsBySourceAndUriMap.set(source, itemsByUri);
+		return (uri: URI, cacheResults: boolean) => {
+			let itemsMap: Map<string, vscode.TimelineItem> | undefined;
+			if (cacheResults) {
+				const uriKey = getUriKey(uri);
+
+				let sourceMap = this._itemsBySourceByUriMap.get(uriKey);
+				if (sourceMap === undefined) {
+					sourceMap = new Map();
+					this._itemsBySourceByUriMap.set(uriKey, sourceMap);
 				}
 
-				const uriKey = getUriKey(uri);
-				items = itemsByUri.get(uriKey);
-				if (items === undefined) {
-					items = new Map();
-					itemsByUri.set(uriKey, items);
+				itemsMap = sourceMap.get(source);
+				if (itemsMap === undefined) {
+					itemsMap = new Map();
+					sourceMap.set(source, itemsMap);
 				}
 			}
 
 			return (item: vscode.TimelineItem): TimelineItem => {
 				const { iconPath, ...props } = item;
 
-				const handle = `${source}|${item.id ?? item.timestamp}`;
-				items?.set(handle, item);
+				const handle = `${source}|${item.id ?? `${item.timestamp}-${ExtHostTimeline.handlePool++}`}`;
+				itemsMap?.set(handle, item);
 
 				let icon;
 				let iconDark;
@@ -158,6 +161,22 @@ export class ExtHostTimeline implements IExtHostTimeline {
 		};
 	}
 
+	private emitTimelineChangeEvent(id: string) {
+		return (e: vscode.TimelineChangeEvent) => {
+			// Clear caches
+			if (e?.uri === undefined) {
+				for (const sourceMap of this._itemsBySourceByUriMap.values()) {
+					sourceMap.get(id)?.clear();
+				}
+			}
+			else {
+				this._itemsBySourceByUriMap.get(getUriKey(e.uri))?.clear();
+			}
+
+			this._proxy.$emitTimelineChangeEvent({ ...e, id: id });
+		};
+	}
+
 	private registerTimelineProviderCore(provider: TimelineProvider): IDisposable {
 		// console.log(`ExtHostTimeline#registerTimelineProvider: id=${provider.id}`);
 
@@ -174,7 +193,7 @@ export class ExtHostTimeline implements IExtHostTimeline {
 		this._providers.set(provider.id, provider);
 
 		return toDisposable(() => {
-			for (const sourceMap of this._itemsBySourceAndUriMap.values()) {
+			for (const sourceMap of this._itemsBySourceByUriMap.values()) {
 				sourceMap.get(provider.id)?.clear();
 			}
 

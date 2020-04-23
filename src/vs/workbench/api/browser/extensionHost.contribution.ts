@@ -56,7 +56,6 @@ import './mainThreadWindow';
 import './mainThreadWebview';
 import './mainThreadWorkspace';
 import './mainThreadComments';
-import './mainThreadNotebook';
 import './mainThreadTask';
 import './mainThreadLabelService';
 import './mainThreadTunnelService';

@@ -8,7 +8,7 @@ import { join } from 'path';
 import * as vscode from 'vscode';
 import { createRandomFile, testFs } from '../utils';
 
-suite('vscode API - languages', () => {
+suite('languages namespace tests', () => {
 
 	const isWindows = process.platform === 'win32';
 

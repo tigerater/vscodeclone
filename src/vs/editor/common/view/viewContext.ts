@@ -7,23 +7,23 @@ import { IConfiguration } from 'vs/editor/common/editorCommon';
 import { ViewEventDispatcher } from 'vs/editor/common/view/viewEventDispatcher';
 import { ViewEventHandler } from 'vs/editor/common/viewModel/viewEventHandler';
 import { IViewLayout, IViewModel } from 'vs/editor/common/viewModel/viewModel';
-import { IColorTheme, ThemeType } from 'vs/platform/theme/common/themeService';
+import { ITheme, ThemeType } from 'vs/platform/theme/common/themeService';
 import { ColorIdentifier } from 'vs/platform/theme/common/colorRegistry';
 import { Color } from 'vs/base/common/color';
 
 export class EditorTheme {
 
-	private _theme: IColorTheme;
+	private _theme: ITheme;
 
 	public get type(): ThemeType {
 		return this._theme.type;
 	}
 
-	constructor(theme: IColorTheme) {
+	constructor(theme: ITheme) {
 		this._theme = theme;
 	}
 
-	public update(theme: IColorTheme): void {
+	public update(theme: ITheme): void {
 		this._theme = theme;
 	}
 
@@ -42,7 +42,7 @@ export class ViewContext {
 
 	constructor(
 		configuration: IConfiguration,
-		theme: IColorTheme,
+		theme: ITheme,
 		model: IViewModel,
 		privateViewEventBus: ViewEventDispatcher
 	) {

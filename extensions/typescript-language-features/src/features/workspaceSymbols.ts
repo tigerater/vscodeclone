@@ -9,21 +9,15 @@ import { ITypeScriptServiceClient } from '../typescriptService';
 import * as fileSchemes from '../utils/fileSchemes';
 import { doesResourceLookLikeAJavaScriptFile, doesResourceLookLikeATypeScriptFile } from '../utils/languageDescription';
 import * as typeConverters from '../utils/typeConverters';
-import * as PConst from '../protocol.const';
 
 function getSymbolKind(item: Proto.NavtoItem): vscode.SymbolKind {
 	switch (item.kind) {
-		case PConst.Kind.method: return vscode.SymbolKind.Method;
-		case PConst.Kind.enum: return vscode.SymbolKind.Enum;
-		case PConst.Kind.enumMember: return vscode.SymbolKind.EnumMember;
-		case PConst.Kind.function: return vscode.SymbolKind.Function;
-		case PConst.Kind.class: return vscode.SymbolKind.Class;
-		case PConst.Kind.interface: return vscode.SymbolKind.Interface;
-		case PConst.Kind.type: return vscode.SymbolKind.Class;
-		case PConst.Kind.memberVariable: return vscode.SymbolKind.Field;
-		case PConst.Kind.memberGetAccessor: return vscode.SymbolKind.Field;
-		case PConst.Kind.memberSetAccessor: return vscode.SymbolKind.Field;
-		case PConst.Kind.variable: return vscode.SymbolKind.Variable;
+		case 'method': return vscode.SymbolKind.Method;
+		case 'enum': return vscode.SymbolKind.Enum;
+		case 'function': return vscode.SymbolKind.Function;
+		case 'class': return vscode.SymbolKind.Class;
+		case 'interface': return vscode.SymbolKind.Interface;
+		case 'var': return vscode.SymbolKind.Variable;
 		default: return vscode.SymbolKind.Variable;
 	}
 }
@@ -31,7 +25,7 @@ function getSymbolKind(item: Proto.NavtoItem): vscode.SymbolKind {
 class TypeScriptWorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
 	public constructor(
 		private readonly client: ITypeScriptServiceClient,
-		private readonly modeIds: readonly string[]
+		private readonly modeIds: string[]
 	) { }
 
 	public async provideWorkspaceSymbols(
@@ -50,8 +44,7 @@ class TypeScriptWorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvide
 
 		const args: Proto.NavtoRequestArgs = {
 			file: filepath,
-			searchValue: search,
-			maxResultCount: 256,
+			searchValue: search
 		};
 
 		const response = await this.client.execute('navto', args, token);
@@ -59,11 +52,17 @@ class TypeScriptWorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvide
 			return [];
 		}
 
-		return response.body
-			.filter(item => item.containerName || item.kind !== 'alias')
-			.map(item => this.toSymbolInformation(item));
+		const result: vscode.SymbolInformation[] = [];
+		for (const item of response.body) {
+			if (!item.containerName && item.kind === 'alias') {
+				continue;
+			}
+			const label = TypeScriptWorkspaceSymbolProvider.getLabel(item);
+			result.push(new vscode.SymbolInformation(label, getSymbolKind(item), item.containerName || '',
+				typeConverters.Location.fromTextSpan(this.client.toResource(item.file), item)));
+		}
+		return result;
 	}
-
 
 	private async toOpenedFiledPath(document: vscode.TextDocument) {
 		if (document.uri.scheme === fileSchemes.git) {
@@ -78,15 +77,6 @@ class TypeScriptWorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvide
 			}
 		}
 		return this.client.toOpenedFilePath(document);
-	}
-
-	private toSymbolInformation(item: Proto.NavtoItem) {
-		const label = TypeScriptWorkspaceSymbolProvider.getLabel(item);
-		return new vscode.SymbolInformation(
-			label,
-			getSymbolKind(item),
-			item.containerName || '',
-			typeConverters.Location.fromTextSpan(this.client.toResource(item.file), item));
 	}
 
 	private static getLabel(item: Proto.NavtoItem) {
@@ -121,8 +111,7 @@ class TypeScriptWorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvide
 
 export function register(
 	client: ITypeScriptServiceClient,
-	modeIds: readonly string[],
+	modeIds: string[],
 ) {
-	return vscode.languages.registerWorkspaceSymbolProvider(
-		new TypeScriptWorkspaceSymbolProvider(client, modeIds));
+	return vscode.languages.registerWorkspaceSymbolProvider(new TypeScriptWorkspaceSymbolProvider(client, modeIds));
 }

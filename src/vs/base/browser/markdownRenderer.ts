@@ -58,16 +58,12 @@ export function renderMarkdown(markdown: IMarkdownString, options: MarkdownRende
 			return href; // no tranformation performed
 		}
 		if (isDomUri) {
-			// this URI will end up as "src"-attribute of a dom node
-			// and because of that special rewriting needs to be done
-			// so that the URI uses a protocol that's understood by
-			// browsers (like http or https)
-			return DOM.asDomUri(uri).toString(true);
+			uri = DOM.asDomUri(uri);
 		}
 		if (uri.query) {
 			uri = uri.with({ query: _uriMassage(uri.query) });
 		}
-		return uri.toString();
+		return uri.toString(true);
 	};
 
 	// signal to code-block render that the

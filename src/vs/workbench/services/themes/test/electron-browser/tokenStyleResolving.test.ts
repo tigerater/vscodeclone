@@ -47,34 +47,36 @@ function assertTokenStyle(actual: TokenStyle | undefined | null, expected: Token
 	assert.equal(tokenStyleAsString(actual), tokenStyleAsString(expected), message);
 }
 
-function assertTokenStyleMetaData(colorIndex: string[], actual: ITokenStyle | undefined, expected: TokenStyle | undefined | null, message = '') {
+function assertTokenStyleMetaData(colorIndex: string[], actual: ITokenStyle | undefined, expected: TokenStyle | undefined | null, message?: string) {
 	if (expected === undefined || expected === null || actual === undefined) {
 		assert.equal(actual, expected, message);
 		return;
 	}
-	assert.strictEqual(actual.bold, expected.bold, 'bold ' + message);
-	assert.strictEqual(actual.italic, expected.italic, 'italic ' + message);
-	assert.strictEqual(actual.underline, expected.underline, 'underline ' + message);
+	assert.strictEqual(actual.bold, expected.bold, 'bold');
+	assert.strictEqual(actual.italic, expected.italic, 'italic');
+	assert.strictEqual(actual.underline, expected.underline, 'underline');
 
 	const actualForegroundIndex = actual.foreground;
-	if (actualForegroundIndex && expected.foreground) {
-		assert.equal(colorIndex[actualForegroundIndex], Color.Format.CSS.formatHexA(expected.foreground, true).toUpperCase(), 'foreground ' + message);
+	if (expected.foreground) {
+		assert.equal(actualForegroundIndex, colorIndex.indexOf(Color.Format.CSS.formatHexA(expected.foreground, true).toUpperCase()), 'foreground');
 	} else {
-		assert.equal(actualForegroundIndex, expected.foreground || 0, 'foreground ' + message);
+		assert.equal(actualForegroundIndex, 0, 'foreground');
 	}
 }
 
 
-function assertTokenStyles(themeData: ColorThemeData, expected: { [qualifiedClassifier: string]: TokenStyle }, language = 'typescript') {
+function assertTokenStyles(themeData: ColorThemeData, expected: { [qualifiedClassifier: string]: TokenStyle }) {
 	const colorIndex = themeData.tokenColorMap;
 
 	for (let qualifiedClassifier in expected) {
 		const [type, ...modifiers] = qualifiedClassifier.split('.');
 
+		const tokenStyle = themeData.getTokenStyle(type, modifiers);
 		const expectedTokenStyle = expected[qualifiedClassifier];
+		assertTokenStyle(tokenStyle, expectedTokenStyle, qualifiedClassifier);
 
-		const tokenStyleMetaData = themeData.getTokenStyleMetadata(type, modifiers, language);
-		assertTokenStyleMetaData(colorIndex, tokenStyleMetaData, expectedTokenStyle, qualifiedClassifier);
+		const tokenStyleMetaData = themeData.getTokenStyleMetadata(type, modifiers);
+		assertTokenStyleMetaData(colorIndex, tokenStyleMetaData, expectedTokenStyle);
 	}
 }
 
@@ -287,42 +289,6 @@ suite('Themes - TokenStyleResolving', () => {
 
 	});
 
-
-	test('resolveScopes - match most specific', async () => {
-		const themeData = ColorThemeData.createLoadedEmptyTheme('test', 'test');
-
-		const customTokenColors: ITokenColorCustomizations = {
-			textMateRules: [
-				{
-					scope: 'entity.name.type',
-					settings: {
-						fontStyle: 'underline',
-						foreground: '#A6E22E'
-					}
-				},
-				{
-					scope: 'entity.name.type.class',
-					settings: {
-						foreground: '#FF00FF'
-					}
-				},
-				{
-					scope: 'entity.name',
-					settings: {
-						foreground: '#FFFFFF'
-					}
-				},
-			]
-		};
-
-		themeData.setCustomTokenColors(customTokenColors);
-
-		const tokenStyle = themeData.resolveScopes([['entity.name.type.class']]);
-		assertTokenStyle(tokenStyle, ts('#FF00FF', { underline: true }), 'entity.name.type.class');
-
-	});
-
-
 	test('rule matching', async () => {
 		const themeData = ColorThemeData.createLoadedEmptyTheme('test', 'test');
 		themeData.setCustomColors({ 'editor.foreground': '#000000' });
@@ -349,10 +315,8 @@ suite('Themes - TokenStyleResolving', () => {
 	});
 
 	test('super type', async () => {
-		const registry = getTokenClassificationRegistry();
-
-		registry.registerTokenType('myTestInterface', 'A type just for testing', 'interface');
-		registry.registerTokenType('myTestSubInterface', 'A type just for testing', 'myTestInterface');
+		getTokenClassificationRegistry().registerTokenType('myTestInterface', 'A type just for testing', 'interface');
+		getTokenClassificationRegistry().registerTokenType('myTestSubInterface', 'A type just for testing', 'myTestInterface');
 
 		try {
 			const themeData = ColorThemeData.createLoadedEmptyTheme('test', 'test');
@@ -372,62 +336,7 @@ suite('Themes - TokenStyleResolving', () => {
 			});
 			assertTokenStyles(themeData, { 'myTestSubInterface': ts('#ff00ff', { italic: true }) });
 		} finally {
-			registry.deregisterTokenType('myTestInterface');
-			registry.deregisterTokenType('myTestSubInterface');
-		}
-	});
-
-	test('language', async () => {
-		try {
-			const themeData = ColorThemeData.createLoadedEmptyTheme('test', 'test');
-			themeData.setCustomColors({ 'editor.foreground': '#000000' });
-			themeData.setCustomTokenStyleRules({
-				'interface': '#fff000',
-				'interface:java': '#ff0000',
-				'interface.static': { fontStyle: 'bold' },
-				'interface.static:typescript': { fontStyle: 'italic' }
-			});
-
-			assertTokenStyles(themeData, { 'interface': ts('#ff0000', undefined) }, 'java');
-			assertTokenStyles(themeData, { 'interface': ts('#fff000', undefined) }, 'typescript');
-			assertTokenStyles(themeData, { 'interface.static': ts('#ff0000', { bold: true }) }, 'java');
-			assertTokenStyles(themeData, { 'interface.static': ts('#fff000', { bold: true, italic: true }) }, 'typescript');
-		} finally {
-		}
-	});
-
-	test('language - scope resolving', async () => {
-		const registry = getTokenClassificationRegistry();
-
-		const numberOfDefaultRules = registry.getTokenStylingDefaultRules().length;
-
-		registry.registerTokenStyleDefault(registry.parseTokenSelector('type', 'typescript1'), { scopesToProbe: [['entity.name.type.ts1']] });
-		registry.registerTokenStyleDefault(registry.parseTokenSelector('type:javascript1'), { scopesToProbe: [['entity.name.type.js1']] });
-
-		try {
-			const themeData = ColorThemeData.createLoadedEmptyTheme('test', 'test');
-			themeData.setCustomColors({ 'editor.foreground': '#000000' });
-			themeData.setCustomTokenColors({
-				textMateRules: [
-					{
-						scope: 'entity.name.type',
-						settings: { foreground: '#aa0000' }
-					},
-					{
-						scope: 'entity.name.type.ts1',
-						settings: { foreground: '#bb0000' }
-					}
-				]
-			});
-
-			assertTokenStyles(themeData, { 'type': ts('#aa0000', undefined) }, 'javascript1');
-			assertTokenStyles(themeData, { 'type': ts('#bb0000', undefined) }, 'typescript1');
-
-		} finally {
-			registry.deregisterTokenStyleDefault(registry.parseTokenSelector('type', 'typescript1'));
-			registry.deregisterTokenStyleDefault(registry.parseTokenSelector('type:javascript1'));
-
-			assert.equal(registry.getTokenStylingDefaultRules().length, numberOfDefaultRules);
+			getTokenClassificationRegistry().deregisterTokenType('myTestInterface');
 		}
 	});
 });

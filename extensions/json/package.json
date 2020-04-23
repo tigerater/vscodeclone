@@ -28,8 +28,7 @@
           ".webmanifest",
           ".js.map",
           ".css.map",
-          ".har",
-          ".jsonld"
+          ".har"
         ],
         "filenames": [
           "composer.lock",

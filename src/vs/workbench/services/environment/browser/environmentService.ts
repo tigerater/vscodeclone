@@ -4,24 +4,31 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Schemas } from 'vs/base/common/network';
+import { ExportData } from 'vs/base/common/performance';
+import { IProcessEnvironment } from 'vs/base/common/platform';
 import { joinPath } from 'vs/base/common/resources';
 import { URI } from 'vs/base/common/uri';
 import { generateUuid } from 'vs/base/common/uuid';
 import { BACKUPS, IExtensionHostDebugParams } from 'vs/platform/environment/common/environment';
-import { IPath } from 'vs/platform/windows/common/windows';
-import { IWorkbenchEnvironmentService, IEnvironmentConfiguration } from 'vs/workbench/services/environment/common/environmentService';
+import { LogLevel } from 'vs/platform/log/common/log';
+import { IPath, IPathsToWaitFor, IWindowConfiguration } from 'vs/platform/windows/common/windows';
+import { ISingleFolderWorkspaceIdentifier, IWorkspaceIdentifier } from 'vs/platform/workspaces/common/workspaces';
+import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
 import { IWorkbenchConstructionOptions } from 'vs/workbench/workbench.web.api';
 import product from 'vs/platform/product/common/product';
+import { serializableToMap } from 'vs/base/common/map';
 import { memoize } from 'vs/base/common/decorators';
-import { onUnexpectedError } from 'vs/base/common/errors';
 
-export class BrowserEnvironmentConfiguration implements IEnvironmentConfiguration {
+// TODO@ben remove properties that are node/electron only
+export class BrowserWindowConfiguration implements IWindowConfiguration {
 
 	constructor(
 		private readonly options: IBrowserWorkbenchEnvironmentConstructionOptions,
 		private readonly payload: Map<string, string> | undefined,
-		private readonly backupHome: URI
+		private readonly environment: IWorkbenchEnvironmentService
 	) { }
+
+	//#region PROPERLY CONFIGURED IN DESKTOP + WEB
 
 	@memoize
 	get sessionId(): string { return generateUuid(); }
@@ -30,7 +37,10 @@ export class BrowserEnvironmentConfiguration implements IEnvironmentConfiguratio
 	get remoteAuthority(): string | undefined { return this.options.remoteAuthority; }
 
 	@memoize
-	get backupWorkspaceResource(): URI { return joinPath(this.backupHome, this.options.workspaceId); }
+	get connectionToken(): string | undefined { return this.options.connectionToken || this.getCookieValue('vscode-tkn'); }
+
+	@memoize
+	get backupWorkspaceResource(): URI { return joinPath(this.environment.backupHome, this.options.workspaceId); }
 
 	@memoize
 	get filesToOpenOrCreate(): IPath[] | undefined {
@@ -44,24 +54,49 @@ export class BrowserEnvironmentConfiguration implements IEnvironmentConfiguratio
 		return undefined;
 	}
 
-	@memoize
-	get filesToDiff(): IPath[] | undefined {
-		if (this.payload) {
-			const fileToDiffDetail = this.payload.get('diffFileDetail');
-			const fileToDiffMaster = this.payload.get('diffFileMaster');
-			if (fileToDiffDetail && fileToDiffMaster) {
-				return [
-					{ fileUri: URI.parse(fileToDiffDetail) },
-					{ fileUri: URI.parse(fileToDiffMaster) }
-				];
-			}
-		}
+	// Currently unsupported in web
+	get filesToDiff(): IPath[] | undefined { return undefined; }
 
-		return undefined;
-	}
+	//#endregion
 
-	get highContrast() {
-		return false; // could investigate to detect high contrast theme automatically
+
+	//#region TODO MOVE TO NODE LAYER
+
+	_!: any[];
+
+	windowId!: number;
+	mainPid!: number;
+
+	logLevel!: LogLevel;
+
+	appRoot!: string;
+	execPath!: string;
+	backupPath?: string;
+	nodeCachedDataDir?: string;
+
+	userEnv!: IProcessEnvironment;
+
+	workspace?: IWorkspaceIdentifier;
+	folderUri?: ISingleFolderWorkspaceIdentifier;
+
+	zoomLevel?: number;
+	fullscreen?: boolean;
+	maximized?: boolean;
+	highContrast?: boolean;
+	accessibilitySupport?: boolean;
+	partsSplashPath?: string;
+
+	isInitialStartup?: boolean;
+	perfEntries!: ExportData;
+
+	filesToWait?: IPathsToWaitFor;
+
+	//#endregion
+
+	private getCookieValue(name: string): string | undefined {
+		const m = document.cookie.match('(^|[^;]+)\\s*' + name + '\\s*=\\s*([^;]+)'); // See https://stackoverflow.com/a/25490531
+
+		return m ? m.pop() : undefined;
 	}
 }
 
@@ -75,29 +110,19 @@ interface IExtensionHostDebugEnvironment {
 	isExtensionDevelopment: boolean;
 	extensionDevelopmentLocationURI?: URI[];
 	extensionTestsLocationURI?: URI;
-	extensionEnabledProposedApi?: string[];
 }
 
 export class BrowserWorkbenchEnvironmentService implements IWorkbenchEnvironmentService {
 
 	_serviceBrand: undefined;
 
-	private _configuration: IEnvironmentConfiguration | undefined = undefined;
-	get configuration(): IEnvironmentConfiguration {
-		if (!this._configuration) {
-			this._configuration = new BrowserEnvironmentConfiguration(this.options, this.payload, this.backupHome);
-		}
-
-		return this._configuration;
-	}
+	//#region PROPERLY CONFIGURED IN DESKTOP + WEB
 
 	@memoize
 	get isBuilt(): boolean { return !!product.commit; }
 
 	@memoize
 	get logsPath(): string { return this.options.logsPath.path; }
-
-	get logLevel(): string | undefined { return this.payload?.get('logLevel'); }
 
 	@memoize
 	get logFile(): URI { return joinPath(this.options.logsPath, 'window.log'); }
@@ -112,15 +137,16 @@ export class BrowserWorkbenchEnvironmentService implements IWorkbenchEnvironment
 	get argvResource(): URI { return joinPath(this.userRoamingDataHome, 'argv.json'); }
 
 	@memoize
-	get snippetsHome(): URI { return joinPath(this.userRoamingDataHome, 'snippets'); }
-
-	@memoize
 	get userDataSyncHome(): URI { return joinPath(this.userRoamingDataHome, 'sync'); }
 
 	@memoize
-	get userDataSyncLogResource(): URI { return joinPath(this.options.logsPath, 'userDataSync.log'); }
+	get settingsSyncPreviewResource(): URI { return joinPath(this.userDataSyncHome, 'settings.json'); }
 
-	get sync(): 'on' | 'off' { return 'on'; }
+	@memoize
+	get keybindingsSyncPreviewResource(): URI { return joinPath(this.userDataSyncHome, 'keybindings.json'); }
+
+	@memoize
+	get userDataSyncLogResource(): URI { return joinPath(this.options.logsPath, 'userDataSync.log'); }
 
 	@memoize
 	get keybindingsResource(): URI { return joinPath(this.userRoamingDataHome, 'keybindings.json'); }
@@ -133,9 +159,6 @@ export class BrowserWorkbenchEnvironmentService implements IWorkbenchEnvironment
 
 	@memoize
 	get untitledWorkspacesHome(): URI { return joinPath(this.userRoamingDataHome, 'Workspaces'); }
-
-	@memoize
-	get serviceMachineIdResource(): URI { return joinPath(this.userRoamingDataHome, 'machineid'); }
 
 	private _extensionHostDebugEnvironment: IExtensionHostDebugEnvironment | undefined = undefined;
 	get debugExtensionHost(): IExtensionHostDebugParams {
@@ -170,19 +193,9 @@ export class BrowserWorkbenchEnvironmentService implements IWorkbenchEnvironment
 		return this._extensionHostDebugEnvironment.extensionTestsLocationURI;
 	}
 
-	get extensionEnabledProposedApi(): string[] | undefined {
-		if (!this._extensionHostDebugEnvironment) {
-			this._extensionHostDebugEnvironment = this.resolveExtensionHostDebugEnvironment();
-		}
-
-		return this._extensionHostDebugEnvironment.extensionEnabledProposedApi;
-	}
-
-	get disableExtensions() { return this.payload?.get('disableExtensions') === 'true'; }
-
 	@memoize
 	get webviewExternalEndpoint(): string {
-		// TODO@matt: get fallback from product.json
+		// TODO: get fallback from product.json
 		return (this.options.webviewEndpoint || 'https://{{uuid}}.vscode-webview-test.com/{{commit}}').replace('{{commit}}', product.commit || '0d728c31ebdf03869d2687d9be0b017667c9ff37');
 	}
 
@@ -196,20 +209,76 @@ export class BrowserWorkbenchEnvironmentService implements IWorkbenchEnvironment
 		return this.webviewExternalEndpoint.replace('{{uuid}}', '*');
 	}
 
-	get disableTelemetry(): boolean { return false; }
+	// Currently not configurable in web
+	get disableExtensions() { return false; }
+	get extensionsPath(): string | undefined { return undefined; }
+	get verbose(): boolean { return false; }
+	get disableUpdates(): boolean { return false; }
+	get logExtensionHostCommunication(): boolean { return false; }
 
-	get verbose(): boolean { return this.payload?.get('verbose') === 'true'; }
-	get logExtensionHostCommunication(): boolean { return this.payload?.get('logExtensionHostCommunication') === 'true'; }
+	//#endregion
+
+
+	//#region TODO MOVE TO NODE LAYER
+
+	private _configuration: IWindowConfiguration | undefined = undefined;
+	get configuration(): IWindowConfiguration {
+		if (!this._configuration) {
+			this._configuration = new BrowserWindowConfiguration(this.options, this.payload, this);
+		}
+
+		return this._configuration;
+	}
+
+	args = { _: [] };
+
+	wait!: boolean;
+	status!: boolean;
+	log?: string;
+
+	mainIPCHandle!: string;
+	sharedIPCHandle!: string;
+
+	nodeCachedDataDir?: string;
+
+	disableCrashReporter!: boolean;
+
+	driverHandle?: string;
+	driverVerbose!: boolean;
+
+	installSourcePath!: string;
+
+	builtinExtensionsPath!: string;
+
+	globalStorageHome!: string;
+	workspaceStorageHome!: string;
+
+	backupWorkspacesPath!: string;
+
+	machineSettingsHome!: URI;
+	machineSettingsResource!: URI;
+
+	userHome!: string;
+	userDataPath!: string;
+	appRoot!: string;
+	appSettingsHome!: URI;
+	execPath!: string;
+	cliPath!: string;
+
+	//#endregion
+
+
+	//#region TODO ENABLE IN WEB
+
+	galleryMachineIdResource?: URI;
+
+	//#endregion
 
 	private payload: Map<string, string> | undefined;
 
 	constructor(readonly options: IBrowserWorkbenchEnvironmentConstructionOptions) {
 		if (options.workspaceProvider && Array.isArray(options.workspaceProvider.payload)) {
-			try {
-				this.payload = new Map(options.workspaceProvider.payload);
-			} catch (error) {
-				onUnexpectedError(error); // possible invalid payload for map
-			}
+			this.payload = serializableToMap(options.workspaceProvider.payload);
 		}
 	}
 
@@ -240,9 +309,6 @@ export class BrowserWorkbenchEnvironmentService implements IWorkbenchEnvironment
 					case 'inspect-brk-extensions':
 						extensionHostDebugEnvironment.params.port = parseInt(value);
 						extensionHostDebugEnvironment.params.break = true;
-						break;
-					case 'enableProposedApi':
-						extensionHostDebugEnvironment.extensionEnabledProposedApi = [];
 						break;
 				}
 			}

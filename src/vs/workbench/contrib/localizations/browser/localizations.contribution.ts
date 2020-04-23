@@ -26,13 +26,10 @@ import { minimumTranslatedStrings } from 'vs/workbench/contrib/localizations/bro
 import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 import { CancellationToken } from 'vs/base/common/cancellation';
 import { ExtensionType } from 'vs/platform/extensions/common/extensions';
-import { IStorageKeysSyncRegistryService } from 'vs/platform/userDataSync/common/storageKeys';
 
 // Register action to configure locale and related settings
 const registry = Registry.as<IWorkbenchActionRegistry>(Extensions.WorkbenchActions);
 registry.registerWorkbenchAction(SyncActionDescriptor.create(ConfigureLocaleAction, ConfigureLocaleAction.ID, ConfigureLocaleAction.LABEL), 'Configure Display Language');
-
-const LANGUAGEPACK_SUGGESTION_IGNORE_STORAGE_KEY = 'extensionsAssistant/languagePackSuggestionIgnore';
 
 export class LocalizationWorkbenchContribution extends Disposable implements IWorkbenchContribution {
 	constructor(
@@ -44,13 +41,9 @@ export class LocalizationWorkbenchContribution extends Disposable implements IWo
 		@IExtensionManagementService private readonly extensionManagementService: IExtensionManagementService,
 		@IExtensionGalleryService private readonly galleryService: IExtensionGalleryService,
 		@IViewletService private readonly viewletService: IViewletService,
-		@ITelemetryService private readonly telemetryService: ITelemetryService,
-		@IStorageKeysSyncRegistryService storageKeysSyncRegistryService: IStorageKeysSyncRegistryService
+		@ITelemetryService private readonly telemetryService: ITelemetryService
 	) {
 		super();
-
-		storageKeysSyncRegistryService.registerStorageKey({ key: LANGUAGEPACK_SUGGESTION_IGNORE_STORAGE_KEY, version: 1 });
-		storageKeysSyncRegistryService.registerStorageKey({ key: 'langugage.update.donotask', version: 1 });
 		this.checkAndInstall();
 		this._register(this.extensionManagementService.onDidInstallExtension(e => this.onDidInstallExtension(e)));
 	}
@@ -83,7 +76,7 @@ export class LocalizationWorkbenchContribution extends Disposable implements IWo
 	private checkAndInstall(): void {
 		const language = platform.language;
 		const locale = platform.locale;
-		const languagePackSuggestionIgnoreList = <string[]>JSON.parse(this.storageService.get(LANGUAGEPACK_SUGGESTION_IGNORE_STORAGE_KEY, StorageScope.GLOBAL, '[]'));
+		const languagePackSuggestionIgnoreList = <string[]>JSON.parse(this.storageService.get('extensionsAssistant/languagePackSuggestionIgnore', StorageScope.GLOBAL, '[]'));
 
 		if (!this.galleryService.isEnabled()) {
 			return;
@@ -174,7 +167,7 @@ export class LocalizationWorkbenchContribution extends Disposable implements IWo
 									run: () => {
 										languagePackSuggestionIgnoreList.push(language);
 										this.storageService.store(
-											LANGUAGEPACK_SUGGESTION_IGNORE_STORAGE_KEY,
+											'extensionsAssistant/languagePackSuggestionIgnore',
 											JSON.stringify(languagePackSuggestionIgnoreList),
 											StorageScope.GLOBAL
 										);

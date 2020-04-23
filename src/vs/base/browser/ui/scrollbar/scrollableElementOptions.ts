@@ -119,9 +119,8 @@ export interface ScrollableElementCreationOptions {
 export interface ScrollableElementChangeOptions {
 	handleMouseWheel?: boolean;
 	mouseWheelScrollSensitivity?: number;
-	fastScrollSensitivity?: number;
-	scrollPredominantAxis?: boolean;
-	horizontalScrollbarSize?: number;
+	fastScrollSensitivity: number;
+	scrollPredominantAxis: boolean;
 }
 
 export interface ScrollableElementResolvedOptions {

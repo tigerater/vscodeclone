@@ -7,7 +7,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { posix } from 'path';
 
-suite('vscode API - workspace-fs', () => {
+suite('workspace-fs', () => {
 
 	let root: vscode.Uri;
 

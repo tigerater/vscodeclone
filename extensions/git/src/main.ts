@@ -23,7 +23,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { createIPCServer, IIPCServer } from './ipc/ipcServer';
 import { GitTimelineProvider } from './timelineProvider';
-import { registerAPICommands } from './api/api1';
 
 const deactivateTasks: { (): Promise<any>; }[] = [];
 
@@ -141,7 +140,7 @@ async function warnAboutMissingGit(): Promise<void> {
 	}
 }
 
-export async function _activate(context: ExtensionContext): Promise<GitExtension> {
+export async function activate(context: ExtensionContext): Promise<GitExtension> {
 	const disposables: Disposable[] = [];
 	context.subscriptions.push(new Disposable(() => Disposable.from(...disposables).dispose()));
 
@@ -181,12 +180,6 @@ export async function _activate(context: ExtensionContext): Promise<GitExtension
 
 		return new GitExtensionImpl();
 	}
-}
-
-export async function activate(context: ExtensionContext): Promise<GitExtension> {
-	const result = await _activate(context);
-	context.subscriptions.push(registerAPICommands(result));
-	return result;
 }
 
 async function checkGitVersion(info: IGit): Promise<void> {

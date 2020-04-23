@@ -18,6 +18,5 @@
 		"settings.numberInputBorder": "#CECECE",
 		"statusBarItem.remoteForeground": "#FFF",
 		"statusBarItem.remoteBackground": "#16825D"
-	},
-	"semanticHighlighting": true
+	}
 }

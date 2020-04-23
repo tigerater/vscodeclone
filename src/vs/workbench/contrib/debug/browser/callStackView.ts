@@ -18,9 +18,9 @@ import { IAction, Action } from 'vs/base/common/actions';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { IContextKey, IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
-import { ViewPane } from 'vs/workbench/browser/parts/views/viewPaneContainer';
+import { IViewPaneOptions, ViewPane } from 'vs/workbench/browser/parts/views/viewPaneContainer';
 import { ILabelService } from 'vs/platform/label/common/label';
-import { IListAccessibilityProvider } from 'vs/base/browser/ui/list/listWidget';
+import { IAccessibilityProvider } from 'vs/base/browser/ui/list/listWidget';
 import { createAndFillInContextMenuActions } from 'vs/platform/actions/browser/menuEntryActionViewItem';
 import { IListVirtualDelegate } from 'vs/base/browser/ui/list/list';
 import { ITreeRenderer, ITreeNode, ITreeContextMenuEvent, IAsyncDataSource } from 'vs/base/browser/ui/tree/tree';
@@ -28,18 +28,16 @@ import { TreeResourceNavigator, WorkbenchAsyncDataTree } from 'vs/platform/list/
 import { HighlightedLabel } from 'vs/base/browser/ui/highlightedlabel/highlightedLabel';
 import { createMatches, FuzzyScore } from 'vs/base/common/filters';
 import { Event } from 'vs/base/common/event';
-import { dispose, IDisposable } from 'vs/base/common/lifecycle';
+import { dispose } from 'vs/base/common/lifecycle';
 import { ActionBar } from 'vs/base/browser/ui/actionbar/actionbar';
 import { isSessionAttach } from 'vs/workbench/contrib/debug/common/debugUtils';
 import { STOP_ID, STOP_LABEL, DISCONNECT_ID, DISCONNECT_LABEL, RESTART_SESSION_ID, RESTART_LABEL, STEP_OVER_ID, STEP_OVER_LABEL, STEP_INTO_LABEL, STEP_INTO_ID, STEP_OUT_LABEL, STEP_OUT_ID, PAUSE_ID, PAUSE_LABEL, CONTINUE_ID, CONTINUE_LABEL } from 'vs/workbench/contrib/debug/browser/debugCommands';
 import { ICommandService } from 'vs/platform/commands/common/commands';
 import { CollapseAction } from 'vs/workbench/browser/viewlet';
 import { IViewDescriptorService } from 'vs/workbench/common/views';
-import { textLinkForeground } from 'vs/platform/theme/common/colorRegistry';
 import { IThemeService } from 'vs/platform/theme/common/themeService';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
 import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
-import { attachStylerCallback } from 'vs/platform/theme/common/styler';
 
 const $ = dom.$;
 
@@ -106,7 +104,7 @@ export class CallStackView extends ViewPane {
 		@IThemeService themeService: IThemeService,
 		@ITelemetryService telemetryService: ITelemetryService,
 	) {
-		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService);
+		super({ ...(options as IViewPaneOptions), ariaHeaderLabel: nls.localize('callstackSection', "Call Stack Section") }, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService);
 		this.callStackItemType = CONTEXT_CALLSTACK_ITEM_TYPE.bindTo(contextKeyService);
 
 		this.contributedContextMenu = menuService.createMenu(MenuId.DebugCallStackContext, contextKeyService);
@@ -133,11 +131,7 @@ export class CallStackView extends ViewPane {
 			this.needsRefresh = false;
 			this.dataSource.deemphasizedStackFramesToShow = [];
 			this.tree.updateChildren().then(() => {
-				try {
-					this.parentSessionToExpand.forEach(s => this.tree.expand(s));
-				} catch (e) {
-					// Ignore tree expand errors if element no longer present
-				}
+				this.parentSessionToExpand.forEach(s => this.tree.expand(s));
 				this.parentSessionToExpand.clear();
 				if (this.selectionNeedsUpdate) {
 					this.selectionNeedsUpdate = false;
@@ -176,8 +170,8 @@ export class CallStackView extends ViewPane {
 			new ThreadsRenderer(this.instantiationService),
 			this.instantiationService.createInstance(StackFramesRenderer),
 			new ErrorsRenderer(),
-			new LoadMoreRenderer(this.themeService),
-			new ShowMoreRenderer(this.themeService)
+			new LoadMoreRenderer(),
+			new ShowMoreRenderer()
 		], this.dataSource, {
 			accessibilityProvider: new CallStackAccessibilityProvider(),
 			ariaLabel: nls.localize({ comment: ['Debug is a noun in this context, not a verb.'], key: 'callStackAriaLabel' }, "Debug Call Stack"),
@@ -414,7 +408,6 @@ interface IErrorTemplateData {
 
 interface ILabelTemplateData {
 	label: HTMLElement;
-	toDispose: IDisposable;
 }
 
 interface IStackFrameTemplateData {
@@ -440,7 +433,6 @@ class SessionsRenderer implements ITreeRenderer<IDebugSession, FuzzyScore, ISess
 
 	renderTemplate(container: HTMLElement): ISessionTemplateData {
 		const session = dom.append(container, $('.session'));
-		dom.append(session, $('.codicon.codicon-bug'));
 		const name = dom.append(session, $('.name'));
 		const state = dom.append(session, $('.state'));
 		const stateLabel = dom.append(state, $('span.label'));
@@ -602,21 +594,14 @@ class LoadMoreRenderer implements ITreeRenderer<ThreadAndSessionIds, FuzzyScore,
 	static readonly ID = 'loadMore';
 	static readonly LABEL = nls.localize('loadMoreStackFrames', "Load More Stack Frames");
 
-	constructor(private readonly themeService: IThemeService) { }
-
 	get templateId(): string {
 		return LoadMoreRenderer.ID;
 	}
 
-	renderTemplate(container: HTMLElement): ILabelTemplateData {
+	renderTemplate(container: HTMLElement): IErrorTemplateData {
 		const label = dom.append(container, $('.load-more'));
-		const toDispose = attachStylerCallback(this.themeService, { textLinkForeground }, colors => {
-			if (colors.textLinkForeground) {
-				label.style.color = colors.textLinkForeground.toString();
-			}
-		});
 
-		return { label, toDispose };
+		return { label };
 	}
 
 	renderElement(element: ITreeNode<ThreadAndSessionIds, FuzzyScore>, index: number, data: ILabelTemplateData): void {
@@ -624,29 +609,21 @@ class LoadMoreRenderer implements ITreeRenderer<ThreadAndSessionIds, FuzzyScore,
 	}
 
 	disposeTemplate(templateData: ILabelTemplateData): void {
-		templateData.toDispose.dispose();
+		// noop
 	}
 }
 
 class ShowMoreRenderer implements ITreeRenderer<IStackFrame[], FuzzyScore, ILabelTemplateData> {
 	static readonly ID = 'showMore';
 
-	constructor(private readonly themeService: IThemeService) { }
-
-
 	get templateId(): string {
 		return ShowMoreRenderer.ID;
 	}
 
-	renderTemplate(container: HTMLElement): ILabelTemplateData {
+	renderTemplate(container: HTMLElement): IErrorTemplateData {
 		const label = dom.append(container, $('.show-more'));
-		const toDispose = attachStylerCallback(this.themeService, { textLinkForeground }, colors => {
-			if (colors.textLinkForeground) {
-				label.style.color = colors.textLinkForeground.toString();
-			}
-		});
 
-		return { label, toDispose };
+		return { label };
 	}
 
 	renderElement(element: ITreeNode<IStackFrame[], FuzzyScore>, index: number, data: ILabelTemplateData): void {
@@ -659,20 +636,13 @@ class ShowMoreRenderer implements ITreeRenderer<IStackFrame[], FuzzyScore, ILabe
 	}
 
 	disposeTemplate(templateData: ILabelTemplateData): void {
-		templateData.toDispose.dispose();
+		// noop
 	}
 }
 
 class CallStackDelegate implements IListVirtualDelegate<CallStackItem> {
 
 	getHeight(element: CallStackItem): number {
-		if (element instanceof StackFrame && element.presentationHint === 'label') {
-			return 16;
-		}
-		if (element instanceof ThreadAndSessionIds || element instanceof Array) {
-			return 16;
-		}
-
 		return 22;
 	}
 
@@ -811,7 +781,7 @@ class CallStackDataSource implements IAsyncDataSource<IDebugModel, CallStackItem
 	}
 }
 
-class CallStackAccessibilityProvider implements IListAccessibilityProvider<CallStackItem> {
+class CallStackAccessibilityProvider implements IAccessibilityProvider<CallStackItem> {
 	getAriaLabel(element: CallStackItem): string {
 		if (element instanceof Thread) {
 			return nls.localize('threadAriaLabel', "Thread {0}, callstack, debug", (<Thread>element).name);

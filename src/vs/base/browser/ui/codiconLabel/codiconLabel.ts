@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import 'vs/css!./codicon/codicon';
-import 'vs/css!./codicon/codicon-modifications';
 import 'vs/css!./codicon/codicon-animations';
 import { escape } from 'vs/base/common/strings';
 import { renderCodicons } from 'vs/base/common/codicons';

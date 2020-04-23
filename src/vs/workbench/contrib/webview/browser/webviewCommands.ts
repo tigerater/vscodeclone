@@ -7,19 +7,19 @@ import { Action } from 'vs/base/common/actions';
 import { KeyCode, KeyMod } from 'vs/base/common/keyCodes';
 import * as nls from 'vs/nls';
 import { Action2 } from 'vs/platform/actions/common/actions';
-import { ContextKeyExpr, ContextKeyExpression } from 'vs/platform/contextkey/common/contextkey';
-import { InputFocusedContextKey } from 'vs/platform/contextkey/common/contextkeys';
+import { ContextKeyExpr } from 'vs/platform/contextkey/common/contextkey';
 import { ServicesAccessor } from 'vs/platform/instantiation/common/instantiation';
 import { KeybindingWeight } from 'vs/platform/keybinding/common/keybindingsRegistry';
-import { KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_FOCUSED, KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_VISIBLE, Webview } from 'vs/workbench/contrib/webview/browser/webview';
-import { WebviewInput } from 'vs/workbench/contrib/webview/browser/webviewEditorInput';
+import { KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_FOCUSED, KEYBINDING_CONTEXT_WEBVIEW_FIND_WIDGET_VISIBLE } from 'vs/workbench/contrib/webview/browser/webview';
+import { WebviewEditor } from 'vs/workbench/contrib/webview/browser/webviewEditor';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
+import { InputFocusedContextKey } from 'vs/platform/contextkey/common/contextkeys';
 
 export class ShowWebViewEditorFindWidgetAction extends Action2 {
 	public static readonly ID = 'editor.action.webvieweditor.showFind';
 	public static readonly LABEL = nls.localize('editor.action.webvieweditor.showFind', "Show find");
 
-	constructor(contextKeyExpr: ContextKeyExpression) {
+	constructor(contextKeyExpr: ContextKeyExpr) {
 		super({
 			id: ShowWebViewEditorFindWidgetAction.ID,
 			title: ShowWebViewEditorFindWidgetAction.LABEL,
@@ -40,7 +40,7 @@ export class HideWebViewEditorFindCommand extends Action2 {
 	public static readonly ID = 'editor.action.webvieweditor.hideFind';
 	public static readonly LABEL = nls.localize('editor.action.webvieweditor.hideFind', "Stop find");
 
-	constructor(contextKeyExpr: ContextKeyExpression) {
+	constructor(contextKeyExpr: ContextKeyExpr) {
 		super({
 			id: HideWebViewEditorFindCommand.ID,
 			title: HideWebViewEditorFindCommand.LABEL,
@@ -61,7 +61,7 @@ export class WebViewEditorFindNextCommand extends Action2 {
 	public static readonly ID = 'editor.action.webvieweditor.findNext';
 	public static readonly LABEL = nls.localize('editor.action.webvieweditor.findNext', 'Find next');
 
-	constructor(contextKeyExpr: ContextKeyExpression) {
+	constructor(contextKeyExpr: ContextKeyExpr) {
 		super({
 			id: WebViewEditorFindNextCommand.ID,
 			title: WebViewEditorFindNextCommand.LABEL,
@@ -74,7 +74,7 @@ export class WebViewEditorFindNextCommand extends Action2 {
 	}
 
 	public run(accessor: ServicesAccessor): void {
-		getActiveWebviewEditor(accessor)?.runFindAction(false);
+		getActiveWebviewEditor(accessor)?.find(false);
 	}
 }
 
@@ -82,7 +82,7 @@ export class WebViewEditorFindPreviousCommand extends Action2 {
 	public static readonly ID = 'editor.action.webvieweditor.findPrevious';
 	public static readonly LABEL = nls.localize('editor.action.webvieweditor.findPrevious', 'Find previous');
 
-	constructor(contextKeyExpr: ContextKeyExpression) {
+	constructor(contextKeyExpr: ContextKeyExpr) {
 		super({
 			id: WebViewEditorFindPreviousCommand.ID,
 			title: WebViewEditorFindPreviousCommand.LABEL,
@@ -95,7 +95,7 @@ export class WebViewEditorFindPreviousCommand extends Action2 {
 	}
 
 	public run(accessor: ServicesAccessor): void {
-		getActiveWebviewEditor(accessor)?.runFindAction(true);
+		getActiveWebviewEditor(accessor)?.find(true);
 	}
 }
 
@@ -103,7 +103,7 @@ export class SelectAllWebviewEditorCommand extends Action2 {
 	public static readonly ID = 'editor.action.webvieweditor.selectAll';
 	public static readonly LABEL = nls.localize('editor.action.webvieweditor.selectAll', 'Select all');
 
-	constructor(contextKeyExpr: ContextKeyExpression) {
+	constructor(contextKeyExpr: ContextKeyExpr) {
 		const precondition = ContextKeyExpr.and(contextKeyExpr, ContextKeyExpr.not(InputFocusedContextKey));
 		super({
 			id: SelectAllWebviewEditorCommand.ID,
@@ -116,7 +116,7 @@ export class SelectAllWebviewEditorCommand extends Action2 {
 		});
 	}
 
-	public run(accessor: ServicesAccessor): void {
+	public run(accessor: ServicesAccessor, args: any): void {
 		getActiveWebviewEditor(accessor)?.selectAll();
 	}
 }
@@ -128,22 +128,27 @@ export class ReloadWebviewAction extends Action {
 	public constructor(
 		id: string,
 		label: string,
-		@IEditorService private readonly _editorService: IEditorService
+		@IEditorService private readonly editorService: IEditorService
 	) {
 		super(id, label);
 	}
 
-	public async run(): Promise<void> {
-		for (const editor of this._editorService.visibleEditors) {
-			if (editor instanceof WebviewInput) {
-				editor.webview.reload();
-			}
+	public run(): Promise<any> {
+		for (const webview of this.getVisibleWebviews()) {
+			webview.reload();
 		}
+		return Promise.resolve(true);
+	}
+
+	private getVisibleWebviews() {
+		return this.editorService.visibleControls
+			.filter(control => control && (control as WebviewEditor).isWebviewEditor)
+			.map(control => control as WebviewEditor);
 	}
 }
 
-export function getActiveWebviewEditor(accessor: ServicesAccessor): Webview | undefined {
+export function getActiveWebviewEditor(accessor: ServicesAccessor): WebviewEditor | undefined {
 	const editorService = accessor.get(IEditorService);
-	const activeEditor = editorService.activeEditor;
-	return activeEditor instanceof WebviewInput ? activeEditor.webview : undefined;
+	const activeControl = editorService.activeControl as WebviewEditor | undefined;
+	return activeControl?.isWebviewEditor ? activeControl : undefined;
 }

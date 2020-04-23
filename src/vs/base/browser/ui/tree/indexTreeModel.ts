@@ -6,7 +6,7 @@
 import { ICollapseStateChangeEvent, ITreeElement, ITreeFilter, ITreeFilterDataResult, ITreeModel, ITreeNode, TreeVisibility, ITreeModelSpliceEvent, TreeError } from 'vs/base/browser/ui/tree/tree';
 import { tail2 } from 'vs/base/common/arrays';
 import { Emitter, Event, EventBufferer } from 'vs/base/common/event';
-import { Iterable } from 'vs/base/common/iterator';
+import { ISequence, Iterator } from 'vs/base/common/iterator';
 import { ISpliceable } from 'vs/base/common/sequence';
 
 // Exported for tests
@@ -103,7 +103,7 @@ export class IndexTreeModel<T extends Exclude<any, undefined>, TFilterData = voi
 	splice(
 		location: number[],
 		deleteCount: number,
-		toInsert: Iterable<ITreeElement<T>> = Iterable.empty(),
+		toInsert?: ISequence<ITreeElement<T>>,
 		onDidCreateNode?: (node: ITreeNode<T, TFilterData>) => void,
 		onDidDeleteNode?: (node: ITreeNode<T, TFilterData>) => void
 	): void {
@@ -113,7 +113,7 @@ export class IndexTreeModel<T extends Exclude<any, undefined>, TFilterData = voi
 
 		const { parentNode, listIndex, revealed, visible } = this.getParentNodeWithListIndex(location);
 		const treeListElementsToInsert: ITreeNode<T, TFilterData>[] = [];
-		const nodesToInsertIterator = Iterable.map(toInsert, el => this.createTreeNode(el, parentNode, parentNode.visible ? TreeVisibility.Visible : TreeVisibility.Hidden, revealed, treeListElementsToInsert, onDidCreateNode));
+		const nodesToInsertIterator = Iterator.map(Iterator.from(toInsert), el => this.createTreeNode(el, parentNode, parentNode.visible ? TreeVisibility.Visible : TreeVisibility.Hidden, revealed, treeListElementsToInsert, onDidCreateNode));
 
 		const lastIndex = location[location.length - 1];
 
@@ -134,14 +134,14 @@ export class IndexTreeModel<T extends Exclude<any, undefined>, TFilterData = voi
 		let insertedVisibleChildrenCount = 0;
 		let renderNodeCount = 0;
 
-		for (const child of nodesToInsertIterator) {
+		Iterator.forEach(nodesToInsertIterator, child => {
 			nodesToInsert.push(child);
 			renderNodeCount += child.renderNodeCount;
 
 			if (child.visible) {
 				child.visibleChildIndex = visibleChildStartIndex + insertedVisibleChildrenCount++;
 			}
-		}
+		});
 
 		const deletedNodes = parentNode.children.splice(lastIndex, deleteCount, ...nodesToInsert);
 
@@ -365,21 +365,21 @@ export class IndexTreeModel<T extends Exclude<any, undefined>, TFilterData = voi
 			treeListElements.push(node);
 		}
 
-		const childElements = treeElement.children || Iterable.empty();
+		const childElements = Iterator.from(treeElement.children);
 		const childRevealed = revealed && visibility !== TreeVisibility.Hidden && !node.collapsed;
-		const childNodes = Iterable.map(childElements, el => this.createTreeNode(el, node, visibility, childRevealed, treeListElements, onDidCreateNode));
+		const childNodes = Iterator.map(childElements, el => this.createTreeNode(el, node, visibility, childRevealed, treeListElements, onDidCreateNode));
 
 		let visibleChildrenCount = 0;
 		let renderNodeCount = 1;
 
-		for (const child of childNodes) {
+		Iterator.forEach(childNodes, child => {
 			node.children.push(child);
 			renderNodeCount += child.renderNodeCount;
 
 			if (child.visible) {
 				child.visibleChildIndex = visibleChildrenCount++;
 			}
-		}
+		});
 
 		node.collapsible = node.collapsible || node.children.length > 0;
 		node.visibleChildrenCount = visibleChildrenCount;

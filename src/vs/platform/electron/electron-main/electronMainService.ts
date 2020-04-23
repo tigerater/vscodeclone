@@ -6,9 +6,9 @@
 import { Event } from 'vs/base/common/event';
 import { IWindowsMainService, ICodeWindow } from 'vs/platform/windows/electron-main/windows';
 import { MessageBoxOptions, MessageBoxReturnValue, shell, OpenDevToolsOptions, SaveDialogOptions, SaveDialogReturnValue, OpenDialogOptions, OpenDialogReturnValue, CrashReporterStartOptions, crashReporter, Menu, BrowserWindow, app } from 'electron';
-import { INativeOpenWindowOptions, IOpenedWindow, OpenContext } from 'vs/platform/windows/node/window';
+import { INativeOpenWindowOptions } from 'vs/platform/windows/node/window';
 import { ILifecycleMainService } from 'vs/platform/lifecycle/electron-main/lifecycleMainService';
-import { IWindowOpenable, IOpenEmptyWindowOptions } from 'vs/platform/windows/common/windows';
+import { IOpenedWindow, OpenContext, IWindowOpenable, IOpenEmptyWindowOptions } from 'vs/platform/windows/common/windows';
 import { INativeOpenDialogOptions } from 'vs/platform/dialogs/node/dialogs';
 import { isMacintosh } from 'vs/base/common/platform';
 import { IElectronService } from 'vs/platform/electron/node/electron';
@@ -20,10 +20,8 @@ import { dirExists } from 'vs/base/node/pfs';
 import { URI } from 'vs/base/common/uri';
 import { ITelemetryData, ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
 import { createDecorator } from 'vs/platform/instantiation/common/instantiation';
-import { ILogService } from 'vs/platform/log/common/log';
-import { INativeEnvironmentService } from 'vs/platform/environment/node/environmentService';
 
-export interface IElectronMainService extends AddFirstParameterToFunctions<IElectronService, Promise<unknown> /* only methods, not events */, number | undefined /* window ID */> { }
+export interface IElectronMainService extends AddFirstParameterToFunctions<IElectronService, Promise<any> /* only methods, not events */, number | undefined /* window ID */> { }
 
 export const IElectronMainService = createDecorator<IElectronService>('electronMainService');
 
@@ -35,9 +33,8 @@ export class ElectronMainService implements IElectronMainService {
 		@IWindowsMainService private readonly windowsMainService: IWindowsMainService,
 		@IDialogMainService private readonly dialogMainService: IDialogMainService,
 		@ILifecycleMainService private readonly lifecycleMainService: ILifecycleMainService,
-		@IEnvironmentService private readonly environmentService: INativeEnvironmentService,
-		@ITelemetryService private readonly telemetryService: ITelemetryService,
-		@ILogService private readonly logService: ILogService
+		@IEnvironmentService private readonly environmentService: IEnvironmentService,
+		@ITelemetryService private readonly telemetryService: ITelemetryService
 	) {
 	}
 
@@ -66,8 +63,7 @@ export class ElectronMainService implements IElectronMainService {
 			workspace: window.openedWorkspace,
 			folderUri: window.openedFolderUri,
 			title: window.win.getTitle(),
-			filename: window.getRepresentedFilename(),
-			dirty: window.isDocumentEdited()
+			filename: window.getRepresentedFilename()
 		}));
 	}
 
@@ -273,7 +269,7 @@ export class ElectronMainService implements IElectronMainService {
 	async setDocumentEdited(windowId: number | undefined, edited: boolean): Promise<void> {
 		const window = this.windowById(windowId);
 		if (window) {
-			window.setDocumentEdited(edited);
+			window.win.setDocumentEdited(edited);
 		}
 	}
 
@@ -334,11 +330,7 @@ export class ElectronMainService implements IElectronMainService {
 	}
 
 	async closeWindow(windowId: number | undefined): Promise<void> {
-		this.closeWindowById(windowId, windowId);
-	}
-
-	async closeWindowById(currentWindowId: number | undefined, targetWindowId?: number | undefined): Promise<void> {
-		const window = this.windowById(targetWindowId);
+		const window = this.windowById(windowId);
 		if (window) {
 			return window.win.close();
 		}
@@ -400,7 +392,6 @@ export class ElectronMainService implements IElectronMainService {
 
 	async startCrashReporter(windowId: number | undefined, options: CrashReporterStartOptions): Promise<void> {
 		crashReporter.start(options);
-		this.logService.trace('ElectronMainService#crashReporter', JSON.stringify(options));
 	}
 
 	//#endregion

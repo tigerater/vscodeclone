@@ -47,7 +47,6 @@ export interface LanguageMode {
 	doHover?: (document: TextDocument, position: Position) => Hover | null;
 	doSignatureHelp?: (document: TextDocument, position: Position) => SignatureHelp | null;
 	doRename?: (document: TextDocument, position: Position, newName: string) => WorkspaceEdit | null;
-	doOnTypeRename?: (document: TextDocument, position: Position) => Range[] | null;
 	findDocumentHighlight?: (document: TextDocument, position: Position) => DocumentHighlight[];
 	findDocumentSymbols?: (document: TextDocument) => SymbolInformation[];
 	findDocumentLinks?: (document: TextDocument, documentContext: DocumentContext) => DocumentLink[];

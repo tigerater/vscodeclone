@@ -11,10 +11,9 @@ import { URLService } from 'vs/platform/url/node/urlService';
 import { IOpenerService, IOpener, matchesScheme } from 'vs/platform/opener/common/opener';
 import product from 'vs/platform/product/common/product';
 import { registerSingleton } from 'vs/platform/instantiation/common/extensions';
+import { IElectronEnvironmentService } from 'vs/workbench/services/electron/electron-browser/electronEnvironmentService';
 import { createChannelSender } from 'vs/base/parts/ipc/node/ipc';
 import { IElectronService } from 'vs/platform/electron/node/electron';
-import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
-import { INativeWorkbenchEnvironmentService } from 'vs/workbench/services/environment/electron-browser/environmentService';
 
 export interface IRelayOpenURLOptions extends IOpenURLOptions {
 	openToSide?: boolean;
@@ -28,7 +27,7 @@ export class RelayURLService extends URLService implements IURLHandler, IOpener 
 	constructor(
 		@IMainProcessService mainProcessService: IMainProcessService,
 		@IOpenerService openerService: IOpenerService,
-		@IWorkbenchEnvironmentService private readonly environmentService: INativeWorkbenchEnvironmentService,
+		@IElectronEnvironmentService private electronEnvironmentService: IElectronEnvironmentService,
 		@IElectronService private electronService: IElectronService
 	) {
 		super();
@@ -44,9 +43,9 @@ export class RelayURLService extends URLService implements IURLHandler, IOpener 
 
 		let query = uri.query;
 		if (!query) {
-			query = `windowId=${encodeURIComponent(this.environmentService.configuration.windowId)}`;
+			query = `windowId=${encodeURIComponent(this.electronEnvironmentService.windowId)}`;
 		} else {
-			query += `&windowId=${encodeURIComponent(this.environmentService.configuration.windowId)}`;
+			query += `&windowId=${encodeURIComponent(this.electronEnvironmentService.windowId)}`;
 		}
 
 		return uri.with({ query });

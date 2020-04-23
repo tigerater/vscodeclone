@@ -7,7 +7,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { createRandomFile, withLogDisabled } from '../utils';
 
-suite('vscode API - workspace events', () => {
+suite('workspace-event', () => {
 
 	const disposables: vscode.Disposable[] = [];
 

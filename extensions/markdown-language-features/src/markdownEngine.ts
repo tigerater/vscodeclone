@@ -10,7 +10,7 @@ import * as vscode from 'vscode';
 import { MarkdownContributionProvider as MarkdownContributionProvider } from './markdownExtensions';
 import { Slugifier } from './slugify';
 import { SkinnyTextDocument } from './tableOfContentsProvider';
-import { MarkdownFileExtensions, Schemes, isOfScheme } from './util/links';
+import { Schemes, isOfScheme } from './util/links';
 
 const UNICODE_NEWLINE_REGEX = /\u2028|\u2029/g;
 
@@ -251,9 +251,7 @@ export class MarkdownEngine {
 						}
 					}
 
-					const extname = path.extname(uri.fsPath);
-
-					if (uri.fragment && (extname === '' || MarkdownFileExtensions.includes(extname))) {
+					if (uri.fragment) {
 						uri = uri.with({
 							fragment: this.slugifier.fromHeading(uri.fragment).value
 						});

@@ -20,7 +20,6 @@ import { selectBorder } from 'vs/platform/theme/common/colorRegistry';
 import { IContextViewService } from 'vs/platform/contextview/browser/contextView';
 import { IWorkspaceContextService, WorkbenchState } from 'vs/platform/workspace/common/workspace';
 import { IDisposable, dispose } from 'vs/base/common/lifecycle';
-import { ADD_CONFIGURATION_ID } from 'vs/workbench/contrib/debug/browser/debugCommands';
 
 const $ = dom.$;
 
@@ -188,7 +187,7 @@ export class StartDebugActionViewItem implements IActionViewItem {
 			const label = inWorkspace ? nls.localize("addConfigTo", "Add Config ({0})...", l.name) : nls.localize('addConfiguration', "Add Configuration...");
 			this.options.push({
 				label, handler: () => {
-					this.commandService.executeCommand(ADD_CONFIGURATION_ID, l.uri.toString());
+					this.commandService.executeCommand('debug.addConfiguration', l.uri.toString());
 					return false;
 				}
 			});

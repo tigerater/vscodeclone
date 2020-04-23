@@ -69,8 +69,5 @@
 		"msjsdiag.debugger-for-chrome": "workspace"
 	},
 	"gulp.autoDetect": "off",
-	"files.insertFinalNewline": true,
-  "[typescript]": {
-		"editor.defaultFormatter": "vscode.typescript-language-features"
-	}
+	"files.insertFinalNewline": true
 }

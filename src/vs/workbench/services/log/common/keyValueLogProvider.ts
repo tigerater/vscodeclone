@@ -4,13 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { URI } from 'vs/base/common/uri';
-import { IFileSystemProviderWithFileReadWriteCapability, FileSystemProviderCapabilities, IFileChange, IWatchOptions, IStat, FileOverwriteOptions, FileType, FileDeleteOptions, FileWriteOptions, FileChangeType, createFileSystemProviderError, FileSystemProviderErrorCode } from 'vs/platform/files/common/files';
+import { IFileSystemProviderWithFileReadWriteCapability, FileSystemProviderCapabilities, IFileChange, IWatchOptions, IStat, FileOverwriteOptions, FileType, FileDeleteOptions, FileWriteOptions, FileChangeType, FileSystemProviderErrorCode } from 'vs/platform/files/common/files';
 import { Disposable, IDisposable } from 'vs/base/common/lifecycle';
 import { Event, Emitter } from 'vs/base/common/event';
 import { VSBuffer } from 'vs/base/common/buffer';
+import { FileSystemError } from 'vs/workbench/api/common/extHostTypes';
 import { isEqualOrParent, joinPath, relativePath } from 'vs/base/common/resources';
 import { values } from 'vs/base/common/map';
-import { localize } from 'vs/nls';
 
 export abstract class KeyValueLogProvider extends Disposable implements IFileSystemProviderWithFileReadWriteCapability {
 
@@ -53,13 +53,13 @@ export abstract class KeyValueLogProvider extends Disposable implements IFileSys
 				size: 0
 			};
 		}
-		throw createFileSystemProviderError(localize('fileNotExists', "File does not exist"), FileSystemProviderErrorCode.FileNotFound);
+		return Promise.reject(new FileSystemError(resource, FileSystemProviderErrorCode.FileNotFound));
 	}
 
 	async readdir(resource: URI): Promise<[string, FileType][]> {
 		const hasKey = await this.hasKey(resource.path);
 		if (hasKey) {
-			throw createFileSystemProviderError(localize('fileNotDirectory', "File is not a directory"), FileSystemProviderErrorCode.FileNotADirectory);
+			return Promise.reject(new FileSystemError(resource, FileSystemProviderErrorCode.FileNotADirectory));
 		}
 		const keys = await this.getAllKeys();
 		const files: Map<string, [string, FileType]> = new Map<string, [string, FileType]>();
@@ -79,7 +79,7 @@ export abstract class KeyValueLogProvider extends Disposable implements IFileSys
 	async readFile(resource: URI): Promise<Uint8Array> {
 		const hasKey = await this.hasKey(resource.path);
 		if (!hasKey) {
-			throw createFileSystemProviderError(localize('fileNotFound', "File not found"), FileSystemProviderErrorCode.FileNotFound);
+			return Promise.reject(new FileSystemError(resource, FileSystemProviderErrorCode.FileNotFound));
 		}
 		const value = await this.getValue(resource.path);
 		return VSBuffer.fromString(value).buffer;
@@ -90,7 +90,7 @@ export abstract class KeyValueLogProvider extends Disposable implements IFileSys
 		if (!hasKey) {
 			const files = await this.readdir(resource);
 			if (files.length) {
-				throw createFileSystemProviderError(localize('fileIsDirectory', "File is Directory"), FileSystemProviderErrorCode.FileIsADirectory);
+				return Promise.reject(new FileSystemError(resource, FileSystemProviderErrorCode.FileIsADirectory));
 			}
 		}
 		await this.setValue(resource.path, VSBuffer.wrap(content).toString());

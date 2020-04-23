@@ -13,14 +13,6 @@ export interface IMachineInfo {
 	cpus?: string;
 	memory: string;
 	vmHint: string;
-	linuxEnv?: ILinuxEnv;
-}
-
-export interface ILinuxEnv {
-	desktopSession?: string;
-	xdgSessionDesktop?: string;
-	xdgCurrentDesktop?: string;
-	xdgSessionType?: string;
 }
 
 export interface IDiagnosticInfo {

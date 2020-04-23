@@ -121,33 +121,21 @@ suite('BackupRestorer', () => {
 			const resource = editor.resource;
 			if (isEqual(resource, untitledFile1)) {
 				const model = await accessor.textFileService.untitled.resolve({ untitledResource: resource });
-				if (model.textEditorModel.getValue() !== 'untitled-1') {
-					const backupContents = await backupFileService.getBackupContents(untitledFile1);
-					assert.fail(`Unable to restore backup for resource ${untitledFile1.toString()}. Backup contents: ${backupContents}`);
-				}
+				assert.equal(model.textEditorModel.getValue(), 'untitled-1');
 				model.dispose();
 				counter++;
 			} else if (isEqual(resource, untitledFile2)) {
 				const model = await accessor.textFileService.untitled.resolve({ untitledResource: resource });
-				if (model.textEditorModel.getValue() !== 'untitled-2') {
-					const backupContents = await backupFileService.getBackupContents(untitledFile2);
-					assert.fail(`Unable to restore backup for resource ${untitledFile2.toString()}. Backup contents: ${backupContents}`);
-				}
+				assert.equal(model.textEditorModel.getValue(), 'untitled-2');
 				model.dispose();
 				counter++;
 			} else if (isEqual(resource, fooFile)) {
-				const model = await accessor.textFileService.files.get(fooFile!)?.load();
-				if (model?.textEditorModel?.getValue() !== 'fooFile') {
-					const backupContents = await backupFileService.getBackupContents(fooFile);
-					assert.fail(`Unable to restore backup for resource ${fooFile.toString()}. Backup contents: ${backupContents}`);
-				}
+				const model = await accessor.textFileService.files.get(resource!)?.load();
+				assert.equal(model?.textEditorModel?.getValue(), 'fooFile');
 				counter++;
 			} else {
-				const model = await accessor.textFileService.files.get(barFile!)?.load();
-				if (model?.textEditorModel?.getValue() !== 'barFile') {
-					const backupContents = await backupFileService.getBackupContents(barFile);
-					assert.fail(`Unable to restore backup for resource ${barFile.toString()}. Backup contents: ${backupContents}`);
-				}
+				const model = await accessor.textFileService.files.get(resource!)?.load();
+				assert.equal(model?.textEditorModel?.getValue(), 'barFile');
 				counter++;
 			}
 		}

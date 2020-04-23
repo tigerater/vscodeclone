@@ -5,7 +5,7 @@
 
 import * as assert from 'assert';
 import { compress, ICompressedTreeElement, ICompressedTreeNode, decompress, CompressedObjectTreeModel } from 'vs/base/browser/ui/tree/compressedObjectTreeModel';
-import { Iterable } from 'vs/base/common/iterator';
+import { Iterator } from 'vs/base/common/iterator';
 import { ITreeNode } from 'vs/base/browser/ui/tree/tree';
 import { ISpliceable } from 'vs/base/common/sequence';
 
@@ -16,7 +16,7 @@ interface IResolvedCompressedTreeElement<T> extends ICompressedTreeElement<T> {
 
 function resolve<T>(treeElement: ICompressedTreeElement<T>): IResolvedCompressedTreeElement<T> {
 	const result: any = { element: treeElement.element };
-	const children = [...Iterable.map(Iterable.from(treeElement.children), resolve)];
+	const children = Iterator.collect(Iterator.map(Iterator.from(treeElement.children), resolve));
 
 	if (treeElement.incompressible) {
 		result.incompressible = true;
@@ -315,25 +315,25 @@ suite('CompressedObjectTree', function () {
 			const list: ITreeNode<ICompressedTreeNode<number>>[] = [];
 			const model = new CompressedObjectTreeModel<number>('test', toSpliceable(list));
 
-			model.setChildren(null, [
+			model.setChildren(null, Iterator.fromArray([
 				{ element: 0 },
 				{ element: 1 },
 				{ element: 2 }
-			]);
+			]));
 
 			assert.deepEqual(toArray(list), [[0], [1], [2]]);
 			assert.equal(model.size, 3);
 
-			model.setChildren(null, [
+			model.setChildren(null, Iterator.fromArray([
 				{ element: 3 },
 				{ element: 4 },
 				{ element: 5 },
-			]);
+			]));
 
 			assert.deepEqual(toArray(list), [[3], [4], [5]]);
 			assert.equal(model.size, 3);
 
-			model.setChildren(null);
+			model.setChildren(null, Iterator.empty());
 			assert.deepEqual(toArray(list), []);
 			assert.equal(model.size, 0);
 		});
@@ -342,34 +342,34 @@ suite('CompressedObjectTree', function () {
 			const list: ITreeNode<ICompressedTreeNode<number>>[] = [];
 			const model = new CompressedObjectTreeModel<number>('test', toSpliceable(list));
 
-			model.setChildren(null, [
+			model.setChildren(null, Iterator.fromArray([
 				{
-					element: 0, children: [
+					element: 0, children: Iterator.fromArray([
 						{ element: 10 },
 						{ element: 11 },
 						{ element: 12 },
-					]
+					])
 				},
 				{ element: 1 },
 				{ element: 2 }
-			]);
+			]));
 
 			assert.deepEqual(toArray(list), [[0], [10], [11], [12], [1], [2]]);
 			assert.equal(model.size, 6);
 
-			model.setChildren(12, [
+			model.setChildren(12, Iterator.fromArray([
 				{ element: 120 },
 				{ element: 121 }
-			]);
+			]));
 
 			assert.deepEqual(toArray(list), [[0], [10], [11], [12], [120], [121], [1], [2]]);
 			assert.equal(model.size, 8);
 
-			model.setChildren(0);
+			model.setChildren(0, Iterator.empty());
 			assert.deepEqual(toArray(list), [[0], [1], [2]]);
 			assert.equal(model.size, 3);
 
-			model.setChildren(null);
+			model.setChildren(null, Iterator.empty());
 			assert.deepEqual(toArray(list), []);
 			assert.equal(model.size, 0);
 		});
@@ -378,50 +378,50 @@ suite('CompressedObjectTree', function () {
 			const list: ITreeNode<ICompressedTreeNode<number>>[] = [];
 			const model = new CompressedObjectTreeModel<number>('test', toSpliceable(list));
 
-			model.setChildren(null, [
+			model.setChildren(null, Iterator.fromArray([
 				{
-					element: 1, children: [{
-						element: 11, children: [{
-							element: 111, children: [
+					element: 1, children: Iterator.fromArray([{
+						element: 11, children: Iterator.fromArray([{
+							element: 111, children: Iterator.fromArray([
 								{ element: 1111 },
 								{ element: 1112 },
 								{ element: 1113 },
-							]
-						}]
-					}]
+							])
+						}])
+					}])
 				}
-			]);
+			]));
 
 			assert.deepEqual(toArray(list), [[1, 11, 111], [1111], [1112], [1113]]);
 			assert.equal(model.size, 6);
 
-			model.setChildren(11, [
+			model.setChildren(11, Iterator.fromArray([
 				{ element: 111 },
 				{ element: 112 },
 				{ element: 113 },
-			]);
+			]));
 
 			assert.deepEqual(toArray(list), [[1, 11], [111], [112], [113]]);
 			assert.equal(model.size, 5);
 
-			model.setChildren(113, [
+			model.setChildren(113, Iterator.fromArray([
 				{ element: 1131 }
-			]);
+			]));
 
 			assert.deepEqual(toArray(list), [[1, 11], [111], [112], [113, 1131]]);
 			assert.equal(model.size, 6);
 
-			model.setChildren(1131, [
+			model.setChildren(1131, Iterator.fromArray([
 				{ element: 1132 }
-			]);
+			]));
 
 			assert.deepEqual(toArray(list), [[1, 11], [111], [112], [113, 1131, 1132]]);
 			assert.equal(model.size, 7);
 
-			model.setChildren(1131, [
+			model.setChildren(1131, Iterator.fromArray([
 				{ element: 1132 },
 				{ element: 1133 },
-			]);
+			]));
 
 			assert.deepEqual(toArray(list), [[1, 11], [111], [112], [113, 1131], [1132], [1133]]);
 			assert.equal(model.size, 8);
