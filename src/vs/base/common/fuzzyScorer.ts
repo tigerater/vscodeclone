@@ -268,12 +268,11 @@ export type FuzzyScore2 = [number /* score*/, IMatch[]];
 
 const NO_SCORE2: FuzzyScore2 = [NO_MATCH, []];
 
-export function scoreFuzzy2(target: string, query: IPreparedQuery | IPreparedQueryPiece, patternStart = 0, matchOffset = 0): FuzzyScore2 {
+export function scoreFuzzy2(target: string, query: IPreparedQuery, patternStart = 0, matchOffset = 0, skipMultiMatching = false): FuzzyScore2 {
 
-	// Score: multiple inputs
-	const preparedQuery = query as IPreparedQuery;
-	if (preparedQuery.values && preparedQuery.values.length > 1) {
-		return doScoreFuzzy2Multiple(target, preparedQuery.values, patternStart, matchOffset);
+	// Score: multiple inputs (unless disabled)
+	if (!skipMultiMatching && query.values && query.values.length > 1) {
+		return doScoreFuzzy2Multiple(target, query.values, patternStart, matchOffset);
 	}
 
 	// Score: single input
@@ -797,14 +796,9 @@ export interface IPreparedQueryPiece {
 
 export interface IPreparedQuery extends IPreparedQueryPiece {
 
-	/**
-	 * Query split by spaces into pieces.
-	 */
+	// Split by spaces
 	values: IPreparedQueryPiece[] | undefined;
 
-	/**
-	 * Wether the query contains path separator(s) or not.
-	 */
 	containsPathSeparator: boolean;
 }
 
