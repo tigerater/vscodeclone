@@ -266,10 +266,8 @@ export class ExplorerView extends ViewPane {
 			const isEditing = !!this.explorerService.getEditableData(e);
 
 			if (isEditing) {
-				if (e.parent !== this.tree.getInput()) {
-					await this.tree.expand(e.parent!);
-					this.tree.reveal(e.parent!);
-				}
+				await this.tree.expand(e.parent!);
+				this.tree.reveal(e.parent!);
 			} else {
 				DOM.removeClass(treeContainer, 'highlight');
 			}
