@@ -51,10 +51,9 @@ export interface IMergedEnvironmentVariableCollection {
 	applyToProcessEnvironment(env: IProcessEnvironment): void;
 
 	/**
-	 * Generates a diff of this connection against another. Returns undefined if the collections are
-	 * the same.
+	 * Generates a diff of this connection against another.
 	 */
-	diff(other: IMergedEnvironmentVariableCollection): IMergedEnvironmentVariableCollectionDiff | undefined;
+	diff(other: IMergedEnvironmentVariableCollection): IMergedEnvironmentVariableCollectionDiff;
 }
 
 /**
@@ -98,10 +97,3 @@ export interface IEnvironmentVariableService {
  * Third: Type
  */
 export type ISerializableEnvironmentVariableCollection = [string, IEnvironmentVariableMutator][];
-
-export interface IEnvironmentVariableInfo {
-	readonly requiresAction: boolean;
-	getInfo(): string;
-	getIcon(): string;
-	getActions?(): { label: string, iconClass?: string, run: () => void, commandId: string }[];
-}

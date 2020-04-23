@@ -171,7 +171,6 @@
 
 .menubar.compact {
 	flex-shrink: 0;
-	overflow: visible; /* to avoid the compact menu to be repositioned when clicking */
 }
 
 .menubar.compact > .menubar-menu-button {
@@ -202,7 +201,7 @@
 }
 
 .menubar.compact .toolbar-toggle-more {
-	position: relative;
+	position: absolute;
 	left: 0px;
 	top: 0px;
 	cursor: pointer;

@@ -17,11 +17,10 @@ export class DebugProgressContribution implements IWorkbenchContribution {
 		@IDebugService private readonly debugService: IDebugService,
 		@IProgressService private readonly progressService: IProgressService
 	) {
-		let progressListener: IDisposable | undefined;
-		const listenOnProgress = (session: IDebugSession | undefined) => {
+		let progressListener: IDisposable;
+		const onFocusSession = (session: IDebugSession | undefined) => {
 			if (progressListener) {
 				progressListener.dispose();
-				progressListener = undefined;
 			}
 			if (session) {
 				progressListener = session.onDidProgressStart(async progressStartEvent => {
@@ -72,13 +71,8 @@ export class DebugProgressContribution implements IWorkbenchContribution {
 				});
 			}
 		};
-		this.toDispose.push(this.debugService.getViewModel().onDidFocusSession(listenOnProgress));
-		listenOnProgress(this.debugService.getViewModel().focusedSession);
-		this.toDispose.push(this.debugService.onWillNewSession(session => {
-			if (!progressListener) {
-				listenOnProgress(session);
-			}
-		}));
+		this.toDispose.push(this.debugService.getViewModel().onDidFocusSession(onFocusSession));
+		onFocusSession(this.debugService.getViewModel().focusedSession);
 	}
 
 	dispose(): void {

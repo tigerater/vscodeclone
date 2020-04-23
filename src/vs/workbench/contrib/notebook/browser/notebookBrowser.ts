@@ -78,7 +78,6 @@ export interface MarkdownCellLayoutChangeEvent {
 export interface ICellViewModel {
 	readonly model: NotebookCellTextModel;
 	readonly id: string;
-	dragging: boolean;
 	handle: number;
 	uri: URI;
 	cellKind: CellKind;
@@ -145,11 +144,6 @@ export interface INotebookEditor {
 	 * Move a cell down one spot
 	 */
 	moveCellDown(cell: ICellViewModel): void;
-
-	/**
-	 * Move a cell above or below another cell
-	 */
-	moveCell(cell: ICellViewModel, relativeToCell: ICellViewModel, direction: 'above' | 'below'): Promise<void>;
 
 	/**
 	 * Switch the cell into editing mode.
@@ -346,13 +340,10 @@ export interface INotebookCellList {
 export interface BaseCellRenderTemplate {
 	container: HTMLElement;
 	cellContainer: HTMLElement;
-	dragHandle: HTMLElement;
 	toolbar: ToolBar;
 	focusIndicator: HTMLElement;
-	insertionIndicatorTop: HTMLElement;
 	disposables: DisposableStore;
 	bottomCellContainer: HTMLElement;
-	currentRenderedCell?: ICellViewModel;
 	toJSON: () => any;
 }
 
@@ -428,17 +419,6 @@ export enum CursorAtBoundary {
 	Top,
 	Bottom,
 	Both
-}
-
-export interface CellViewModelStateChangeEvent {
-	metadataChanged?: boolean;
-	selectionChanged?: boolean;
-	focusModeChanged?: boolean;
-	runStateChanged?: boolean;
-	editStateChanged?: boolean;
-	languageChanged?: boolean;
-	foldingStateChanged?: boolean;
-	contentChanged?: boolean;
 }
 
 /**

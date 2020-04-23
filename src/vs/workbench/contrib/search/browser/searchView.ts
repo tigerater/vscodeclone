@@ -859,7 +859,8 @@ export class SearchView extends ViewPane {
 
 	focus(): void {
 		super.focus();
-		const updatedText = this.searchConfig.seedOnFocus ? this.updateTextFromSelection({ allowSearchOnType: false }) : false;
+
+		const updatedText = this.updateTextFromSelection({ allowSearchOnType: false });
 		this.searchWidget.focus(undefined, undefined, updatedText);
 	}
 
@@ -1070,7 +1071,7 @@ export class SearchView extends ViewPane {
 			return null;
 		}
 
-		if (range.isEmpty() && this.searchConfig.seedWithNearestWord && allowUnselectedWord) {
+		if (range.isEmpty() && !this.searchWidget.searchInput.getValue() && allowUnselectedWord) {
 			const wordAtPosition = activeTextEditorControl.getModel().getWordAtPosition(range.getStartPosition());
 			if (wordAtPosition) {
 				return wordAtPosition.word;

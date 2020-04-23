@@ -12,7 +12,6 @@ import { Disposable, DisposableStore, IDisposable, toDisposable } from 'vs/base/
 import { isMacintosh } from 'vs/base/common/platform';
 import { URI } from 'vs/base/common/uri';
 import * as modes from 'vs/editor/common/modes';
-import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { IEnvironmentService } from 'vs/platform/environment/common/environment';
 import { IFileService } from 'vs/platform/files/common/files';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
@@ -165,12 +164,9 @@ class WebviewPortMappingProvider extends Disposable {
 
 class WebviewKeyboardHandler {
 
-	private readonly _webviews = new Set<WebviewTagHandle>();
-	private readonly _isUsingNativeTitleBars: boolean;
+	private _ignoreMenuShortcut = false;
 
-	constructor(configurationService: IConfigurationService) {
-		this._isUsingNativeTitleBars = configurationService.getValue<string>('window.titleBarStyle') === 'native';
-	}
+	private readonly _webviews = new Set<WebviewTagHandle>();
 
 	public add(
 		webviewHandle: WebviewTagHandle,
@@ -179,15 +175,22 @@ class WebviewKeyboardHandler {
 
 		const disposables = new DisposableStore();
 		if (this.shouldToggleMenuShortcutsEnablement) {
-			disposables.add(webviewHandle.onFirstLoad(() => {
-				this.setIgnoreMenuShortcutsForWebview(webviewHandle, true);
+			disposables.add(webviewHandle.onFirstLoad(contents => {
+				contents.on('before-input-event', (_event, input) => {
+					if (input.type === 'keyDown' && document.activeElement === webviewHandle.webview) {
+						this._ignoreMenuShortcut = input.control || input.meta;
+						this.setIgnoreMenuShortcuts(this._ignoreMenuShortcut);
+					}
+				});
+
+				this.setIgnoreMenuShortcutsForWebview(webviewHandle, this._ignoreMenuShortcut);
 			}));
 		}
 
 		disposables.add(addDisposableListener(webviewHandle.webview, 'ipc-message', (event) => {
 			switch (event.channel) {
 				case 'did-focus':
-					this.setIgnoreMenuShortcuts(true);
+					this.setIgnoreMenuShortcuts(this._ignoreMenuShortcut);
 					break;
 
 				case 'did-blur':
@@ -203,7 +206,7 @@ class WebviewKeyboardHandler {
 	}
 
 	private get shouldToggleMenuShortcutsEnablement() {
-		return isMacintosh || this._isUsingNativeTitleBars;
+		return isMacintosh;
 	}
 
 	private setIgnoreMenuShortcuts(value: boolean) {
@@ -222,14 +225,7 @@ class WebviewKeyboardHandler {
 
 export class ElectronWebviewBasedWebview extends BaseWebview<WebviewTag> implements Webview, WebviewFindDelegate {
 
-	private static _webviewKeyboardHandler: WebviewKeyboardHandler | undefined;
-
-	private static getWebviewKeyboardHandler(configService: IConfigurationService) {
-		if (!this._webviewKeyboardHandler) {
-			this._webviewKeyboardHandler = new WebviewKeyboardHandler(configService);
-		}
-		return this._webviewKeyboardHandler;
-	}
+	private static readonly _webviewKeyboardHandler = new WebviewKeyboardHandler();
 
 	private _webviewFindWidget: WebviewFindWidget | undefined;
 	private _findStarted: boolean = false;
@@ -252,7 +248,6 @@ export class ElectronWebviewBasedWebview extends BaseWebview<WebviewTag> impleme
 		@ITelemetryService telemetryService: ITelemetryService,
 		@IEnvironmentService environementService: IEnvironmentService,
 		@IWorkbenchEnvironmentService workbenchEnvironmentService: IWorkbenchEnvironmentService,
-		@IConfigurationService configurationService: IConfigurationService,
 	) {
 		super(id, options, contentOptions, _webviewThemeDataProvider, telemetryService, environementService, workbenchEnvironmentService);
 
@@ -272,7 +267,7 @@ export class ElectronWebviewBasedWebview extends BaseWebview<WebviewTag> impleme
 			tunnelService,
 		));
 
-		this._register(ElectronWebviewBasedWebview.getWebviewKeyboardHandler(configurationService).add(webviewAndContents));
+		this._register(ElectronWebviewBasedWebview._webviewKeyboardHandler.add(webviewAndContents));
 
 		this._domReady = new Promise(resolve => {
 			const subscription = this._register(this.on(WebviewMessageChannels.webviewReady, () => {

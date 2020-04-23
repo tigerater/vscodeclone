@@ -156,24 +156,6 @@ suite('EnvironmentVariable - MergedEnvironmentVariableCollection', () => {
 	});
 
 	suite('diff', () => {
-		test('should return undefined when collectinos are the same', () => {
-			const merged1 = new MergedEnvironmentVariableCollection(new Map([
-				['ext1', {
-					map: deserializeEnvironmentVariableCollection([
-						['A', { value: 'a', type: EnvironmentVariableMutatorType.Replace }]
-					])
-				}]
-			]));
-			const merged2 = new MergedEnvironmentVariableCollection(new Map([
-				['ext1', {
-					map: deserializeEnvironmentVariableCollection([
-						['A', { value: 'a', type: EnvironmentVariableMutatorType.Replace }]
-					])
-				}]
-			]));
-			const diff = merged1.diff(merged2);
-			strictEqual(diff, undefined);
-		});
 		test('should generate added diffs from when the first entry is added', () => {
 			const merged1 = new MergedEnvironmentVariableCollection(new Map([]));
 			const merged2 = new MergedEnvironmentVariableCollection(new Map([
@@ -183,7 +165,7 @@ suite('EnvironmentVariable - MergedEnvironmentVariableCollection', () => {
 					])
 				}]
 			]));
-			const diff = merged1.diff(merged2)!;
+			const diff = merged1.diff(merged2);
 			strictEqual(diff.changed.size, 0);
 			strictEqual(diff.removed.size, 0);
 			const entries = [...diff.added.entries()];
@@ -208,7 +190,7 @@ suite('EnvironmentVariable - MergedEnvironmentVariableCollection', () => {
 					])
 				}]
 			]));
-			const diff = merged1.diff(merged2)!;
+			const diff = merged1.diff(merged2);
 			strictEqual(diff.changed.size, 0);
 			strictEqual(diff.removed.size, 0);
 			const entries = [...diff.added.entries()];
@@ -238,7 +220,7 @@ suite('EnvironmentVariable - MergedEnvironmentVariableCollection', () => {
 					])
 				}]
 			]));
-			const diff = merged1.diff(merged2)!;
+			const diff = merged1.diff(merged2);
 			strictEqual(diff.changed.size, 0);
 			strictEqual(diff.removed.size, 0);
 			deepStrictEqual([...diff.added.entries()], [
@@ -258,13 +240,13 @@ suite('EnvironmentVariable - MergedEnvironmentVariableCollection', () => {
 					])
 				}]
 			]));
-			const diff2 = merged1.diff(merged3)!;
+			const diff2 = merged1.diff(merged3);
 			strictEqual(diff2.changed.size, 0);
 			strictEqual(diff2.removed.size, 0);
 			deepStrictEqual([...diff.added.entries()], [...diff2.added.entries()], 'Swapping the order of the entries in the other collection should yield the same result');
 		});
 
-		test('should remove entries in the diff that come after a Replace', () => {
+		test('should remove entries in the diff that come after a Replce', () => {
 			const merged1 = new MergedEnvironmentVariableCollection(new Map([
 				['ext1', {
 					map: deserializeEnvironmentVariableCollection([
@@ -286,7 +268,9 @@ suite('EnvironmentVariable - MergedEnvironmentVariableCollection', () => {
 				}]
 			]));
 			const diff = merged1.diff(merged4);
-			strictEqual(diff, undefined, 'Replace should ignore any entries after it');
+			strictEqual(diff.changed.size, 0);
+			strictEqual(diff.removed.size, 0);
+			deepStrictEqual([...diff.added.entries()], [], 'Replace should ignore any entries after it');
 		});
 
 		test('should generate removed diffs', () => {
@@ -305,7 +289,7 @@ suite('EnvironmentVariable - MergedEnvironmentVariableCollection', () => {
 					])
 				}]
 			]));
-			const diff = merged1.diff(merged2)!;
+			const diff = merged1.diff(merged2);
 			strictEqual(diff.changed.size, 0);
 			strictEqual(diff.added.size, 0);
 			deepStrictEqual([...diff.removed.entries()], [
@@ -330,7 +314,7 @@ suite('EnvironmentVariable - MergedEnvironmentVariableCollection', () => {
 					])
 				}]
 			]));
-			const diff = merged1.diff(merged2)!;
+			const diff = merged1.diff(merged2);
 			strictEqual(diff.added.size, 0);
 			strictEqual(diff.removed.size, 0);
 			deepStrictEqual([...diff.changed.entries()], [
@@ -356,7 +340,7 @@ suite('EnvironmentVariable - MergedEnvironmentVariableCollection', () => {
 					])
 				}]
 			]));
-			const diff = merged1.diff(merged2)!;
+			const diff = merged1.diff(merged2);
 			deepStrictEqual([...diff.added.entries()], [
 				['C', [{ extensionIdentifier: 'ext1', value: 'c', type: EnvironmentVariableMutatorType.Append }]],
 			]);

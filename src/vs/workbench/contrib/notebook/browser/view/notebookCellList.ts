@@ -6,7 +6,7 @@
 import * as DOM from 'vs/base/browser/dom';
 import { IMouseWheelEvent } from 'vs/base/browser/mouseEvent';
 import { IListRenderer, IListVirtualDelegate, ListError } from 'vs/base/browser/ui/list/list';
-import { IListStyles, IStyleController, MouseController } from 'vs/base/browser/ui/list/listWidget';
+import { IListStyles, IStyleController } from 'vs/base/browser/ui/list/listWidget';
 import { Emitter, Event } from 'vs/base/common/event';
 import { DisposableStore, IDisposable } from 'vs/base/common/lifecycle';
 import { isMacintosh } from 'vs/base/common/platform';
@@ -19,9 +19,9 @@ import { IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 import { IKeybindingService } from 'vs/platform/keybinding/common/keybinding';
 import { IListService, IWorkbenchListOptions, WorkbenchList } from 'vs/platform/list/browser/listService';
 import { IThemeService } from 'vs/platform/theme/common/themeService';
-import { CellRevealPosition, CellRevealType, CursorAtBoundary, getVisibleCells, ICellRange, ICellViewModel, INotebookCellList, reduceCellRanges, CellEditState } from 'vs/workbench/contrib/notebook/browser/notebookBrowser';
+import { CellRevealPosition, CellRevealType, CursorAtBoundary, getVisibleCells, ICellRange, ICellViewModel, INotebookCellList, reduceCellRanges } from 'vs/workbench/contrib/notebook/browser/notebookBrowser';
 import { CellViewModel, NotebookViewModel } from 'vs/workbench/contrib/notebook/browser/viewModel/notebookViewModel';
-import { diff, IOutput, NOTEBOOK_EDITOR_CURSOR_BOUNDARY, CellKind } from 'vs/workbench/contrib/notebook/common/notebookCommon';
+import { diff, IOutput, NOTEBOOK_EDITOR_CURSOR_BOUNDARY } from 'vs/workbench/contrib/notebook/common/notebookCommon';
 
 export class NotebookCellList extends WorkbenchList<CellViewModel> implements IDisposable, IStyleController, INotebookCellList {
 	get onWillScroll(): Event<ScrollEvent> { return this.view.onWillScroll; }
@@ -98,10 +98,8 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 				// we only validate the first focused element
 				const focusedElement = e.elements[0];
 
-				cursorSelectionListener = focusedElement.onDidChangeState((e) => {
-					if (e.selectionChanged) {
-						recomputeContext(focusedElement);
-					}
+				cursorSelectionListener = focusedElement.onDidChangeCursorSelection(() => {
+					recomputeContext(focusedElement);
 				});
 
 				textEditorAttachListener = focusedElement.onDidChangeEditorAttachState(() => {
@@ -118,10 +116,6 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 			notebookEditorCursorAtBoundaryContext.set('none');
 		}));
 
-	}
-
-	protected createMouseController(): MouseController<CellViewModel> {
-		return new NotebookMouseController(this);
 	}
 
 	detachViewModel() {
@@ -484,9 +478,7 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 			}
 
 			const editorAttachedPromise = new Promise((resolve, reject) => {
-				element.onDidChangeEditorAttachState(() => {
-					element.editorAttached ? resolve() : reject();
-				});
+				element.onDidChangeEditorAttachState(state => state ? resolve() : reject());
 			});
 
 			editorAttachedPromise.then(() => {
@@ -758,20 +750,10 @@ export class NotebookCellList extends WorkbenchList<CellViewModel> implements ID
 
 function getEditorAttachedPromise(element: CellViewModel) {
 	return new Promise((resolve, reject) => {
-		Event.once(element.onDidChangeEditorAttachState)(() => element.editorAttached ? resolve() : reject());
+		Event.once(element.onDidChangeEditorAttachState)(state => state ? resolve() : reject());
 	});
 }
 
 function isContextMenuFocused() {
 	return !!DOM.findParentWithClass(<HTMLElement>document.activeElement, 'context-view');
-}
-
-
-class NotebookMouseController extends MouseController<CellViewModel> {
-	protected onDoubleClick(): void {
-		const focus = this.list.getFocusedElements()[0];
-		if (focus && focus.cellKind === CellKind.Markdown) {
-			focus.editState = CellEditState.Editing;
-		}
-	}
 }

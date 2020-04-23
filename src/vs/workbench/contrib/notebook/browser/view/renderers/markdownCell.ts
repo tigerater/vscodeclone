@@ -43,13 +43,14 @@ export class StatefullMarkdownCell extends Disposable {
 		const viewUpdate = () => {
 			if (viewCell.editState === CellEditState.Editing) {
 				// switch to editing mode
-				let totalHeight: number;
+				const width = viewCell.layoutInfo.editorWidth;
+				const lineNum = viewCell.lineCount;
+				const lineHeight = viewCell.layoutInfo.fontInfo?.lineHeight || 17;
+				const totalHeight = Math.max(lineNum, 1) * lineHeight + EDITOR_TOP_PADDING + EDITOR_BOTTOM_PADDING;
 
 				show(this.editingContainer);
 				hide(this.markdownContainer);
 				if (this.editor) {
-					totalHeight = this.editor!.getContentHeight();
-
 					// not first time, we don't need to create editor or bind listeners
 					viewCell.attachTextEditor(this.editor);
 					if (notebookEditor.getActiveCell() === viewCell) {
@@ -58,11 +59,6 @@ export class StatefullMarkdownCell extends Disposable {
 
 					this.bindEditorListeners(this.editor.getModel()!);
 				} else {
-					const width = viewCell.layoutInfo.editorWidth;
-					const lineNum = viewCell.lineCount;
-					const lineHeight = viewCell.layoutInfo.fontInfo?.lineHeight || 17;
-					totalHeight = Math.max(lineNum, 1) * lineHeight + EDITOR_TOP_PADDING + EDITOR_BOTTOM_PADDING;
-
 					this.editingContainer.innerHTML = '';
 					this.editor = instantiationService.createInstance(CodeEditorWidget, this.editingContainer, {
 						...editorOptions,
@@ -135,11 +131,7 @@ export class StatefullMarkdownCell extends Disposable {
 						notebookEditor.layoutNotebookCell(viewCell, clientHeight);
 					}));
 
-					this.localDisposables.add(viewCell.onDidChangeState((e) => {
-						if (!e.contentChanged) {
-							return;
-						}
-
+					this.localDisposables.add(viewCell.onDidChangeContent(() => {
 						this.markdownContainer.innerHTML = '';
 						let renderedHTML = viewCell.getHTML();
 						if (renderedHTML) {
@@ -150,18 +142,12 @@ export class StatefullMarkdownCell extends Disposable {
 			}
 		};
 
-		this._register(viewCell.onDidChangeState((e) => {
-			if (e.editStateChanged) {
-				this.localDisposables.clear();
-				viewUpdate();
-			}
+		this._register(viewCell.onDidChangeCellEditState(() => {
+			this.localDisposables.clear();
+			viewUpdate();
 		}));
 
-		this._register(viewCell.onDidChangeState((e) => {
-			if (!e.focusModeChanged) {
-				return;
-			}
-
+		this._register(viewCell.onDidChangeFocusMode(() => {
 			if (viewCell.focusMode === CellFocusMode.Editor) {
 				this.editor?.focus();
 			}
@@ -170,11 +156,7 @@ export class StatefullMarkdownCell extends Disposable {
 		this.foldingState = viewCell.foldingState;
 		this.setFoldingIndicator();
 
-		this._register(viewCell.onDidChangeState((e) => {
-			if (!e.foldingStateChanged) {
-				return;
-			}
-
+		this._register(viewCell.onDidChangeFoldingState(() => {
 			const foldingState = viewCell.foldingState;
 
 			if (foldingState !== this.foldingState) {

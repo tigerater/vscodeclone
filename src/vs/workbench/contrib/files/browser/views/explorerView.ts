@@ -659,8 +659,7 @@ export class ExplorerView extends ViewPane {
 		}
 
 		// Expand all stats in the parent chain.
-		const ignoreCase = !this.fileService.hasCapability(resource, FileSystemProviderCapabilities.PathCaseSensitive);
-		let item: ExplorerItem | undefined = this.explorerService.roots.filter(i => isEqualOrParent(resource, i.resource, ignoreCase))
+		let item: ExplorerItem | undefined = this.explorerService.roots.filter(i => isEqualOrParent(resource, i.resource))
 			// Take the root that is the closest to the stat #72299
 			.sort((first, second) => second.resource.path.length - first.resource.path.length)[0];
 
@@ -669,7 +668,7 @@ export class ExplorerView extends ViewPane {
 				return this.onSelectResource(resource, reveal, retry + 1);
 			}
 			await this.tree.expand(item);
-			item = first(values(item.children), i => isEqualOrParent(resource, i.resource, ignoreCase));
+			item = first(values(item.children), i => isEqualOrParent(resource, i.resource));
 		}
 
 		if (item) {

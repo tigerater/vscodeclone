@@ -59,8 +59,18 @@ export class CodeCell extends Disposable {
 				}
 
 				const realContentHeight = templateData.editor?.getContentHeight();
+				const width = this.viewCell.layoutInfo.editorWidth;
+
 				if (realContentHeight !== undefined && realContentHeight !== totalHeight) {
-					this.onCellHeightChange(realContentHeight);
+					// TODO not redundant with content change event?
+					this.layoutEditor(
+						{
+							width: width,
+							height: realContentHeight
+						}
+					);
+
+					viewCell.editorHeight = realContentHeight;
 				}
 
 				if (this.notebookEditor.getActiveCell() === this.viewCell && viewCell.focusMode === CellFocusMode.Editor) {
@@ -69,29 +79,19 @@ export class CodeCell extends Disposable {
 			}
 		});
 
-		this._register(viewCell.onDidChangeState((e) => {
-			if (!e.focusModeChanged) {
-				return;
-			}
-
+		this._register(viewCell.onDidChangeFocusMode(() => {
 			if (viewCell.focusMode === CellFocusMode.Editor) {
 				templateData.editor?.focus();
 			}
 		}));
 
 		templateData.editor?.updateOptions({ readOnly: !(viewCell.getEvaluatedMetadata(notebookEditor.viewModel?.metadata).editable) });
-		this._register(viewCell.onDidChangeState((e) => {
-			if (e.metadataChanged) {
-				templateData.editor?.updateOptions({ readOnly: !(viewCell.getEvaluatedMetadata(notebookEditor.viewModel?.metadata).editable) });
-			}
+		this._register(viewCell.onDidChangeMetadata(() => {
+			templateData.editor?.updateOptions({ readOnly: !(viewCell.getEvaluatedMetadata(notebookEditor.viewModel?.metadata).editable) });
 		}));
 
-		this._register(viewCell.onDidChangeState((e) => {
-			if (!e.languageChanged) {
-				return;
-			}
-
-			const mode = this._modeService.create(viewCell.language);
+		this._register(viewCell.onDidChangeLanguage((e) => {
+			const mode = this._modeService.create(e);
 			templateData.editor?.getModel()?.setMode(mode.languageIdentifier);
 		}));
 
@@ -442,7 +442,7 @@ export class CodeCell extends Disposable {
 		this._timer = setTimeout(() => {
 			this.notebookEditor.layoutNotebookCell(this.viewCell, this.viewCell.layoutInfo.totalHeight);
 			this._timer = null;
-		}, 200);
+		}, 500);
 	}
 
 	dispose() {

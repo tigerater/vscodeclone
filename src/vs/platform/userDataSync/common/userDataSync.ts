@@ -20,9 +20,8 @@ import { FormattingOptions } from 'vs/base/common/jsonFormatter';
 import { URI } from 'vs/base/common/uri';
 import { joinPath, isEqualOrParent } from 'vs/base/common/resources';
 import { IEnvironmentService } from 'vs/platform/environment/common/environment';
-import { IProductService, ConfigurationSyncStore } from 'vs/platform/product/common/productService';
+import { IProductService } from 'vs/platform/product/common/productService';
 import { distinct } from 'vs/base/common/arrays';
-import { isArray, isString, isObject } from 'vs/base/common/types';
 
 export const CONFIGURATION_SYNC_STORE_KEY = 'configurationSync.store';
 
@@ -120,33 +119,17 @@ export interface IUserData {
 	content: string | null;
 }
 
-export type IAuthenticationProvider = { id: string, scopes: string[] };
-
 export interface IUserDataSyncStore {
 	url: URI;
-	authenticationProviders: IAuthenticationProvider[];
-}
-
-export function isAuthenticationProvider(thing: any): thing is IAuthenticationProvider {
-	return thing
-		&& isObject(thing)
-		&& isString(thing.id)
-		&& isArray(thing.scopes);
+	authenticationProviderId: string;
 }
 
 export function getUserDataSyncStore(productService: IProductService, configurationService: IConfigurationService): IUserDataSyncStore | undefined {
-	const value = configurationService.getValue<ConfigurationSyncStore>(CONFIGURATION_SYNC_STORE_KEY) || productService[CONFIGURATION_SYNC_STORE_KEY];
-	if (value
-		&& isString(value.url)
-		&& isObject(value.authenticationProviders)
-		&& Object.keys(value.authenticationProviders).every(authenticationProviderId => isArray(value.authenticationProviders[authenticationProviderId].scopes))
-	) {
+	const value = configurationService.getValue<{ url: string, authenticationProviderId: string }>(CONFIGURATION_SYNC_STORE_KEY) || productService[CONFIGURATION_SYNC_STORE_KEY];
+	if (value && value.url && value.authenticationProviderId) {
 		return {
 			url: joinPath(URI.parse(value.url), 'v1'),
-			authenticationProviders: Object.keys(value.authenticationProviders).reduce<IAuthenticationProvider[]>((result, id) => {
-				result.push({ id, scopes: value.authenticationProviders[id].scopes });
-				return result;
-			}, [])
+			authenticationProviderId: value.authenticationProviderId
 		};
 	}
 	return undefined;

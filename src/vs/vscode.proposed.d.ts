@@ -714,43 +714,7 @@ declare module 'vscode' {
 
 	//#endregion
 
-	//#region debug: https://github.com/microsoft/vscode/issues/88230
-
-	/**
-	 * VS Code can call the `provideDebugConfigurations` method of a `DebugConfigurationProvider` in two situations (aka 'scopes'):
-	 * to provide the initial debug configurations for a newly created launch.json or to provide debug configurations dynamically based on context.
-	 * A scope can be used when registering a `DebugConfigurationProvider` with #debug.registerDebugConfigurationProvider.
-	 */
-	export enum DebugConfigurationProviderScope {
-		/**
-		 * The 'initial' scope is used to ask for debug configurations to be copied into a newly created launch.json.
-		 */
-		Initial = 1,
-		/**
-		 * The 'dynamic' scope is used to ask for additional dynamic debug configurations to be presented to the user (in addition to the static configurations from the launch.json).
-		 */
-		Dynamic = 2
-	}
-
-	export namespace debug {
-		/**
-		 * Register a [debug configuration provider](#DebugConfigurationProvider) for a specific debug type.
-		 * The optional [scope](#DebugConfigurationProviderScope) argument can be used to bind the `provideDebugConfigurations` method of the provider to a specific context (aka scope).
-		 * Currently two scopes are possible: with the value `Initial` (or if no scope argument is given) the `provideDebugConfigurations` method is used to find the initial debug configurations to be copied into a newly created launch.json.
-		 * With a scope value `Dynamic` the `provideDebugConfigurations` method is used to dynamically determine debug configurations to be presented to the user in addition to the static configurations from the launch.json.
-		 * Please note that the scope argument only applies to the `provideDebugConfigurations` method: so the `resolveDebugConfiguration` methods are not affected at all.
-		 * Registering a single provider with resolve methods for different scopes, results in the same resolve methods called multiple times.
-		 * More than one provider can be registered for the same type.
-		 *
-		 * @param type The debug type for which the provider is registered.
-		 * @param provider The [debug configuration provider](#DebugConfigurationProvider) to register.
-		 * @param scope The [scope](#DebugConfigurationProviderScope) for which the 'provideDebugConfiguration' method of the provider is registered.
-		 * @return A [disposable](#Disposable) that unregisters this provider when being disposed.
-		 */
-		export function registerDebugConfigurationProvider(debugType: string, provider: DebugConfigurationProvider, scope?: DebugConfigurationProviderScope): Disposable;
-	}
-
-	// deprecated debug API
+	//#region deprecated debug API
 
 	export interface DebugConfigurationProvider {
 		/**
@@ -912,37 +876,6 @@ declare module 'vscode' {
 		 * created.
 		 */
 		readonly dimensions: TerminalDimensions | undefined;
-	}
-
-	//#endregion
-
-
-
-	//#region Terminal link handlers https://github.com/microsoft/vscode/issues/91606
-
-	export namespace window {
-		/**
-		 * Register a [TerminalLinkHandler](#TerminalLinkHandler) that can be used to intercept and
-		 * handle links that are activated within terminals.
-		 * @param handler The link handler being registered.
-		 * @return A disposable that unregisters the link handler.
-		 */
-		export function registerTerminalLinkHandler(handler: TerminalLinkHandler): Disposable;
-	}
-
-	/**
-	 * Describes how to handle terminal links.
-	 */
-	export interface TerminalLinkHandler {
-		/**
-		 * Handles a link that is activated within the terminal.
-		 *
-		 * @param terminal The terminal the link was activated on.
-		 * @param link The text of the link activated.
-		 * @return Whether the link was handled, if the link was handled this link will not be
-		 * considered by any other extension or by the default built-in link handler.
-		 */
-		handleLink(terminal: Terminal, link: string): ProviderResult<boolean>;
 	}
 
 	//#endregion
