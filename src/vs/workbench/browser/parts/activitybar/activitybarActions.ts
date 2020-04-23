@@ -29,7 +29,7 @@ import { IViewletService } from 'vs/workbench/services/viewlet/browser/viewlet';
 import { IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 import { createAndFillInActionBarActions } from 'vs/platform/actions/browser/menuEntryActionViewItem';
 import { ICommandService } from 'vs/platform/commands/common/commands';
-import { isString } from 'vs/base/common/types';
+import { Codicon } from 'vs/base/common/codicons';
 
 export class ViewletActivityAction extends ActivityAction {
 
@@ -251,17 +251,13 @@ export class PlaceHolderViewletActivityAction extends ViewletActivityAction {
 
 	constructor(
 		id: string,
-		icon: URI | string | undefined,
+		name: string,
+		iconUrl: URI | undefined,
 		@IViewletService viewletService: IViewletService,
 		@IWorkbenchLayoutService layoutService: IWorkbenchLayoutService,
 		@ITelemetryService telemetryService: ITelemetryService
 	) {
-		super({
-			id,
-			name: id,
-			iconUrl: URI.isUri(icon) ? icon : undefined,
-			cssClass: isString(icon) ? icon : undefined
-		}, viewletService, layoutService, telemetryService);
+		super({ id, name: id, iconUrl }, viewletService, layoutService, telemetryService);
 	}
 }
 
@@ -349,10 +345,10 @@ export class HomeAction extends Action {
 	constructor(
 		private readonly command: string,
 		name: string,
-		icon: string,
+		icon: Codicon,
 		@ICommandService private readonly commandService: ICommandService
 	) {
-		super('workbench.action.home', name, `codicon-${icon}`);
+		super('workbench.action.home', name, icon.classNames);
 	}
 
 	async run(): Promise<void> {

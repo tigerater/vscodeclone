@@ -26,7 +26,7 @@ import { IExtensionService } from 'vs/workbench/services/extensions/common/exten
 import { URI, UriComponents } from 'vs/base/common/uri';
 import { ToggleCompositePinnedAction, ICompositeBarColors, ActivityAction, ICompositeActivity } from 'vs/workbench/browser/parts/compositeBarActions';
 import { ViewletDescriptor } from 'vs/workbench/browser/viewlet';
-import { IViewDescriptorService, IViewContainersRegistry, Extensions as ViewContainerExtensions, ViewContainer, TEST_VIEW_CONTAINER_ID, IViewContainerModel, ViewContainerLocation } from 'vs/workbench/common/views';
+import { IViewDescriptorService, IViewContainersRegistry, Extensions as ViewContainerExtensions, ViewContainer, TEST_VIEW_CONTAINER_ID, IViewDescriptorCollection, ViewContainerLocation } from 'vs/workbench/common/views';
 import { IContextKeyService, ContextKeyExpr } from 'vs/platform/contextkey/common/contextkey';
 import { IViewlet } from 'vs/workbench/common/viewlet';
 import { isUndefinedOrNull, assertIsDefined, isString } from 'vs/base/common/types';
@@ -42,12 +42,12 @@ import { IStorageKeysSyncRegistryService } from 'vs/platform/userDataSync/common
 import { getUserDataSyncStore } from 'vs/platform/userDataSync/common/userDataSync';
 import { IProductService } from 'vs/platform/product/common/productService';
 import { Before2D } from 'vs/workbench/browser/dnd';
+import { Codicon, iconRegistry } from 'vs/base/common/codicons';
 
 interface IPlaceholderViewlet {
 	id: string;
 	name?: string;
 	iconUrl?: UriComponents;
-	iconCSS?: string;
 	views?: { when?: string }[];
 }
 
@@ -61,7 +61,7 @@ interface IPinnedViewlet {
 interface ICachedViewlet {
 	id: string;
 	name?: string;
-	icon?: URI | string;
+	iconUrl?: UriComponents;
 	pinned: boolean;
 	order?: number;
 	visible: boolean;
@@ -199,6 +199,7 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 
 	private onDidRegisterExtensions(): void {
 		this.removeNotExistingComposites();
+
 		this.saveCachedViewlets();
 	}
 
@@ -216,8 +217,8 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		if (viewletDescriptor) {
 			const viewContainer = this.getViewContainer(viewletDescriptor.id);
 			if (viewContainer?.hideIfEmpty) {
-				const viewContainerModel = this.viewDescriptorService.getViewContainerModel(viewContainer);
-				if (viewContainerModel.activeViewDescriptors.length === 0) {
+				const viewDescriptors = this.viewDescriptorService.getViewDescriptors(viewContainer);
+				if (viewDescriptors.activeViewDescriptors.length === 0) {
 					this.hideComposite(viewletDescriptor.id); // Update the composite bar by hiding
 				}
 			}
@@ -326,7 +327,12 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		// Home action bar
 		const homeIndicator = this.environmentService.options?.homeIndicator;
 		if (homeIndicator) {
-			this.createHomeBar(homeIndicator.command, homeIndicator.title, homeIndicator.icon);
+			let codicon = iconRegistry.get(homeIndicator.icon);
+			if (!codicon) {
+				console.warn(`Unknown home indicator icon ${homeIndicator.icon}`);
+				codicon = Codicon.code;
+			}
+			this.createHomeBar(homeIndicator.command, homeIndicator.title, codicon);
 		}
 
 		// Install menubar if compact
@@ -347,7 +353,7 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		return this.content;
 	}
 
-	private createHomeBar(command: string, title: string, icon: string): void {
+	private createHomeBar(command: string, title: string, icon: Codicon): void {
 		const homeBarContainer = document.createElement('div');
 		homeBarContainer.setAttribute('aria-label', nls.localize('homeIndicator', "Home"));
 		homeBarContainer.setAttribute('role', 'toolbar');
@@ -416,14 +422,14 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		this.globalActivityAction = new ActivityAction({
 			id: 'workbench.actions.manage',
 			name: nls.localize('manage', "Manage"),
-			cssClass: 'codicon-settings-gear'
+			cssClass: Codicon.gear.classNames
 		});
 
 		if (getUserDataSyncStore(this.productService, this.configurationService)) {
 			const profileAction = new ActivityAction({
 				id: 'workbench.actions.accounts',
 				name: nls.localize('accounts', "Accounts"),
-				cssClass: 'codicon-account'
+				cssClass: Codicon.account.classNames
 			});
 
 			this.globalActivityActionBar.push(profileAction);
@@ -444,7 +450,7 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 			} else {
 				const cachedComposite = this.cachedViewlets.filter(c => c.id === compositeId)[0];
 				compositeActions = {
-					activityAction: this.instantiationService.createInstance(PlaceHolderViewletActivityAction, compositeId, cachedComposite?.icon),
+					activityAction: this.instantiationService.createInstance(PlaceHolderViewletActivityAction, compositeId, cachedComposite?.name || compositeId, cachedComposite?.iconUrl ? URI.revive(cachedComposite.iconUrl) : undefined),
 					pinnedAction: new PlaceHolderToggleCompositePinnedAction(compositeId, this.compositeBar)
 				};
 			}
@@ -476,16 +482,11 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		}
 
 		for (const viewlet of viewlets) {
+			this.enableCompositeActions(viewlet);
 			const viewContainer = this.getViewContainer(viewlet.id)!;
-			const viewContainerModel = this.viewDescriptorService.getViewContainerModel(viewContainer);
-			this.updateActivity(viewContainer, viewContainerModel);
-			this.onDidChangeActiveViews(viewContainer, viewContainerModel);
-
-			const disposables = new DisposableStore();
-			disposables.add(viewContainerModel.onDidChangeContainerInfo(() => this.updateActivity(viewContainer, viewContainerModel)));
-			disposables.add(viewContainerModel.onDidChangeActiveViewDescriptors(() => this.onDidChangeActiveViews(viewContainer, viewContainerModel)));
-
-			this.viewletDisposables.set(viewlet.id, disposables);
+			const viewDescriptors = this.viewDescriptorService.getViewDescriptors(viewContainer);
+			this.onDidChangeActiveViews(viewlet, viewDescriptors, viewContainer.hideIfEmpty);
+			this.viewletDisposables.set(viewlet.id, viewDescriptors.onDidChangeActiveViews(() => this.onDidChangeActiveViews(viewlet, viewDescriptors, viewContainer.hideIfEmpty)));
 		}
 	}
 
@@ -499,31 +500,34 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		this.hideComposite(viewletId);
 	}
 
-	private updateActivity(viewContainer: ViewContainer, viewContainerModel: IViewContainerModel): void {
+	private updateActivity(viewlet: ViewletDescriptor, viewDescriptors: IViewDescriptorCollection): void {
+		const viewDescriptor = viewDescriptors.activeViewDescriptors[0];
+
+		// Use the viewlet icon if any view inside belongs to it statically
+		const shouldUseViewletIcon = viewDescriptors.allViewDescriptors.some(v => this.viewDescriptorService.getDefaultContainer(v.id)?.id === viewlet.id);
 
 		const activity: IActivity = {
-			id: viewContainer.id,
-			name: viewContainerModel.title,
-			iconUrl: URI.isUri(viewContainerModel.icon) ? viewContainerModel.icon : undefined,
-			cssClass: isString(viewContainerModel.icon) ? viewContainerModel.icon : undefined,
-			keybindingId: viewContainer.focusCommand?.id || viewContainer.id
+			id: viewlet.id,
+			name: shouldUseViewletIcon ? viewlet.name : viewDescriptor.name,
+			cssClass: shouldUseViewletIcon ? viewlet.cssClass : (isString(viewDescriptor.containerIcon) ? viewDescriptor.containerIcon : (viewDescriptor.containerIcon === undefined ? Codicon.window.classNames : undefined)),
+			iconUrl: shouldUseViewletIcon ? viewlet.iconUrl : (viewDescriptor.containerIcon instanceof URI ? viewDescriptor.containerIcon : undefined),
+			keybindingId: viewlet.keybindingId
 		};
 
-		const { activityAction, pinnedAction } = this.getCompositeActions(viewContainer.id);
+		const { activityAction, pinnedAction } = this.getCompositeActions(viewlet.id);
 		activityAction.setActivity(activity);
 
 		if (pinnedAction instanceof PlaceHolderToggleCompositePinnedAction) {
 			pinnedAction.setActivity(activity);
 		}
-
-		this.saveCachedViewlets();
 	}
 
-	private onDidChangeActiveViews(viewContainer: ViewContainer, viewContainerModel: IViewContainerModel): void {
-		if (viewContainerModel.activeViewDescriptors.length) {
-			this.compositeBar.addComposite(viewContainer);
-		} else if (viewContainer.hideIfEmpty) {
-			this.hideComposite(viewContainer.id);
+	private onDidChangeActiveViews(viewlet: ViewletDescriptor, viewDescriptors: IViewDescriptorCollection, hideIfEmpty?: boolean): void {
+		if (viewDescriptors.activeViewDescriptors.length) {
+			this.updateActivity(viewlet, viewDescriptors);
+			this.compositeBar.addComposite(viewlet);
+		} else if (hideIfEmpty) {
+			this.hideComposite(viewlet.id);
 		}
 	}
 
@@ -555,6 +559,17 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 			compositeActions.activityAction.dispose();
 			compositeActions.pinnedAction.dispose();
 			this.compositeActions.delete(compositeId);
+		}
+	}
+
+	private enableCompositeActions(viewlet: ViewletDescriptor): void {
+		const { activityAction, pinnedAction } = this.getCompositeActions(viewlet.id);
+		if (activityAction instanceof PlaceHolderViewletActivityAction) {
+			activityAction.setActivity(viewlet);
+		}
+
+		if (pinnedAction instanceof PlaceHolderToggleCompositePinnedAction) {
+			pinnedAction.setActivity(viewlet);
 		}
 	}
 
@@ -626,25 +641,21 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 
 	private saveCachedViewlets(): void {
 		const state: ICachedViewlet[] = [];
+		const allViewlets = this.viewletService.getViewlets();
 
 		const compositeItems = this.compositeBar.getCompositeBarItems();
 		for (const compositeItem of compositeItems) {
 			const viewContainer = this.getViewContainer(compositeItem.id);
-			if (viewContainer) {
-				const viewContainerModel = this.viewDescriptorService.getViewContainerModel(viewContainer);
+			const viewlet = allViewlets.filter(({ id }) => id === compositeItem.id)[0];
+			if (viewlet) {
 				const views: { when: string | undefined }[] = [];
-				for (const { when } of viewContainerModel.allViewDescriptors) {
-					views.push({ when: when ? when.serialize() : undefined });
+				if (viewContainer) {
+					const viewDescriptors = this.viewDescriptorService.getViewDescriptors(viewContainer);
+					for (const { when } of viewDescriptors.allViewDescriptors) {
+						views.push({ when: when ? when.serialize() : undefined });
+					}
 				}
-				state.push({
-					id: compositeItem.id,
-					name: viewContainerModel.title,
-					icon: URI.isUri(viewContainerModel.icon) && viewContainerModel.icon.scheme === Schemas.file ? viewContainerModel.icon : viewContainerModel.icon,
-					views,
-					pinned: compositeItem.pinned,
-					order: compositeItem.order,
-					visible: compositeItem.visible
-				});
+				state.push({ id: compositeItem.id, name: viewlet.name, iconUrl: viewlet.iconUrl && viewlet.iconUrl.scheme === Schemas.file ? viewlet.iconUrl : undefined, views, pinned: compositeItem.pinned, order: compositeItem.order, visible: compositeItem.visible });
 			} else {
 				state.push({ id: compositeItem.id, pinned: compositeItem.pinned, order: compositeItem.order, visible: false });
 			}
@@ -654,13 +665,12 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 	}
 
 	private getCachedViewlets(): ICachedViewlet[] {
-		const cachedViewlets: ICachedViewlet[] = this.getPinnedViewlets();
-		for (const placeholderViewlet of this.getPlaceholderViewlets()) {
+		const cachedViewlets: Array<ICachedViewlet> = JSON.parse(this.pinnedViewletsValue);
+		for (const placeholderViewlet of JSON.parse(this.placeholderViewletsValue)) {
 			const cachedViewlet = cachedViewlets.filter(cached => cached.id === placeholderViewlet.id)[0];
 			if (cachedViewlet) {
 				cachedViewlet.name = placeholderViewlet.name;
-				cachedViewlet.icon = placeholderViewlet.iconCSS ? placeholderViewlet.iconCSS :
-					placeholderViewlet.iconUrl ? URI.revive(placeholderViewlet.iconUrl) : undefined;
+				cachedViewlet.iconUrl = placeholderViewlet.iconUrl;
 				cachedViewlet.views = placeholderViewlet.views;
 			}
 		}
@@ -669,27 +679,8 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 	}
 
 	private storeCachedViewletsState(cachedViewlets: ICachedViewlet[]): void {
-		this.setPinnedViewlets(cachedViewlets.map(({ id, pinned, visible, order }) => (<IPinnedViewlet>{
-			id,
-			pinned,
-			visible,
-			order
-		})));
-		this.setPlaceholderViewlets(cachedViewlets.map(({ id, icon, name, views }) => (<IPlaceholderViewlet>{
-			id,
-			iconUrl: URI.isUri(icon) ? icon : undefined,
-			iconCSS: isString(icon) ? icon : undefined,
-			name,
-			views
-		})));
-	}
-
-	private getPinnedViewlets(): IPinnedViewlet[] {
-		return JSON.parse(this.pinnedViewletsValue);
-	}
-
-	private setPinnedViewlets(pinnedViewlets: IPinnedViewlet[]): void {
-		this.pinnedViewletsValue = JSON.stringify(pinnedViewlets);
+		this.pinnedViewletsValue = JSON.stringify(cachedViewlets.map(({ id, pinned, visible, order }) => (<IPinnedViewlet>{ id, pinned, visible, order })));
+		this.placeholderViewletsValue = JSON.stringify(cachedViewlets.map(({ id, iconUrl, name, views }) => (<IPlaceholderViewlet>{ id, iconUrl, name, views })));
 	}
 
 	private _pinnedViewletsValue: string | undefined;
@@ -714,14 +705,6 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 
 	private setStoredPinnedViewletsValue(value: string): void {
 		this.storageService.store(ActivitybarPart.PINNED_VIEWLETS, value, StorageScope.GLOBAL);
-	}
-
-	private getPlaceholderViewlets(): IPlaceholderViewlet[] {
-		return JSON.parse(this.placeholderViewletsValue);
-	}
-
-	private setPlaceholderViewlets(placeholderViewlets: IPlaceholderViewlet[]): void {
-		this.placeholderViewletsValue = JSON.stringify(placeholderViewlets);
 	}
 
 	private _placeholderViewletsValue: string | undefined;
@@ -753,7 +736,7 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		if (value !== undefined) {
 			const storedStates: Array<string | ICachedViewlet> = JSON.parse(value);
 			const cachedViewlets = storedStates.map(c => {
-				const serialized: ICachedViewlet = typeof c === 'string' /* migration from pinned states to composites states */ ? { id: c, pinned: true, order: undefined, visible: true, name: undefined, icon: undefined, views: undefined } : c;
+				const serialized: ICachedViewlet = typeof c === 'string' /* migration from pinned states to composites states */ ? { id: c, pinned: true, order: undefined, visible: true, name: undefined, iconUrl: undefined, views: undefined } : c;
 				serialized.visible = isUndefinedOrNull(serialized.visible) ? true : serialized.visible;
 				return serialized;
 			});

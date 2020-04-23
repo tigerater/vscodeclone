@@ -107,8 +107,6 @@ export abstract class BaseEditor extends Composite implements IEditorPane {
 
 	onHide() { }
 
-	onWillHide() { }
-
 	/**
 	 * Called to create the editor in the parent HTMLElement.
 	 */

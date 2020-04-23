@@ -831,11 +831,6 @@ export class EditorPart extends Part implements IEditorGroupsService, IEditorGro
 		parent.appendChild(overlay);
 
 		CompositeDragAndDropObserver.INSTANCE.registerTarget(this.element, {
-			onDragOver: e => {
-				if (e.eventData.dataTransfer) {
-					e.eventData.dataTransfer.dropEffect = 'none';
-				}
-			},
 			onDragStart: e => {
 				toggleClass(overlay, 'visible', true);
 			},
