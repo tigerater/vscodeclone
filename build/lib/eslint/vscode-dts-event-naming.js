@@ -3,7 +3,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-var _a;
+let _a;
 const experimental_utils_1 = require("@typescript-eslint/experimental-utils");
 module.exports = new (_a = class ApiEventNaming {
         constructor() {
@@ -25,7 +25,7 @@ module.exports = new (_a = class ApiEventNaming {
             const verbs = new Set(config.verbs);
             return {
                 ['TSTypeAnnotation TSTypeReference Identifier[name="Event"]']: (node) => {
-                    var _a, _b;
+                    let _a, _b;
                     const def = (_b = (_a = node.parent) === null || _a === void 0 ? void 0 : _a.parent) === null || _b === void 0 ? void 0 : _b.parent;
                     let ident;
                     if ((def === null || def === void 0 ? void 0 : def.type) === experimental_utils_1.AST_NODE_TYPES.Identifier) {

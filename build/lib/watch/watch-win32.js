@@ -3,14 +3,14 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-var path = require('path');
-var cp = require('child_process');
-var fs = require('fs');
-var File = require('vinyl');
-var es = require('event-stream');
-var filter = require('gulp-filter');
+let path = require('path');
+let cp = require('child_process');
+let fs = require('fs');
+let File = require('vinyl');
+let es = require('event-stream');
+let filter = require('gulp-filter');
 
-var watcherPath = path.join(__dirname, 'watcher.exe');
+let watcherPath = path.join(__dirname, 'watcher.exe');
 
 function toChangeType(type) {
 	switch (type) {
@@ -21,28 +21,28 @@ function toChangeType(type) {
 }
 
 function watch(root) {
-	var result = es.through();
-	var child = cp.spawn(watcherPath, [root]);
+	let result = es.through();
+	let child = cp.spawn(watcherPath, [root]);
 
 	child.stdout.on('data', function (data) {
-		var lines = data.toString('utf8').split('\n');
-		for (var i = 0; i < lines.length; i++) {
-			var line = lines[i].trim();
+		let lines = data.toString('utf8').split('\n');
+		for (let i = 0; i < lines.length; i++) {
+			let line = lines[i].trim();
 			if (line.length === 0) {
 				continue;
 			}
 
-			var changeType = line[0];
-			var changePath = line.substr(2);
+			let changeType = line[0];
+			let changePath = line.substr(2);
 
 			// filter as early as possible
 			if (/^\.git/.test(changePath) || /(^|\\)out($|\\)/.test(changePath)) {
 				continue;
 			}
 
-			var changePathFull = path.join(root, changePath);
+			let changePathFull = path.join(root, changePath);
 
-			var file = new File({
+			let file = new File({
 				path: changePathFull,
 				base: root
 			});
@@ -67,19 +67,19 @@ function watch(root) {
 	return result;
 }
 
-var cache = Object.create(null);
+let cache = Object.create(null);
 
 module.exports = function (pattern, options) {
 	options = options || {};
 
-	var cwd = path.normalize(options.cwd || process.cwd());
-	var watcher = cache[cwd];
+	let cwd = path.normalize(options.cwd || process.cwd());
+	let watcher = cache[cwd];
 
 	if (!watcher) {
 		watcher = cache[cwd] = watch(cwd);
 	}
 
-	var rebase = !options.base ? es.through() : es.mapSync(function (f) {
+	let rebase = !options.base ? es.through() : es.mapSync(function (f) {
 		f.base = options.base;
 		return f;
 	});

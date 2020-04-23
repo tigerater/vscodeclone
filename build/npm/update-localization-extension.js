@@ -124,7 +124,7 @@ function update(options) {
 	});
 }
 if (path.basename(process.argv[1]) === 'update-localization-extension.js') {
-	var options = minimist(process.argv.slice(2), {
+	let options = minimist(process.argv.slice(2), {
 		boolean: 'transifex',
 		string: 'location'
 	});

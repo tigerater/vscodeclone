@@ -28,8 +28,8 @@
 }
 
 .monaco-workbench .tree-explorer-viewlet-tree-view .message p {
-	margin-top: 0px;
-	margin-bottom: 0px;
+	margin-top: 0;
+	margin-bottom: 0;
 	padding-bottom: 4px;
 }
 
@@ -70,15 +70,15 @@
 }
 
 .monaco-workbench .pane > .pane-body .welcome-view-content {
-	padding: 0 20px 0 20px;
+	padding: 0 20px;
 	box-sizing: border-box;
 }
 
 .monaco-workbench .pane > .pane-body .welcome-view-content > * {
 	margin-block-start: 1em;
 	margin-block-end: 1em;
-	margin-inline-start: 0px;
-	margin-inline-end: 0px;
+	margin-inline-start: 0;
+	margin-inline-end: 0;
 }
 
 .customview-tree .monaco-list-row .monaco-tl-contents.align-icon-with-twisty::before {
@@ -91,7 +91,7 @@
 
 .customview-tree .monaco-list .monaco-list-row {
 	padding-right: 12px;
-	padding-left: 0px;
+	padding-left: 0;
 }
 
 .customview-tree .monaco-list .monaco-list-row .custom-view-tree-node-item {
@@ -140,7 +140,7 @@
 }
 
 .customview-tree .monaco-list .monaco-list-row .custom-view-tree-node-item .custom-view-tree-node-item-resourceLabel::after {
-	padding-right: 0px;
+	padding-right: 0;
 }
 
 .customview-tree .monaco-list .monaco-list-row .custom-view-tree-node-item .actions {

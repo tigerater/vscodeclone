@@ -9,7 +9,7 @@ const event_stream_1 = require("event-stream");
 const File = require("vinyl");
 const sm = require("source-map");
 const path = require("path");
-var CollectStepResult;
+let CollectStepResult;
 (function (CollectStepResult) {
     CollectStepResult[CollectStepResult["Yes"] = 0] = "Yes";
     CollectStepResult[CollectStepResult["YesAndRecurse"] = 1] = "YesAndRecurse";

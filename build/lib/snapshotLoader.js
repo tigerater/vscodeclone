@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 'use strict';
-var snaps;
+let snaps;
 (function (snaps) {
     const fs = require('fs');
     const path = require('path');

@@ -96,8 +96,8 @@
 
 
 .monaco-editor .review-widget .body .review-comment .review-comment-contents .isPending {
-	margin: 0 5px 0 5px;
-	padding: 0 2px 0 2px;
+	margin: 0 5px;
+	padding: 0 2px;
 	font-style: italic;
 }
 
@@ -256,7 +256,7 @@
 	font-weight: 600;
 	line-height: 20px;
 	white-space: nowrap;
-	border: 0px;
+	border: 0;
 	cursor: text;
 	outline: 1px solid transparent;
 }
@@ -272,7 +272,7 @@
 	min-height: 90px;
 	max-height: 500px;
 	border-radius: 3px;
-	border: 0px;
+	border: 0;
 	box-sizing: content-box;
 	padding: 6px 0 6px 12px;
 }
@@ -295,7 +295,7 @@
 
 .monaco-editor .review-widget .body .edit-textarea {
 	height: 90px;
-	margin: 5px 0 10px 0;
+	margin: 5px 0 10px;
 }
 
 .monaco-editor .review-widget .body .comment-form .monaco-text-button,
