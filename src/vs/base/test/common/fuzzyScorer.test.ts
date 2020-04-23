@@ -6,7 +6,7 @@
 import * as assert from 'assert';
 import * as scorer from 'vs/base/common/fuzzyScorer';
 import { URI } from 'vs/base/common/uri';
-import { basename, dirname, sep, posix, win32 } from 'vs/base/common/path';
+import { basename, dirname, sep } from 'vs/base/common/path';
 import { isWindows } from 'vs/base/common/platform';
 import { Schemas } from 'vs/base/common/network';
 
@@ -26,40 +26,6 @@ class ResourceAccessorClass implements scorer.IItemAccessor<URI> {
 }
 
 const ResourceAccessor = new ResourceAccessorClass();
-
-class ResourceWithSlashAccessorClass implements scorer.IItemAccessor<URI> {
-
-	getItemLabel(resource: URI): string {
-		return basename(resource.fsPath);
-	}
-
-	getItemDescription(resource: URI): string {
-		return posix.normalize(dirname(resource.path));
-	}
-
-	getItemPath(resource: URI): string {
-		return posix.normalize(resource.path);
-	}
-}
-
-const ResourceWithSlashAccessor = new ResourceWithSlashAccessorClass();
-
-class ResourceWithBackslashAccessorClass implements scorer.IItemAccessor<URI> {
-
-	getItemLabel(resource: URI): string {
-		return basename(resource.fsPath);
-	}
-
-	getItemDescription(resource: URI): string {
-		return win32.normalize(dirname(resource.path));
-	}
-
-	getItemPath(resource: URI): string {
-		return win32.normalize(resource.path);
-	}
-}
-
-const ResourceWithBackslashAccessor = new ResourceWithBackslashAccessorClass();
 
 class NullAccessorClass implements scorer.IItemAccessor<URI> {
 
@@ -88,17 +54,22 @@ function _doScore2(target: string, query: string): scorer.FuzzyScore2 {
 	return scorer.scoreFuzzy2(target, preparedQuery);
 }
 
-function scoreItem<T>(item: T, query: string, fuzzy: boolean, accessor: scorer.IItemAccessor<T>): scorer.IItemScore {
-	return scorer.scoreItemFuzzy(item, scorer.prepareQuery(query), fuzzy, accessor, Object.create(null));
+function scoreItem<T>(item: T, query: string, fuzzy: boolean, accessor: scorer.IItemAccessor<T>, cache: scorer.FuzzyScorerCache): scorer.IItemScore {
+	return scorer.scoreItemFuzzy(item, scorer.prepareQuery(query), fuzzy, accessor, cache);
 }
 
-function compareItemsByScore<T>(itemA: T, itemB: T, query: string, fuzzy: boolean, accessor: scorer.IItemAccessor<T>): number {
-	return scorer.compareItemsByFuzzyScore(itemA, itemB, scorer.prepareQuery(query), fuzzy, accessor, Object.create(null));
+function compareItemsByScore<T>(itemA: T, itemB: T, query: string, fuzzy: boolean, accessor: scorer.IItemAccessor<T>, cache: scorer.FuzzyScorerCache): number {
+	return scorer.compareItemsByFuzzyScore(itemA, itemB, scorer.prepareQuery(query), fuzzy, accessor, cache);
 }
 
 const NullAccessor = new NullAccessorClass();
+let cache: scorer.FuzzyScorerCache = Object.create(null);
 
 suite('Fuzzy Scorer', () => {
+
+	setup(() => {
+		cache = Object.create(null);
+	});
 
 	test('score (fuzzy)', function () {
 		const target = 'HeLlo-World';
@@ -147,16 +118,16 @@ suite('Fuzzy Scorer', () => {
 	});
 
 	test('scoreItem - matches are proper', function () {
-		let res = scoreItem(null, 'something', true, ResourceAccessor);
+		let res = scoreItem(null, 'something', true, ResourceAccessor, cache);
 		assert.ok(!res.score);
 
 		const resource = URI.file('/xyz/some/path/someFile123.txt');
 
-		res = scoreItem(resource, 'something', true, NullAccessor);
+		res = scoreItem(resource, 'something', true, NullAccessor, cache);
 		assert.ok(!res.score);
 
 		// Path Identity
-		const identityRes = scoreItem(resource, ResourceAccessor.getItemPath(resource), true, ResourceAccessor);
+		const identityRes = scoreItem(resource, ResourceAccessor.getItemPath(resource), true, ResourceAccessor, cache);
 		assert.ok(identityRes.score);
 		assert.equal(identityRes.descriptionMatch!.length, 1);
 		assert.equal(identityRes.labelMatch!.length, 1);
@@ -166,7 +137,7 @@ suite('Fuzzy Scorer', () => {
 		assert.equal(identityRes.labelMatch![0].end, ResourceAccessor.getItemLabel(resource).length);
 
 		// Basename Prefix
-		const basenamePrefixRes = scoreItem(resource, 'som', true, ResourceAccessor);
+		const basenamePrefixRes = scoreItem(resource, 'som', true, ResourceAccessor, cache);
 		assert.ok(basenamePrefixRes.score);
 		assert.ok(!basenamePrefixRes.descriptionMatch);
 		assert.equal(basenamePrefixRes.labelMatch!.length, 1);
@@ -174,7 +145,7 @@ suite('Fuzzy Scorer', () => {
 		assert.equal(basenamePrefixRes.labelMatch![0].end, 'som'.length);
 
 		// Basename Camelcase
-		const basenameCamelcaseRes = scoreItem(resource, 'sF', true, ResourceAccessor);
+		const basenameCamelcaseRes = scoreItem(resource, 'sF', true, ResourceAccessor, cache);
 		assert.ok(basenameCamelcaseRes.score);
 		assert.ok(!basenameCamelcaseRes.descriptionMatch);
 		assert.equal(basenameCamelcaseRes.labelMatch!.length, 2);
@@ -184,7 +155,7 @@ suite('Fuzzy Scorer', () => {
 		assert.equal(basenameCamelcaseRes.labelMatch![1].end, 5);
 
 		// Basename Match
-		const basenameRes = scoreItem(resource, 'of', true, ResourceAccessor);
+		const basenameRes = scoreItem(resource, 'of', true, ResourceAccessor, cache);
 		assert.ok(basenameRes.score);
 		assert.ok(!basenameRes.descriptionMatch);
 		assert.equal(basenameRes.labelMatch!.length, 2);
@@ -194,7 +165,7 @@ suite('Fuzzy Scorer', () => {
 		assert.equal(basenameRes.labelMatch![1].end, 5);
 
 		// Path Match
-		const pathRes = scoreItem(resource, 'xyz123', true, ResourceAccessor);
+		const pathRes = scoreItem(resource, 'xyz123', true, ResourceAccessor, cache);
 		assert.ok(pathRes.score);
 		assert.ok(pathRes.descriptionMatch);
 		assert.ok(pathRes.labelMatch);
@@ -206,7 +177,7 @@ suite('Fuzzy Scorer', () => {
 		assert.equal(pathRes.descriptionMatch![0].end, 4);
 
 		// No Match
-		const noRes = scoreItem(resource, '987', true, ResourceAccessor);
+		const noRes = scoreItem(resource, '987', true, ResourceAccessor, cache);
 		assert.ok(!noRes.score);
 		assert.ok(!noRes.labelMatch);
 		assert.ok(!noRes.descriptionMatch);
@@ -221,7 +192,7 @@ suite('Fuzzy Scorer', () => {
 	test('scoreItem - multiple', function () {
 		const resource = URI.file('/xyz/some/path/someFile123.txt');
 
-		let res1 = scoreItem(resource, 'xyz some', true, ResourceAccessor);
+		let res1 = scoreItem(resource, 'xyz some', true, ResourceAccessor, cache);
 		assert.ok(res1.score);
 		assert.equal(res1.labelMatch?.length, 1);
 		assert.equal(res1.labelMatch![0].start, 0);
@@ -230,7 +201,7 @@ suite('Fuzzy Scorer', () => {
 		assert.equal(res1.descriptionMatch![0].start, 1);
 		assert.equal(res1.descriptionMatch![0].end, 4);
 
-		let res2 = scoreItem(resource, 'some xyz', true, ResourceAccessor);
+		let res2 = scoreItem(resource, 'some xyz', true, ResourceAccessor, cache);
 		assert.ok(res2.score);
 		assert.equal(res1.score, res2.score);
 		assert.equal(res2.labelMatch?.length, 1);
@@ -240,7 +211,7 @@ suite('Fuzzy Scorer', () => {
 		assert.equal(res2.descriptionMatch![0].start, 1);
 		assert.equal(res2.descriptionMatch![0].end, 4);
 
-		let res3 = scoreItem(resource, 'some xyz file file123', true, ResourceAccessor);
+		let res3 = scoreItem(resource, 'some xyz file file123', true, ResourceAccessor, cache);
 		assert.ok(res3.score);
 		assert.ok(res3.score > res2.score);
 		assert.equal(res3.labelMatch?.length, 1);
@@ -250,7 +221,7 @@ suite('Fuzzy Scorer', () => {
 		assert.equal(res3.descriptionMatch![0].start, 1);
 		assert.equal(res3.descriptionMatch![0].end, 4);
 
-		let res4 = scoreItem(resource, 'path z y', true, ResourceAccessor);
+		let res4 = scoreItem(resource, 'path z y', true, ResourceAccessor, cache);
 		assert.ok(res4.score);
 		assert.ok(res4.score < res2.score);
 		assert.equal(res4.labelMatch?.length, 0);
@@ -263,10 +234,10 @@ suite('Fuzzy Scorer', () => {
 
 	test('scoreItem - invalid input', function () {
 
-		let res = scoreItem(null, null!, true, ResourceAccessor);
+		let res = scoreItem(null, null!, true, ResourceAccessor, cache);
 		assert.equal(res.score, 0);
 
-		res = scoreItem(null, 'null', true, ResourceAccessor);
+		res = scoreItem(null, 'null', true, ResourceAccessor, cache);
 		assert.equal(res.score, 0);
 	});
 
@@ -276,7 +247,7 @@ suite('Fuzzy Scorer', () => {
 		// xsp is more relevant to the end of the file path even though it matches
 		// fuzzy also in the beginning. we verify the more relevant match at the
 		// end gets returned.
-		const pathRes = scoreItem(resource, 'xspfile123', true, ResourceAccessor);
+		const pathRes = scoreItem(resource, 'xspfile123', true, ResourceAccessor, cache);
 		assert.ok(pathRes.score);
 		assert.ok(pathRes.descriptionMatch);
 		assert.ok(pathRes.labelMatch);
@@ -291,7 +262,7 @@ suite('Fuzzy Scorer', () => {
 	test('scoreItem - avoid match scattering (bug #36119)', function () {
 		const resource = URI.file('projects/ui/cula/ats/target.mk');
 
-		const pathRes = scoreItem(resource, 'tcltarget.mk', true, ResourceAccessor);
+		const pathRes = scoreItem(resource, 'tcltarget.mk', true, ResourceAccessor, cache);
 		assert.ok(pathRes.score);
 		assert.ok(pathRes.descriptionMatch);
 		assert.ok(pathRes.labelMatch);
@@ -305,7 +276,7 @@ suite('Fuzzy Scorer', () => {
 
 		// expect "ad" to be matched towards the end of the file because the
 		// match is more compact
-		const res = scoreItem(resource, 'ad', true, ResourceAccessor);
+		const res = scoreItem(resource, 'ad', true, ResourceAccessor, cache);
 		assert.ok(res.score);
 		assert.ok(res.descriptionMatch);
 		assert.ok(!res.labelMatch!.length);
@@ -319,14 +290,14 @@ suite('Fuzzy Scorer', () => {
 	test('scoreItem - proper target offset', function () {
 		const resource = URI.file('etem');
 
-		const res = scoreItem(resource, 'teem', true, ResourceAccessor);
+		const res = scoreItem(resource, 'teem', true, ResourceAccessor, cache);
 		assert.ok(!res.score);
 	});
 
 	test('scoreItem - proper target offset #2', function () {
 		const resource = URI.file('ede');
 
-		const res = scoreItem(resource, 'de', true, ResourceAccessor);
+		const res = scoreItem(resource, 'de', true, ResourceAccessor, cache);
 
 		assert.equal(res.labelMatch!.length, 1);
 		assert.equal(res.labelMatch![0].start, 1);
@@ -336,7 +307,7 @@ suite('Fuzzy Scorer', () => {
 	test('scoreItem - proper target offset #3', function () {
 		const resource = URI.file('/src/vs/editor/browser/viewParts/lineNumbers/flipped-cursor-2x.svg');
 
-		const res = scoreItem(resource, 'debug', true, ResourceAccessor);
+		const res = scoreItem(resource, 'debug', true, ResourceAccessor, cache);
 
 		assert.equal(res.descriptionMatch!.length, 3);
 		assert.equal(res.descriptionMatch![0].start, 9);
@@ -356,7 +327,7 @@ suite('Fuzzy Scorer', () => {
 	test('scoreItem - no match unless query contained in sequence', function () {
 		const resource = URI.file('abcde');
 
-		const res = scoreItem(resource, 'edcda', true, ResourceAccessor);
+		const res = scoreItem(resource, 'edcda', true, ResourceAccessor, cache);
 		assert.ok(!res.score);
 	});
 
@@ -365,22 +336,10 @@ suite('Fuzzy Scorer', () => {
 		const remoteResource = URI.from({ scheme: Schemas.vscodeRemote, path: 'abcde/super/duper' });
 
 		for (const resource of [localResource, remoteResource]) {
-			let res = scoreItem(resource, 'abcde\\super\\duper', true, ResourceAccessor);
+			let res = scoreItem(resource, 'abcde\\super\\duper', true, ResourceAccessor, cache);
 			assert.ok(res.score);
 
-			res = scoreItem(resource, 'abcde\\super\\duper', true, ResourceWithSlashAccessor);
-			assert.ok(res.score);
-
-			res = scoreItem(resource, 'abcde\\super\\duper', true, ResourceWithBackslashAccessor);
-			assert.ok(res.score);
-
-			res = scoreItem(resource, 'abcde/super/duper', true, ResourceAccessor);
-			assert.ok(res.score);
-
-			res = scoreItem(resource, 'abcde/super/duper', true, ResourceWithSlashAccessor);
-			assert.ok(res.score);
-
-			res = scoreItem(resource, 'abcde/super/duper', true, ResourceWithBackslashAccessor);
+			res = scoreItem(resource, 'abcde/super/duper', true, ResourceAccessor, cache);
 			assert.ok(res.score);
 		}
 	});
@@ -393,12 +352,12 @@ suite('Fuzzy Scorer', () => {
 		// Full resource A path
 		let query = ResourceAccessor.getItemPath(resourceA);
 
-		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceB);
 		assert.equal(res[2], resourceC);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceB);
 		assert.equal(res[2], resourceC);
@@ -406,12 +365,12 @@ suite('Fuzzy Scorer', () => {
 		// Full resource B path
 		query = ResourceAccessor.getItemPath(resourceB);
 
-		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 		assert.equal(res[2], resourceC);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 		assert.equal(res[2], resourceC);
@@ -425,12 +384,12 @@ suite('Fuzzy Scorer', () => {
 		// Full resource A basename
 		let query = ResourceAccessor.getItemLabel(resourceA);
 
-		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceB);
 		assert.equal(res[2], resourceC);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceB);
 		assert.equal(res[2], resourceC);
@@ -438,12 +397,12 @@ suite('Fuzzy Scorer', () => {
 		// Full resource B basename
 		query = ResourceAccessor.getItemLabel(resourceB);
 
-		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 		assert.equal(res[2], resourceC);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 		assert.equal(res[2], resourceC);
@@ -457,12 +416,12 @@ suite('Fuzzy Scorer', () => {
 		// resource A camelcase
 		let query = 'fA';
 
-		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceB);
 		assert.equal(res[2], resourceC);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceB);
 		assert.equal(res[2], resourceC);
@@ -470,12 +429,12 @@ suite('Fuzzy Scorer', () => {
 		// resource B camelcase
 		query = 'fB';
 
-		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 		assert.equal(res[2], resourceC);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 		assert.equal(res[2], resourceC);
@@ -489,12 +448,12 @@ suite('Fuzzy Scorer', () => {
 		// Resource A part of basename
 		let query = 'fileA';
 
-		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceB);
 		assert.equal(res[2], resourceC);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceB);
 		assert.equal(res[2], resourceC);
@@ -502,12 +461,12 @@ suite('Fuzzy Scorer', () => {
 		// Resource B part of basename
 		query = 'fileB';
 
-		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 		assert.equal(res[2], resourceC);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 		assert.equal(res[2], resourceC);
@@ -521,12 +480,12 @@ suite('Fuzzy Scorer', () => {
 		// Resource A part of path
 		let query = 'pathfileA';
 
-		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceB);
 		assert.equal(res[2], resourceC);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceB);
 		assert.equal(res[2], resourceC);
@@ -534,12 +493,12 @@ suite('Fuzzy Scorer', () => {
 		// Resource B part of path
 		query = 'pathfileB';
 
-		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 		assert.equal(res[2], resourceC);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 		assert.equal(res[2], resourceC);
@@ -553,12 +512,12 @@ suite('Fuzzy Scorer', () => {
 		// Resource A part of path
 		let query = 'somepath';
 
-		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceB);
 		assert.equal(res[2], resourceC);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceB);
 		assert.equal(res[2], resourceC);
@@ -572,12 +531,12 @@ suite('Fuzzy Scorer', () => {
 		// Resource A part of path
 		let query = 'file';
 
-		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceC);
 		assert.equal(res[2], resourceB);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceC);
 		assert.equal(res[2], resourceB);
@@ -591,12 +550,12 @@ suite('Fuzzy Scorer', () => {
 		// Resource A part of path
 		let query = 'somepath';
 
-		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceB);
 		assert.equal(res[2], resourceC);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceB);
 		assert.equal(res[2], resourceC);
@@ -609,7 +568,7 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'co/te';
 
-		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 		assert.equal(res[2], resourceC);
@@ -621,7 +580,7 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'partsquick';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 	});
@@ -632,11 +591,11 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'AH';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 	});
@@ -647,11 +606,11 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'xp';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 	});
@@ -662,11 +621,11 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'xp';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 	});
@@ -677,11 +636,11 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'exfile';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 		assert.equal(res[1], resourceA);
 	});
@@ -694,18 +653,18 @@ suite('Fuzzy Scorer', () => {
 
 		let query = isWindows ? 'modu1\\index.js' : 'modu1/index.js';
 
-		let res = [resourceA, resourceB, resourceC, resourceD].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB, resourceC, resourceD].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceC);
 
-		res = [resourceC, resourceB, resourceA, resourceD].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA, resourceD].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceC);
 
 		query = isWindows ? 'un1\\index.js' : 'un1/index.js';
 
-		res = [resourceA, resourceB, resourceC, resourceD].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceA, resourceB, resourceC, resourceD].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 
-		res = [resourceC, resourceB, resourceA, resourceD].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA, resourceD].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 	});
 
@@ -716,10 +675,10 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'StatVideoindex';
 
-		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceC);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceC);
 	});
 
@@ -729,10 +688,10 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'reproreduxts';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 	});
 
@@ -743,10 +702,10 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'bookpageIndex';
 
-		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceC);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceC);
 	});
 
@@ -756,10 +715,10 @@ suite('Fuzzy Scorer', () => {
 
 		let query = isWindows ? 'ui\\icons' : 'ui/icons';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 	});
 
@@ -769,10 +728,10 @@ suite('Fuzzy Scorer', () => {
 
 		let query = isWindows ? 'ui\\input\\index' : 'ui/input/index';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 	});
 
@@ -782,10 +741,10 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'djancosig';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 	});
 
@@ -796,12 +755,12 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'protectedconfig.php';
 
-		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceC);
 		assert.equal(res[2], resourceB);
 
-		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceC, resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceA);
 		assert.equal(res[1], resourceC);
 		assert.equal(res[2], resourceB);
@@ -813,10 +772,10 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'gradientmain';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 	});
 
@@ -826,10 +785,10 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'abc';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 	});
 
@@ -839,10 +798,10 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'xyz';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 	});
 
@@ -852,10 +811,10 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'async';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 	});
 
@@ -865,10 +824,10 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'partisettings';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 	});
 
@@ -878,10 +837,10 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'tipsindex.cshtml';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 	});
 
@@ -891,10 +850,10 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'listview';
 
-		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 
-		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceB, resourceA].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 	});
 
@@ -905,10 +864,10 @@ suite('Fuzzy Scorer', () => {
 
 		let query = 'filesexplorerview.ts';
 
-		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		let res = [resourceA, resourceB, resourceC].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 
-		res = [resourceA, resourceC, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor));
+		res = [resourceA, resourceC, resourceB].sort((r1, r2) => compareItemsByScore(r1, r2, query, true, ResourceAccessor, cache));
 		assert.equal(res[0], resourceB);
 	});
 

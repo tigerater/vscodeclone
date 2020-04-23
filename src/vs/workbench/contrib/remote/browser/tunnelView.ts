@@ -646,7 +646,6 @@ export class TunnelPanel extends ViewPane {
 	}
 
 	protected layoutBody(height: number, width: number): void {
-		super.layoutBody(height, width);
 		this.tree.layout(height, width);
 	}
 

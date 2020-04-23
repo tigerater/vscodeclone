@@ -49,6 +49,7 @@ import { editorLightBulbForeground, editorLightBulbAutoFixForeground } from 'vs/
 import { ViewPane, IViewPaneOptions } from 'vs/workbench/browser/parts/views/viewPaneContainer';
 import { IViewDescriptorService } from 'vs/workbench/common/views';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
+import { Codicon } from 'vs/base/common/codicons';
 
 function createResourceMarkersIterator(resourceMarkers: ResourceMarkers): Iterable<ITreeElement<TreeElement>> {
 	return Iterable.map(resourceMarkers.markers, m => {
@@ -166,7 +167,6 @@ export class MarkersView extends ViewPane implements IMarkerFilterController {
 	}
 
 	public layoutBody(height: number, width: number): void {
-		super.layoutBody(height, width);
 		const wasSmallLayout = this.smallLayout;
 		this.smallLayout = width < 600 && height > 100;
 		if (this.smallLayout !== wasSmallLayout) {
@@ -302,7 +302,6 @@ export class MarkersView extends ViewPane implements IMarkerFilterController {
 						// Update resource
 						for (const updated of markerOrChange.updated) {
 							this.tree.setChildren(updated, createResourceMarkersIterator(updated));
-							this.tree.rerender(updated);
 						}
 					}
 				}
@@ -889,7 +888,7 @@ registerThemingParticipant((theme: IColorTheme, collector: ICssStyleCollector) =
 	const editorLightBulbForegroundColor = theme.getColor(editorLightBulbForeground);
 	if (editorLightBulbForegroundColor) {
 		collector.addRule(`
-		.monaco-workbench .markers-panel-container .codicon-lightbulb {
+		.monaco-workbench .markers-panel-container ${Codicon.lightBulb.cssSelector} {
 			color: ${editorLightBulbForegroundColor};
 		}`);
 	}
@@ -898,7 +897,7 @@ registerThemingParticipant((theme: IColorTheme, collector: ICssStyleCollector) =
 	const editorLightBulbAutoFixForegroundColor = theme.getColor(editorLightBulbAutoFixForeground);
 	if (editorLightBulbAutoFixForegroundColor) {
 		collector.addRule(`
-		.monaco-workbench .markers-panel-container .codicon-lightbulb-autofix {
+		.monaco-workbench .markers-panel-container ${Codicon.lightbulbAutofix.cssSelector} {
 			color: ${editorLightBulbAutoFixForegroundColor};
 		}`);
 	}

@@ -8,7 +8,6 @@ import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import type * as Proto from '../protocol';
 import { ITypeScriptServiceClient, ServerResponse } from '../typescriptService';
-import API from '../utils/api';
 import * as typeConverters from '../utils/typeConverters';
 import FileConfigurationManager from './fileConfigurationManager';
 
@@ -25,10 +24,6 @@ class TypeScriptRenameProvider implements vscode.RenameProvider {
 		position: vscode.Position,
 		token: vscode.CancellationToken
 	): Promise<vscode.Range | null> {
-		if (this.client.apiVersion.lt(API.v310)) {
-			return null;
-		}
-
 		const response = await this.execRename(document, position, token);
 		if (response?.type !== 'response' || !response.body) {
 			return null;
@@ -39,7 +34,12 @@ class TypeScriptRenameProvider implements vscode.RenameProvider {
 			return Promise.reject<vscode.Range>(renameInfo.localizedErrorMessage);
 		}
 
-		return typeConverters.Range.fromTextSpan(renameInfo.triggerSpan);
+		const triggerSpan = renameInfo.triggerSpan; // added in TS 3.1
+		if (triggerSpan) {
+			return typeConverters.Range.fromTextSpan(triggerSpan);
+		}
+
+		return null;
 	}
 
 	public async provideRenameEdits(

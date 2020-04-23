@@ -155,7 +155,7 @@ export interface MainThreadCommentsShape extends IDisposable {
 }
 
 export interface MainThreadAuthenticationShape extends IDisposable {
-	$registerAuthenticationProvider(id: string, displayName: string): void;
+	$registerAuthenticationProvider(id: string, displayName: string, supportsMultipleAccounts: boolean): void;
 	$unregisterAuthenticationProvider(id: string): void;
 	$onDidChangeSessions(providerId: string, event: modes.AuthenticationSessionsChangeEvent): void;
 	$getSessionsPrompt(providerId: string, accountName: string, providerName: string, extensionId: string, extensionName: string): Promise<boolean>;
@@ -611,11 +611,10 @@ export interface MainThreadWebviewsShape extends IDisposable {
 	$unregisterSerializer(viewType: string): void;
 
 	$registerTextEditorProvider(extension: WebviewExtensionDescription, viewType: string, options: modes.IWebviewPanelOptions, capabilities: CustomTextEditorCapabilities): void;
-	$registerCustomEditorProvider(extension: WebviewExtensionDescription, viewType: string, options: modes.IWebviewPanelOptions, supportsMultipleEditorsPerResource: boolean): void;
+	$registerCustomEditorProvider(extension: WebviewExtensionDescription, viewType: string, options: modes.IWebviewPanelOptions): void;
 	$unregisterEditorProvider(viewType: string): void;
 
 	$onDidEdit(resource: UriComponents, viewType: string, editId: number, label: string | undefined): void;
-	$onContentChange(resource: UriComponents, viewType: string): void;
 }
 
 export interface WebviewPanelViewStateData {
@@ -998,7 +997,7 @@ export interface ExtHostLabelServiceShape {
 export interface ExtHostAuthenticationShape {
 	$getSessions(id: string): Promise<ReadonlyArray<modes.AuthenticationSession>>;
 	$getSessionAccessToken(id: string, sessionId: string): Promise<string>;
-	$login(id: string, scopes: string[]): Promise<modes.AuthenticationSession>;
+	$login(id: string, scopes: string[] | undefined): Promise<modes.AuthenticationSession>;
 	$logout(id: string, sessionId: string): Promise<void>;
 }
 
@@ -1105,7 +1104,7 @@ export const enum ISuggestDataDtoField {
 export interface ISuggestDataDto {
 	[ISuggestDataDtoField.label]: string;
 	[ISuggestDataDtoField.label2]?: string | modes.CompletionItemLabel;
-	[ISuggestDataDtoField.kind]?: modes.CompletionItemKind;
+	[ISuggestDataDtoField.kind]: modes.CompletionItemKind;
 	[ISuggestDataDtoField.detail]?: string;
 	[ISuggestDataDtoField.documentation]?: string | IMarkdownString;
 	[ISuggestDataDtoField.sortText]?: string;

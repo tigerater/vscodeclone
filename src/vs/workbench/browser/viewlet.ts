@@ -193,11 +193,7 @@ export class ShowViewletAction extends Action {
 }
 
 export class CollapseAction extends Action {
-	// We need a tree getter because the action is sometimes instantiated too early
-	constructor(treeGetter: () => AsyncDataTree<any, any, any> | AbstractTree<any, any, any>, enabled: boolean, clazz?: string) {
-		super('workbench.action.collapse', nls.localize('collapse', "Collapse All"), clazz, enabled, async () => {
-			const tree = treeGetter();
-			tree.collapseAll();
-		});
+	constructor(tree: AsyncDataTree<any, any, any> | AbstractTree<any, any, any>, enabled: boolean, clazz?: string) {
+		super('workbench.action.collapse', nls.localize('collapse', "Collapse All"), clazz, enabled, async () => tree.collapseAll());
 	}
 }

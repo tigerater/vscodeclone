@@ -30,7 +30,6 @@ import { OutlineVirtualDelegate, OutlineGroupRenderer, OutlineElementRenderer, O
 import { IIdentityProvider, IListVirtualDelegate, IKeyboardNavigationLabelProvider } from 'vs/base/browser/ui/list/list';
 import { IFileIconTheme, IThemeService } from 'vs/platform/theme/common/themeService';
 import { IListAccessibilityProvider } from 'vs/base/browser/ui/list/listWidget';
-import { IModeService } from 'vs/editor/common/services/modeService';
 
 export function createBreadcrumbsPicker(instantiationService: IInstantiationService, parent: HTMLElement, element: BreadcrumbElement): BreadcrumbsPicker {
 	return element instanceof FileElement
@@ -453,7 +452,6 @@ export class BreadcrumbsOutlinePicker extends BreadcrumbsPicker {
 		@IInstantiationService instantiationService: IInstantiationService,
 		@IThemeService themeService: IThemeService,
 		@IConfigurationService configurationService: IConfigurationService,
-		@IModeService private readonly _modeService: IModeService,
 	) {
 		super(parent, instantiationService, themeService, configurationService);
 		this._symbolSortOrder = BreadcrumbsConfig.SymbolSortOrder.bindTo(this._configurationService);
@@ -491,9 +489,10 @@ export class BreadcrumbsOutlinePicker extends BreadcrumbsPicker {
 		const model = OutlineModel.get(element)!;
 		const tree = this._tree as WorkbenchDataTree<OutlineModel, any, FuzzyScore>;
 
+		const textModel = model.textModel;
 		const overrideConfiguration = {
-			resource: model.uri,
-			overrideIdentifier: this._modeService.getModeIdByFilepathOrFirstLine(model.uri)
+			resource: textModel.uri,
+			overrideIdentifier: textModel.getLanguageIdentifier().language
 		};
 		this._outlineComparator.type = this._getOutlineItemCompareType(overrideConfiguration);
 

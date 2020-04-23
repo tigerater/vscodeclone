@@ -20,7 +20,7 @@ import { IThemeService, IColorTheme } from 'vs/platform/theme/common/themeServic
 import { ACTIVITY_BAR_BACKGROUND, ACTIVITY_BAR_BORDER, ACTIVITY_BAR_FOREGROUND, ACTIVITY_BAR_ACTIVE_BORDER, ACTIVITY_BAR_BADGE_BACKGROUND, ACTIVITY_BAR_BADGE_FOREGROUND, ACTIVITY_BAR_DRAG_AND_DROP_BACKGROUND, ACTIVITY_BAR_INACTIVE_FOREGROUND, ACTIVITY_BAR_ACTIVE_BACKGROUND } from 'vs/workbench/common/theme';
 import { contrastBorder } from 'vs/platform/theme/common/colorRegistry';
 import { CompositeBar, ICompositeBarItem, CompositeDragAndDrop } from 'vs/workbench/browser/parts/compositeBar';
-import { Dimension, addClass, removeNode, addClasses } from 'vs/base/browser/dom';
+import { Dimension, addClass, removeNode } from 'vs/base/browser/dom';
 import { IStorageService, StorageScope, IWorkspaceStorageChangeEvent } from 'vs/platform/storage/common/storage';
 import { IExtensionService } from 'vs/workbench/services/extensions/common/extensions';
 import { URI, UriComponents } from 'vs/base/common/uri';
@@ -38,6 +38,7 @@ import { CustomMenubarControl } from 'vs/workbench/browser/parts/titlebar/menuba
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { getMenuBarVisibility } from 'vs/platform/windows/common/windows';
 import { isWeb } from 'vs/base/common/platform';
+import { IEnvironmentService } from 'vs/platform/environment/common/environment';
 import { IStorageKeysSyncRegistryService } from 'vs/platform/userDataSync/common/storageKeys';
 import { getUserDataSyncStore } from 'vs/platform/userDataSync/common/userDataSync';
 import { IProductService } from 'vs/platform/product/common/productService';
@@ -84,21 +85,19 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 
 	//#endregion
 
-	private content: HTMLElement | undefined;
-
-	private homeIndicatorActionLabel: HTMLAnchorElement | undefined = undefined;
-
-	private menubar: CustomMenubarControl | undefined;
-	private menubarContainer: HTMLElement | undefined;
-
-	private compositeBar: CompositeBar;
-
 	private globalActivityAction: ActivityAction | undefined;
 	private globalActivityActionBar: ActionBar | undefined;
 	private readonly globalActivity: ICompositeActivity[] = [];
 
+	private customMenubar: CustomMenubarControl | undefined;
+	private menubar: HTMLElement | undefined;
+	private content: HTMLElement | undefined;
+
 	private readonly cachedViewlets: ICachedViewlet[] = [];
+
+	private compositeBar: CompositeBar;
 	private readonly compositeActions = new Map<string, { activityAction: ViewletActivityAction, pinnedAction: ToggleCompositePinnedAction }>();
+
 	private readonly viewletDisposables = new Map<string, IDisposable>();
 
 	constructor(
@@ -111,7 +110,8 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		@IViewDescriptorService private readonly viewDescriptorService: IViewDescriptorService,
 		@IContextKeyService private readonly contextKeyService: IContextKeyService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
-		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
+		@IWorkbenchEnvironmentService workbenchEnvironmentService: IWorkbenchEnvironmentService,
+		@IEnvironmentService private readonly environmentService: IEnvironmentService,
 		@IStorageKeysSyncRegistryService storageKeysSyncRegistryService: IStorageKeysSyncRegistryService,
 		@IProductService private readonly productService: IProductService
 	) {
@@ -122,7 +122,7 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 
 		this.cachedViewlets = this.getCachedViewlets();
 		for (const cachedViewlet of this.cachedViewlets) {
-			if (environmentService.configuration.remoteAuthority // In remote window, hide activity bar entries until registered.
+			if (workbenchEnvironmentService.configuration.remoteAuthority // In remote window, hide activity bar entries until registered.
 				|| this.shouldBeHidden(cachedViewlet.id, cachedViewlet)
 			) {
 				cachedViewlet.visible = false;
@@ -297,25 +297,25 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 	}
 
 	private uninstallMenubar() {
-		if (this.menubar) {
-			this.menubar.dispose();
+		if (this.customMenubar) {
+			this.customMenubar.dispose();
 		}
 
-		if (this.menubarContainer) {
-			removeNode(this.menubarContainer);
+		if (this.menubar) {
+			removeNode(this.menubar);
 		}
 	}
 
 	private installMenubar() {
-		this.menubarContainer = document.createElement('div');
-		addClass(this.menubarContainer, 'menubar');
+		this.menubar = document.createElement('div');
+		addClass(this.menubar, 'menubar');
 
 		const content = assertIsDefined(this.content);
-		content.prepend(this.menubarContainer);
+		content.prepend(this.menubar);
 
 		// Menubar: install a custom menu bar depending on configuration
-		this.menubar = this._register(this.instantiationService.createInstance(CustomMenubarControl));
-		this.menubar.create(this.menubarContainer);
+		this.customMenubar = this._register(this.instantiationService.createInstance(CustomMenubarControl));
+		this.customMenubar.create(this.menubar);
 	}
 
 	createContentArea(parent: HTMLElement): HTMLElement {
@@ -324,12 +324,6 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		this.content = document.createElement('div');
 		addClass(this.content, 'content');
 		parent.appendChild(this.content);
-
-		// Home action bar
-		const homeIndicator = this.environmentService.options?.homeIndicator;
-		if (homeIndicator) {
-			this.createHomeBar(homeIndicator.href, homeIndicator.title, homeIndicator.icon);
-		}
 
 		// Install menubar if compact
 		if (getMenuBarVisibility(this.configurationService, this.environmentService) === 'compact') {
@@ -349,33 +343,12 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		return this.content;
 	}
 
-	private createHomeBar(href: string, title: string, icon: string): void {
-		const homeBarContainer = document.createElement('div');
-		homeBarContainer.setAttribute('aria-label', nls.localize('homeIndicator', "Home"));
-		homeBarContainer.setAttribute('role', 'toolbar');
-		addClass(homeBarContainer, 'home-bar');
-
-		const content = assertIsDefined(this.content);
-		content.prepend(homeBarContainer);
-
-		this.homeIndicatorActionLabel = document.createElement('a');
-		this.homeIndicatorActionLabel.tabIndex = 0;
-		this.homeIndicatorActionLabel.title = title;
-		this.homeIndicatorActionLabel.setAttribute('aria-label', title);
-		this.homeIndicatorActionLabel.setAttribute('role', 'button');
-		this.homeIndicatorActionLabel.href = href;
-		addClasses(this.homeIndicatorActionLabel, 'action-label', 'codicon', `codicon-${icon}`);
-
-		homeBarContainer.appendChild(this.homeIndicatorActionLabel);
-	}
-
 	updateStyles(): void {
 		super.updateStyles();
 
 		// Part container
 		const container = assertIsDefined(this.getContainer());
 		const background = this.getColor(ACTIVITY_BAR_BACKGROUND) || '';
-		const forground = this.getColor(ACTIVITY_BAR_FOREGROUND) || '';
 		container.style.backgroundColor = background;
 
 		const borderColor = this.getColor(ACTIVITY_BAR_BORDER) || this.getColor(contrastBorder) || '';
@@ -387,11 +360,7 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		container.style.borderLeftWidth = borderColor && !isPositionLeft ? '1px' : '';
 		container.style.borderLeftStyle = borderColor && !isPositionLeft ? 'solid' : '';
 		container.style.borderLeftColor = !isPositionLeft ? borderColor : '';
-
-		// Home action label
-		if (this.homeIndicatorActionLabel) {
-			this.homeIndicatorActionLabel.style.color = forground;
-		}
+		// container.style.outlineColor = this.getColor(ACTIVITY_BAR_DRAG_AND_DROP_BACKGROUND) ?? '';
 	}
 
 	private getActivitybarItemColors(theme: IColorTheme): ICompositeBarColors {
@@ -601,8 +570,8 @@ export class ActivitybarPart extends Part implements IActivityBarService {
 		if (this.globalActivityActionBar) {
 			availableHeight -= (this.globalActivityActionBar.viewItems.length * ActivitybarPart.ACTION_HEIGHT); // adjust height for global actions showing
 		}
-		if (this.menubarContainer) {
-			availableHeight -= this.menubarContainer.clientHeight;
+		if (this.menubar) {
+			availableHeight -= this.menubar.clientHeight;
 		}
 		this.compositeBar.layout(new Dimension(width, availableHeight));
 	}
