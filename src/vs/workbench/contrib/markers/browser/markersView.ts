@@ -23,10 +23,10 @@ import { IMarkersWorkbenchService } from 'vs/workbench/contrib/markers/browser/m
 import { IStorageService, StorageScope } from 'vs/platform/storage/common/storage';
 import { localize } from 'vs/nls';
 import { IContextKey, IContextKeyService, ContextKeyEqualsExpr, ContextKeyExpr } from 'vs/platform/contextkey/common/contextkey';
-import { Iterator } from 'vs/base/common/iterator';
+import { Iterable } from 'vs/base/common/iterator';
 import { ITreeElement, ITreeNode, ITreeContextMenuEvent, ITreeRenderer } from 'vs/base/browser/ui/tree/tree';
 import { Relay, Event, Emitter } from 'vs/base/common/event';
-import { WorkbenchObjectTree, ResourceNavigator, IListService, IWorkbenchObjectTreeOptions } from 'vs/platform/list/browser/listService';
+import { WorkbenchObjectTree, TreeResourceNavigator, IListService, IWorkbenchObjectTreeOptions } from 'vs/platform/list/browser/listService';
 import { FilterOptions } from 'vs/workbench/contrib/markers/browser/markersFilterOptions';
 import { IExpression } from 'vs/base/common/glob';
 import { deepClone } from 'vs/base/common/objects';
@@ -44,23 +44,19 @@ import { withUndefinedAsNull } from 'vs/base/common/types';
 import { MementoObject, Memento } from 'vs/workbench/common/memento';
 import { IListVirtualDelegate } from 'vs/base/browser/ui/list/list';
 import { IAccessibilityService } from 'vs/platform/accessibility/common/accessibility';
-import { PANEL_BACKGROUND } from 'vs/workbench/common/theme';
 import { KeyCode } from 'vs/base/common/keyCodes';
 import { editorLightBulbForeground, editorLightBulbAutoFixForeground } from 'vs/platform/theme/common/colorRegistry';
 import { ViewPane, IViewPaneOptions } from 'vs/workbench/browser/parts/views/viewPaneContainer';
 import { IViewDescriptorService } from 'vs/workbench/common/views';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
 
-function createResourceMarkersIterator(resourceMarkers: ResourceMarkers): Iterator<ITreeElement<TreeElement>> {
-	const markersIt = Iterator.fromArray(resourceMarkers.markers);
-
-	return Iterator.map(markersIt, m => {
-		const relatedInformationIt = Iterator.from(m.relatedInformation);
-		const children = Iterator.map(relatedInformationIt, r => ({ element: r }));
+function createResourceMarkersIterator(resourceMarkers: ResourceMarkers): Iterable<ITreeElement<TreeElement>> {
+	return Iterable.map(resourceMarkers.markers, m => {
+		const relatedInformationIt = Iterable.from(m.relatedInformation);
+		const children = Iterable.map(relatedInformationIt, r => ({ element: r }));
 
 		return { element: m, children };
 	});
-
 }
 
 export class MarkersView extends ViewPane implements IMarkerFilterController {
@@ -78,7 +74,6 @@ export class MarkersView extends ViewPane implements IMarkerFilterController {
 	readonly filters: MarkersFilters;
 
 	private readonly panelState: MementoObject;
-	private readonly panelFoucusContextKey: IContextKey<boolean>;
 
 	private _onDidChangeFilterStats = this._register(new Emitter<{ total: number, filtered: number }>());
 	readonly onDidChangeFilterStats: Event<{ total: number, filtered: number }> = this._onDidChangeFilterStats.event;
@@ -94,6 +89,9 @@ export class MarkersView extends ViewPane implements IMarkerFilterController {
 
 	private readonly _onDidFocusFilter: Emitter<void> = this._register(new Emitter<void>());
 	readonly onDidFocusFilter: Event<void> = this._onDidFocusFilter.event;
+
+	private readonly _onDidClearFilterText: Emitter<void> = this._register(new Emitter<void>());
+	readonly onDidClearFilterText: Event<void> = this._onDidClearFilterText.event;
 
 	constructor(
 		options: IViewPaneOptions,
@@ -112,9 +110,8 @@ export class MarkersView extends ViewPane implements IMarkerFilterController {
 		@IOpenerService openerService: IOpenerService,
 		@IThemeService themeService: IThemeService,
 	) {
-		super({ ...(options as IViewPaneOptions), id: Constants.MARKERS_VIEW_ID, ariaHeaderLabel: Messages.MARKERS_PANEL_TITLE_PROBLEMS }, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService);
+		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, telemetryService);
 		this.smallLayoutContextKey = Constants.MarkersViewSmallLayoutContextKey.bindTo(this.contextKeyService);
-		this.panelFoucusContextKey = Constants.MarkerViewFocusContextKey.bindTo(this.contextKeyService);
 		this.panelState = new Memento(Constants.MARKERS_VIEW_STORAGE_ID, storageService).getMemento(StorageScope.WORKSPACE);
 		this.markersViewModel = this._register(instantiationService.createInstance(MarkersViewModel, this.panelState['multiline']));
 		this._register(this.markersViewModel.onDidChange(marker => this.onDidChangeViewState(marker)));
@@ -151,9 +148,6 @@ export class MarkersView extends ViewPane implements IMarkerFilterController {
 		this.createListeners();
 
 		this.updateFilter();
-
-		this._register(this.onDidFocus(() => this.panelFoucusContextKey.set(true)));
-		this._register(this.onDidBlur(() => this.panelFoucusContextKey.set(false)));
 
 		this._register(this.onDidChangeVisibility(visible => {
 			if (visible) {
@@ -203,6 +197,10 @@ export class MarkersView extends ViewPane implements IMarkerFilterController {
 
 	public focusFilter(): void {
 		this._onDidFocusFilter.fire();
+	}
+
+	public clearFilterText(): void {
+		this._onDidClearFilterText.fire();
 	}
 
 	private regiserActions(): void {
@@ -337,7 +335,7 @@ export class MarkersView extends ViewPane implements IMarkerFilterController {
 		} else {
 			resourceMarkers = this.markersWorkbenchService.markersModel.resourceMarkers;
 		}
-		this.tree.setChildren(null, Iterator.map(Iterator.fromArray(resourceMarkers), m => ({ element: m, children: createResourceMarkersIterator(m) })));
+		this.tree.setChildren(null, Iterable.map(resourceMarkers, m => ({ element: m, children: createResourceMarkersIterator(m) })));
 	}
 
 	private updateFilter() {
@@ -417,7 +415,7 @@ export class MarkersView extends ViewPane implements IMarkerFilterController {
 				dnd: new ResourceDragAndDrop(this.instantiationService),
 				expandOnlyOnTwistieClick: (e: TreeElement) => e instanceof Marker && e.relatedInformation.length > 0,
 				overrideStyles: {
-					listBackground: PANEL_BACKGROUND
+					listBackground: this.getBackgroundColor()
 				}
 			},
 		));
@@ -431,7 +429,7 @@ export class MarkersView extends ViewPane implements IMarkerFilterController {
 			relatedInformationFocusContextKey.set(focus.elements.some(e => e instanceof RelatedInformation));
 		}));
 
-		const markersNavigator = this._register(ResourceNavigator.createTreeResourceNavigator(this.tree, { openOnFocus: true }));
+		const markersNavigator = this._register(new TreeResourceNavigator(this.tree, { openOnFocus: true }));
 		this._register(Event.debounce(markersNavigator.onDidOpenResource, (last, event) => event, 75, true)(options => {
 			this.openFileAtElement(options.element, !!options.editorOptions.preserveFocus, options.sideBySide, !!options.editorOptions.pinned);
 		}));
