@@ -17,7 +17,6 @@ import { attachInputBoxStyler, attachCheckboxStyler } from 'vs/platform/theme/co
 import { ContextScopedHistoryInputBox } from 'vs/platform/browser/contextScopedHistoryWidget';
 import { IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 import type { IThemable } from 'vs/base/common/styler';
-import { Codicon } from 'vs/base/common/codicons';
 
 export interface IOptions {
 	placeholder?: string;
@@ -207,8 +206,7 @@ export class ExcludePatternInputWidget extends PatternInputWidget {
 
 	protected renderSubcontrols(controlsDiv: HTMLDivElement): void {
 		this.useExcludesAndIgnoreFilesBox = this._register(new Checkbox({
-			icon: Codicon.exclude,
-			actionClassName: 'useExcludesAndIgnoreFiles',
+			actionClassName: 'useExcludesAndIgnoreFiles codicon-exclude',
 			title: nls.localize('useExcludesAndIgnoreFilesDescription', "Use Exclude Settings and Ignore Files"),
 			isChecked: true,
 		}));

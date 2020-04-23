@@ -25,7 +25,6 @@ import { ITextResourceConfigurationService } from 'vs/editor/common/services/tex
 import { URI } from 'vs/base/common/uri';
 import { IListAccessibilityProvider } from 'vs/base/browser/ui/list/listWidget';
 import { Iterable } from 'vs/base/common/iterator';
-import { Codicon } from 'vs/base/common/codicons';
 
 export type OutlineItem = OutlineGroup | OutlineElement;
 
@@ -33,7 +32,7 @@ export class OutlineNavigationLabelProvider implements IKeyboardNavigationLabelP
 
 	getKeyboardNavigationLabel(element: OutlineItem): { toString(): string; } {
 		if (element instanceof OutlineGroup) {
-			return element.provider.displayName || element.id;
+			return element.label;
 		} else {
 			return element.symbol.name;
 		}
@@ -44,7 +43,7 @@ export class OutlineAccessibilityProvider implements IListAccessibilityProvider<
 
 	getAriaLabel(element: OutlineItem): string | null {
 		if (element instanceof OutlineGroup) {
-			return element.provider.displayName || element.id;
+			return element.label;
 		} else {
 			return element.symbol.name;
 		}
@@ -103,7 +102,7 @@ export class OutlineGroupRenderer implements ITreeRenderer<OutlineGroup, FuzzySc
 
 	renderElement(node: ITreeNode<OutlineGroup, FuzzyScore>, index: number, template: OutlineGroupTemplate): void {
 		template.label.set(
-			node.element.provider.displayName || localize('provider', "Outline Provider"),
+			node.element.label,
 			createMatches(node.filterData)
 		);
 	}
@@ -302,7 +301,7 @@ export class OutlineFilter implements ITreeFilter<OutlineItem> {
 		let uri: URI | undefined;
 
 		if (outline) {
-			uri = outline.textModel.uri;
+			uri = outline.uri;
 		}
 
 		if (!(element instanceof OutlineElement)) {
@@ -325,7 +324,7 @@ export class OutlineItemComparator implements ITreeSorter<OutlineItem> {
 
 	compare(a: OutlineItem, b: OutlineItem): number {
 		if (a instanceof OutlineGroup && b instanceof OutlineGroup) {
-			return a.providerIndex - b.providerIndex;
+			return a.order - b.order;
 
 		} else if (a instanceof OutlineElement && b instanceof OutlineElement) {
 			if (this.type === OutlineSortOrder.ByKind) {
@@ -552,168 +551,168 @@ registerThemingParticipant((theme: IColorTheme, collector: ICssStyleCollector) =
 
 	const symbolIconArrayColor = theme.getColor(SYMBOL_ICON_ARRAY_FOREGROUND);
 	if (symbolIconArrayColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolArray.cssSelector} { color: ${symbolIconArrayColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-array { color: ${symbolIconArrayColor}; }`);
 	}
 
 	const symbolIconBooleanColor = theme.getColor(SYMBOL_ICON_BOOLEAN_FOREGROUND);
 	if (symbolIconBooleanColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolBoolean.cssSelector} { color: ${symbolIconBooleanColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-boolean { color: ${symbolIconBooleanColor}; }`);
 	}
 
 	const symbolIconClassColor = theme.getColor(SYMBOL_ICON_CLASS_FOREGROUND);
 	if (symbolIconClassColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolClass.cssSelector} { color: ${symbolIconClassColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-class { color: ${symbolIconClassColor}; }`);
 	}
 
 	const symbolIconMethodColor = theme.getColor(SYMBOL_ICON_METHOD_FOREGROUND);
 	if (symbolIconMethodColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolMethod.cssSelector} { color: ${symbolIconMethodColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-method { color: ${symbolIconMethodColor}; }`);
 	}
 
 	const symbolIconColorColor = theme.getColor(SYMBOL_ICON_COLOR_FOREGROUND);
 	if (symbolIconColorColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolColor.cssSelector} { color: ${symbolIconColorColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-color { color: ${symbolIconColorColor}; }`);
 	}
 
 	const symbolIconConstantColor = theme.getColor(SYMBOL_ICON_CONSTANT_FOREGROUND);
 	if (symbolIconConstantColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolConstant.cssSelector} { color: ${symbolIconConstantColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-constant { color: ${symbolIconConstantColor}; }`);
 	}
 
 	const symbolIconConstructorColor = theme.getColor(SYMBOL_ICON_CONSTRUCTOR_FOREGROUND);
 	if (symbolIconConstructorColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolConstructor.cssSelector} { color: ${symbolIconConstructorColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-constructor { color: ${symbolIconConstructorColor}; }`);
 	}
 
 	const symbolIconEnumeratorColor = theme.getColor(SYMBOL_ICON_ENUMERATOR_FOREGROUND);
 	if (symbolIconEnumeratorColor) {
 		collector.addRule(`
-			.monaco-workbench ${Codicon.symbolValue.cssSelector},.monaco-workbench ${Codicon.symbolEnum.cssSelector} { color: ${symbolIconEnumeratorColor}; }`);
+			.monaco-workbench .codicon.codicon-symbol-value,.monaco-workbench .codicon.codicon-symbol-enum { color: ${symbolIconEnumeratorColor}; }`);
 	}
 
 	const symbolIconEnumeratorMemberColor = theme.getColor(SYMBOL_ICON_ENUMERATOR_MEMBER_FOREGROUND);
 	if (symbolIconEnumeratorMemberColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolEnumMember.cssSelector} { color: ${symbolIconEnumeratorMemberColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-enum-member { color: ${symbolIconEnumeratorMemberColor}; }`);
 	}
 
 	const symbolIconEventColor = theme.getColor(SYMBOL_ICON_EVENT_FOREGROUND);
 	if (symbolIconEventColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolEvent.cssSelector} { color: ${symbolIconEventColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-event { color: ${symbolIconEventColor}; }`);
 	}
 
 	const symbolIconFieldColor = theme.getColor(SYMBOL_ICON_FIELD_FOREGROUND);
 	if (symbolIconFieldColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolField.cssSelector} { color: ${symbolIconFieldColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-field { color: ${symbolIconFieldColor}; }`);
 	}
 
 	const symbolIconFileColor = theme.getColor(SYMBOL_ICON_FILE_FOREGROUND);
 	if (symbolIconFileColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolFile.cssSelector} { color: ${symbolIconFileColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-file { color: ${symbolIconFileColor}; }`);
 	}
 
 	const symbolIconFolderColor = theme.getColor(SYMBOL_ICON_FOLDER_FOREGROUND);
 	if (symbolIconFolderColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolFolder.cssSelector} { color: ${symbolIconFolderColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-folder { color: ${symbolIconFolderColor}; }`);
 	}
 
 	const symbolIconFunctionColor = theme.getColor(SYMBOL_ICON_FUNCTION_FOREGROUND);
 	if (symbolIconFunctionColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolFunction.cssSelector} { color: ${symbolIconFunctionColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-function { color: ${symbolIconFunctionColor}; }`);
 	}
 
 	const symbolIconInterfaceColor = theme.getColor(SYMBOL_ICON_INTERFACE_FOREGROUND);
 	if (symbolIconInterfaceColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolInterface.cssSelector} { color: ${symbolIconInterfaceColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-interface { color: ${symbolIconInterfaceColor}; }`);
 	}
 
 	const symbolIconKeyColor = theme.getColor(SYMBOL_ICON_KEY_FOREGROUND);
 	if (symbolIconKeyColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolKey.cssSelector} { color: ${symbolIconKeyColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-key { color: ${symbolIconKeyColor}; }`);
 	}
 
 	const symbolIconKeywordColor = theme.getColor(SYMBOL_ICON_KEYWORD_FOREGROUND);
 	if (symbolIconKeywordColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolKeyword.cssSelector} { color: ${symbolIconKeywordColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-keyword { color: ${symbolIconKeywordColor}; }`);
 	}
 
 	const symbolIconModuleColor = theme.getColor(SYMBOL_ICON_MODULE_FOREGROUND);
 	if (symbolIconModuleColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolModule.cssSelector} { color: ${symbolIconModuleColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-module { color: ${symbolIconModuleColor}; }`);
 	}
 
 	const outlineNamespaceColor = theme.getColor(SYMBOL_ICON_NAMESPACE_FOREGROUND);
 	if (outlineNamespaceColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolNamespace.cssSelector} { color: ${outlineNamespaceColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-namespace { color: ${outlineNamespaceColor}; }`);
 	}
 
 	const symbolIconNullColor = theme.getColor(SYMBOL_ICON_NULL_FOREGROUND);
 	if (symbolIconNullColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolNull.cssSelector} { color: ${symbolIconNullColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-null { color: ${symbolIconNullColor}; }`);
 	}
 
 	const symbolIconNumberColor = theme.getColor(SYMBOL_ICON_NUMBER_FOREGROUND);
 	if (symbolIconNumberColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolNumber.cssSelector} { color: ${symbolIconNumberColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-number { color: ${symbolIconNumberColor}; }`);
 	}
 
 	const symbolIconObjectColor = theme.getColor(SYMBOL_ICON_OBJECT_FOREGROUND);
 	if (symbolIconObjectColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolObject.cssSelector} { color: ${symbolIconObjectColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-object { color: ${symbolIconObjectColor}; }`);
 	}
 
 	const symbolIconOperatorColor = theme.getColor(SYMBOL_ICON_OPERATOR_FOREGROUND);
 	if (symbolIconOperatorColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolOperator.cssSelector} { color: ${symbolIconOperatorColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-operator { color: ${symbolIconOperatorColor}; }`);
 	}
 
 	const symbolIconPackageColor = theme.getColor(SYMBOL_ICON_PACKAGE_FOREGROUND);
 	if (symbolIconPackageColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolPackage.cssSelector} { color: ${symbolIconPackageColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-package { color: ${symbolIconPackageColor}; }`);
 	}
 
 	const symbolIconPropertyColor = theme.getColor(SYMBOL_ICON_PROPERTY_FOREGROUND);
 	if (symbolIconPropertyColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolProperty.cssSelector} { color: ${symbolIconPropertyColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-property { color: ${symbolIconPropertyColor}; }`);
 	}
 
 	const symbolIconReferenceColor = theme.getColor(SYMBOL_ICON_REFERENCE_FOREGROUND);
 	if (symbolIconReferenceColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolReference.cssSelector} { color: ${symbolIconReferenceColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-reference { color: ${symbolIconReferenceColor}; }`);
 	}
 
 	const symbolIconSnippetColor = theme.getColor(SYMBOL_ICON_SNIPPET_FOREGROUND);
 	if (symbolIconSnippetColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolSnippet.cssSelector} { color: ${symbolIconSnippetColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-snippet { color: ${symbolIconSnippetColor}; }`);
 	}
 
 	const symbolIconStringColor = theme.getColor(SYMBOL_ICON_STRING_FOREGROUND);
 	if (symbolIconStringColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolString.cssSelector} { color: ${symbolIconStringColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-string { color: ${symbolIconStringColor}; }`);
 	}
 
 	const symbolIconStructColor = theme.getColor(SYMBOL_ICON_STRUCT_FOREGROUND);
 	if (symbolIconStructColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolStruct.cssSelector} { color: ${symbolIconStructColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-struct { color: ${symbolIconStructColor}; }`);
 	}
 
 	const symbolIconTextColor = theme.getColor(SYMBOL_ICON_TEXT_FOREGROUND);
 	if (symbolIconTextColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolText.cssSelector} { color: ${symbolIconTextColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-text { color: ${symbolIconTextColor}; }`);
 	}
 
 	const symbolIconTypeParameterColor = theme.getColor(SYMBOL_ICON_TYPEPARAMETER_FOREGROUND);
 	if (symbolIconTypeParameterColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolTypeParameter.cssSelector} { color: ${symbolIconTypeParameterColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-type-parameter { color: ${symbolIconTypeParameterColor}; }`);
 	}
 
 	const symbolIconUnitColor = theme.getColor(SYMBOL_ICON_UNIT_FOREGROUND);
 	if (symbolIconUnitColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolUnit.cssSelector} { color: ${symbolIconUnitColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-unit { color: ${symbolIconUnitColor}; }`);
 	}
 
 	const symbolIconVariableColor = theme.getColor(SYMBOL_ICON_VARIABLE_FOREGROUND);
 	if (symbolIconVariableColor) {
-		collector.addRule(`.monaco-workbench ${Codicon.symbolVariable.cssSelector} { color: ${symbolIconVariableColor}; }`);
+		collector.addRule(`.monaco-workbench .codicon.codicon-symbol-variable { color: ${symbolIconVariableColor}; }`);
 	}
 
 });

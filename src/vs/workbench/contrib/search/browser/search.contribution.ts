@@ -55,7 +55,6 @@ import { AnythingQuickAccessProvider } from 'vs/workbench/contrib/search/browser
 import { IQuickInputService } from 'vs/platform/quickinput/common/quickInput';
 import { AbstractGotoLineQuickAccessProvider } from 'vs/editor/contrib/quickAccess/gotoLineQuickAccess';
 import { GotoSymbolQuickAccessProvider } from 'vs/workbench/contrib/codeEditor/browser/quickaccess/gotoSymbolQuickAccess';
-import { searchViewIcon } from 'vs/workbench/contrib/search/browser/searchIcons';
 
 registerSingleton(ISearchWorkbenchService, SearchWorkbenchService, true);
 registerSingleton(ISearchHistoryService, SearchHistoryService, true);
@@ -507,7 +506,7 @@ const viewContainer = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewCo
 	name: nls.localize('name', "Search"),
 	ctorDescriptor: new SyncDescriptor(ViewPaneContainer, [VIEWLET_ID, `${VIEWLET_ID}.state`, { mergeViewWithContainerWhenSingleView: true, donotShowContainerTitleWhenMergedWithContainer: true }]),
 	hideIfEmpty: true,
-	icon: searchViewIcon.classNames,
+	icon: 'codicon-search',
 	order: 1
 }, ViewContainerLocation.Sidebar);
 
@@ -789,6 +788,16 @@ configurationRegistry.registerConfiguration({
 			type: 'boolean',
 			default: true,
 			description: nls.localize('search.searchOnType', "Search all files as you type.")
+		},
+		'search.seedWithNearestWord': {
+			type: 'boolean',
+			default: false,
+			description: nls.localize('search.seedWithNearestWord', "Enable seeding search from the word nearest the cursor when the active editor has no selection.")
+		},
+		'search.seedOnFocus': {
+			type: 'boolean',
+			default: false,
+			description: nls.localize('search.seedOnFocus', "Update workspace seach query to the editor's selected text when focusing the search view. This happens either on click or when triggering the `workbench.views.search.focus` command.")
 		},
 		'search.searchOnTypeDebouncePeriod': {
 			type: 'number',

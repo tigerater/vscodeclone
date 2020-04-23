@@ -12,7 +12,7 @@ import { Delayer } from 'vs/base/common/async';
 import { KeyCode } from 'vs/base/common/keyCodes';
 import { FindReplaceState, FindReplaceStateChangedEvent } from 'vs/editor/contrib/find/findState';
 import { IMessage as InputBoxMessage } from 'vs/base/browser/ui/inputbox/inputBox';
-import { SimpleButton, findCloseIcon, findNextMatchIcon, findPreviousMatchIcon, findReplaceIcon, findReplaceAllIcon } from 'vs/editor/contrib/find/findWidget';
+import { SimpleButton } from 'vs/editor/contrib/find/findWidget';
 import { IContextKeyService } from 'vs/platform/contextkey/common/contextkey';
 import { IContextViewService } from 'vs/platform/contextview/browser/contextView';
 import { editorWidgetBackground, inputActiveOptionBorder, inputActiveOptionBackground, inputBackground, inputBorder, inputForeground, inputValidationErrorBackground, inputValidationErrorBorder, inputValidationErrorForeground, inputValidationInfoBackground, inputValidationInfoBorder, inputValidationInfoForeground, inputValidationWarningBackground, inputValidationWarningBorder, inputValidationWarningForeground, widgetShadow, editorWidgetForeground } from 'vs/platform/theme/common/colorRegistry';
@@ -90,6 +90,8 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 				}
 			}
 		}));
+		this._toggleReplaceBtn.toggleClass('codicon-chevron-down', this._isReplaceVisible);
+		this._toggleReplaceBtn.toggleClass('codicon-chevron-right', !this._isReplaceVisible);
 		this._toggleReplaceBtn.setExpanded(this._isReplaceVisible);
 		this._domNode.appendChild(this._toggleReplaceBtn.domNode);
 
@@ -145,7 +147,7 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 
 		this.prevBtn = this._register(new SimpleButton({
 			label: NLS_PREVIOUS_MATCH_BTN_LABEL,
-			className: findPreviousMatchIcon.classNames,
+			className: 'codicon codicon-arrow-up',
 			onTrigger: () => {
 				this.find(true);
 			}
@@ -153,7 +155,7 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 
 		this.nextBtn = this._register(new SimpleButton({
 			label: NLS_NEXT_MATCH_BTN_LABEL,
-			className: findNextMatchIcon.classNames,
+			className: 'codicon codicon-arrow-down',
 			onTrigger: () => {
 				this.find(false);
 			}
@@ -161,7 +163,7 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 
 		const closeBtn = this._register(new SimpleButton({
 			label: NLS_CLOSE_BTN_LABEL,
-			className: findCloseIcon.classNames,
+			className: 'codicon codicon-close',
 			onTrigger: () => {
 				this.hide();
 			}
@@ -219,7 +221,7 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 
 		this._replaceBtn = this._register(new SimpleButton({
 			label: NLS_REPLACE_BTN_LABEL,
-			className: findReplaceIcon.classNames,
+			className: 'codicon codicon-replace',
 			onTrigger: () => {
 				this.replaceOne();
 			}
@@ -228,7 +230,7 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 		// Replace all button
 		this._replaceAllBtn = this._register(new SimpleButton({
 			label: NLS_REPLACE_ALL_BTN_LABEL,
-			className: findReplaceAllIcon.classNames,
+			className: 'codicon codicon-replace-all',
 			onTrigger: () => {
 				this.replaceAll();
 			}
@@ -313,6 +315,8 @@ export abstract class SimpleFindReplaceWidget extends Widget {
 		this._replaceAllBtn.setEnabled(this._isVisible && this._isReplaceVisible && findInputIsNonEmpty);
 
 		dom.toggleClass(this._domNode, 'replaceToggled', this._isReplaceVisible);
+		this._toggleReplaceBtn.toggleClass('codicon-chevron-right', !this._isReplaceVisible);
+		this._toggleReplaceBtn.toggleClass('codicon-chevron-down', this._isReplaceVisible);
 		this._toggleReplaceBtn.setExpanded(this._isReplaceVisible);
 	}
 

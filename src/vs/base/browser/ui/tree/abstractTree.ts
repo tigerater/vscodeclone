@@ -26,13 +26,6 @@ import { values } from 'vs/base/common/map';
 import { clamp } from 'vs/base/common/numbers';
 import { ScrollEvent } from 'vs/base/common/scrollable';
 import { SetMap } from 'vs/base/common/collections';
-import { Codicon, registerIcon } from 'vs/base/common/codicons';
-
-const treeItemExpandedIcon = registerIcon('tree-item-expanded', Codicon.chevronDown); // collapsed is done with rotation
-
-const treeFilterOnTypeOnIcon = registerIcon('tree-filter-on-type-on', Codicon.listFilter);
-const treeFilterOnTypeOffIcon = registerIcon('tree-filter-on-type-off', Codicon.listSelection);
-const treeFilterClearIcon = registerIcon('tree-filter-clear', Codicon.close);
 
 class TreeElementsDragAndDropData<T, TFilterData, TContext> extends ElementsDragAndDropData<T, TContext> {
 
@@ -409,10 +402,10 @@ class TreeRenderer<T, TFilterData, TRef, TTemplateData> implements IListRenderer
 		}
 
 		if (node.collapsible && (!this.hideTwistiesOfChildlessElements || node.visibleChildrenCount > 0)) {
-			addClasses(templateData.twistie, treeItemExpandedIcon.classNames, 'collapsible');
+			addClasses(templateData.twistie, 'codicon', 'codicon-chevron-down', 'collapsible');
 			toggleClass(templateData.twistie, 'collapsed', node.collapsed);
 		} else {
-			removeClasses(templateData.twistie, treeItemExpandedIcon.classNames, 'collapsible', 'collapsed');
+			removeClasses(templateData.twistie, 'codicon', 'codicon-chevron-down', 'collapsible', 'collapsed');
 		}
 
 		if (node.collapsible) {
@@ -650,14 +643,14 @@ class TypeFilterController<T, TFilterData> implements IDisposable {
 		const controls = append(this.domNode, $('.controls'));
 
 		this._filterOnType = !!tree.options.filterOnType;
-		this.filterOnTypeDomNode = append(controls, $<HTMLInputElement>('input.filter'));
+		this.filterOnTypeDomNode = append(controls, $<HTMLInputElement>('input.filter.codicon.codicon-list-selection'));
 		this.filterOnTypeDomNode.type = 'checkbox';
 		this.filterOnTypeDomNode.checked = this._filterOnType;
 		this.filterOnTypeDomNode.tabIndex = -1;
-		this.updateFilterOnTypeTitleAndIcon();
+		this.updateFilterOnTypeTitle();
 		domEvent(this.filterOnTypeDomNode, 'input')(this.onDidChangeFilterOnType, this, this.disposables);
 
-		this.clearDomNode = append(controls, $<HTMLInputElement>('button.clear' + treeFilterClearIcon.cssSelector));
+		this.clearDomNode = append(controls, $<HTMLInputElement>('button.clear.codicon.codicon-close'));
 		this.clearDomNode.tabIndex = -1;
 		this.clearDomNode.title = localize('clear', "Clear");
 
@@ -863,17 +856,13 @@ class TypeFilterController<T, TFilterData> implements IDisposable {
 		this.tree.refilter();
 		this.tree.domFocus();
 		this.render();
-		this.updateFilterOnTypeTitleAndIcon();
+		this.updateFilterOnTypeTitle();
 	}
 
-	private updateFilterOnTypeTitleAndIcon(): void {
+	private updateFilterOnTypeTitle(): void {
 		if (this.filterOnType) {
-			removeClasses(this.filterOnTypeDomNode, treeFilterOnTypeOffIcon.classNames);
-			addClasses(this.filterOnTypeDomNode, treeFilterOnTypeOnIcon.classNames);
 			this.filterOnTypeDomNode.title = localize('disable filter on type', "Disable Filter on Type");
 		} else {
-			removeClasses(this.filterOnTypeDomNode, treeFilterOnTypeOnIcon.classNames);
-			addClasses(this.filterOnTypeDomNode, treeFilterOnTypeOffIcon.classNames);
 			this.filterOnTypeDomNode.title = localize('enable filter on type', "Enable Filter on Type");
 		}
 	}

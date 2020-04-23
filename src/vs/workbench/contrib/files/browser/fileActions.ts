@@ -50,7 +50,6 @@ import { once } from 'vs/base/common/functional';
 import { IEditorOptions } from 'vs/platform/editor/common/editor';
 import { IEditorGroup } from 'vs/workbench/services/editor/common/editorGroupsService';
 import { FileEditorInput } from 'vs/workbench/contrib/files/common/editors/fileEditorInput';
-import { Codicon } from 'vs/base/common/codicons';
 
 export const NEW_FILE_COMMAND_ID = 'explorer.newFile';
 export const NEW_FILE_LABEL = nls.localize('newFile', "New File");
@@ -537,6 +536,10 @@ export class ReopenResourcesAction extends Action {
 
 	async run(): Promise<void> {
 		const activeInput = this.editorService.activeEditor;
+		if (!activeInput) {
+			return;
+		}
+
 		const activeEditorPane = this.editorService.activeEditorPane;
 		if (!activeEditorPane) {
 			return;
@@ -544,13 +547,12 @@ export class ReopenResourcesAction extends Action {
 
 		const options = activeEditorPane.options;
 		const group = activeEditorPane.group;
-		const activeResource = activeInput ? activeInput.resource : undefined;
-
+		const activeResource = activeInput.resource;
 		if (!activeResource) {
 			return;
 		}
 
-		const overrides = this.editorService.getEditorOverrides(activeInput!, options, group);
+		const overrides = this.editorService.getEditorOverrides(activeInput, options, group);
 		const items: (IQuickPickItem & { handler?: IOpenEditorOverrideHandler })[] = overrides.map((override) => {
 			return {
 				handler: override[0],
@@ -695,7 +697,7 @@ export class CloseGroupAction extends Action {
 	static readonly LABEL = nls.localize('closeGroup', "Close Group");
 
 	constructor(id: string, label: string, @ICommandService private readonly commandService: ICommandService) {
-		super(id, label, Codicon.closeAll.classNames);
+		super(id, label, 'codicon-close-all');
 	}
 
 	run(context?: unknown): Promise<void> {

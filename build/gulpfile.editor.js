@@ -43,7 +43,7 @@ let editorEntryPoints = [
 ];
 
 let editorResources = [
-	'out-editor-build/vs/base/browser/ui/codicons/**/*.ttf'
+	'out-editor-build/vs/base/browser/ui/codiconLabel/**/*.ttf'
 ];
 
 let BUNDLED_FILE_HEADER = [
