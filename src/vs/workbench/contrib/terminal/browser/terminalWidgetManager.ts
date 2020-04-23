@@ -6,7 +6,6 @@
 import { IDisposable, dispose, DisposableStore } from 'vs/base/common/lifecycle';
 import { IMarkdownString } from 'vs/base/common/htmlContent';
 import { renderMarkdown } from 'vs/base/browser/markdownRenderer';
-import { IEnvironmentVariableInfo } from 'vs/workbench/contrib/terminal/common/environmentVariable';
 
 export enum WidgetVerticalAlignment {
 	Bottom,
@@ -22,18 +21,14 @@ export class TerminalWidgetManager implements IDisposable {
 	private _messageWidget: MessageWidget | undefined;
 	private readonly _messageListeners = new DisposableStore();
 
-	private _environmentVariableInfo: IEnvironmentVariableInfo | undefined;
+	constructor(
+		terminalWrapper: HTMLElement,
+	) {
+		this._container = document.createElement('div');
+		this._container.classList.add('terminal-widget-overlay');
+		terminalWrapper.appendChild(this._container);
 
-	constructor() {
-	}
-
-	public attachToElement(terminalWrapper: HTMLElement) {
-		if (!this._container) {
-			this._container = document.createElement('div');
-			this._container.classList.add('terminal-widget-overlay');
-			terminalWrapper.appendChild(this._container);
-			this._initTerminalHeightWatcher(terminalWrapper);
-		}
+		this._initTerminalHeightWatcher(terminalWrapper);
 	}
 
 	public dispose(): void {
@@ -53,17 +48,6 @@ export class TerminalWidgetManager implements IDisposable {
 		}
 		const mutationObserver = new MutationObserver(() => this._refreshHeight());
 		mutationObserver.observe(this._xtermViewport, { attributes: true, attributeFilter: ['style'] });
-	}
-
-	public showEnvironmentVariableInfo(info: IEnvironmentVariableInfo): IDisposable {
-		this._environmentVariableInfo = info;
-		return {
-			dispose: () => {
-				if (this._environmentVariableInfo === info) {
-					this._environmentVariableInfo = undefined;
-				}
-			}
-		};
 	}
 
 	public showMessage(left: number, y: number, text: IMarkdownString, verticalAlignment: WidgetVerticalAlignment = WidgetVerticalAlignment.Bottom, linkHandler: (url: string) => void): void {

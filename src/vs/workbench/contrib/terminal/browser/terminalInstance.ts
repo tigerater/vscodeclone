@@ -95,7 +95,7 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 
 	private _messageTitleDisposable: IDisposable | undefined;
 
-	private _widgetManager: TerminalWidgetManager = new TerminalWidgetManager();
+	private _widgetManager: TerminalWidgetManager | undefined;
 	private _linkManager: TerminalLinkManager | undefined;
 	private _commandTrackerAddon: CommandTrackerAddon | undefined;
 	private _navigationModeAddon: INavigationMode & ITerminalAddon | undefined;
@@ -582,8 +582,9 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 			this._refreshSelectionContextKey();
 		}));
 
-		this._widgetManager.attachToElement(this._wrapperElement);
-		this._processManager.onProcessReady(() => this._linkManager?.setWidgetManager(this._widgetManager));
+		const widgetManager = new TerminalWidgetManager(this._wrapperElement);
+		this._widgetManager = widgetManager;
+		this._processManager.onProcessReady(() => this._linkManager?.setWidgetManager(widgetManager));
 
 		const computedStyle = window.getComputedStyle(this._container);
 		const width = parseInt(computedStyle.getPropertyValue('width').replace('px', ''), 10);
@@ -719,6 +720,7 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		dispose(this._commandTrackerAddon);
 		this._commandTrackerAddon = undefined;
 		dispose(this._widgetManager);
+		this._widgetManager = undefined;
 
 		if (this._xterm && this._xterm.element) {
 			this._hadFocusOnExit = dom.hasClass(this._xterm.element, 'focus');
@@ -787,7 +789,6 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		this.focus();
 		this._xterm.paste(await this._clipboardService.readText());
 	}
-
 	public async sendText(text: string, addNewLine: boolean): Promise<void> {
 		// Normalize line endings to 'enter' press.
 		text = text.replace(TerminalInstance.EOL_REGEX, '\r');
@@ -870,7 +871,6 @@ export class TerminalInstance extends Disposable implements ITerminalInstance {
 		this._processManager.onProcessData(data => this._onData.fire(data));
 		this._processManager.onProcessOverrideDimensions(e => this.setDimensions(e));
 		this._processManager.onProcessResolvedShellLaunchConfig(e => this._setResolvedShellLaunchConfig(e));
-		this._processManager.onEnvironmentVariableInfoChanged(e => this._widgetManager?.showEnvironmentVariableInfo);
 
 		if (this._shellLaunchConfig.name) {
 			this.setTitle(this._shellLaunchConfig.name, TitleEventSource.Api);
