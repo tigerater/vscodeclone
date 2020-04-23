@@ -35,37 +35,33 @@ interface IExternalUriResolver {
 	(uri: URI): Promise<URI>;
 }
 
-interface ITunnelFactory {
-	(tunnelOptions: ITunnelOptions): Promise<ITunnel> | undefined;
-}
-
-interface ITunnelOptions {
+interface TunnelOptions {
 	remoteAddress: { port: number, host: string };
-
 	/**
 	 * The desired local port. If this port can't be used, then another will be chosen.
 	 */
 	localAddressPort?: number;
-
 	label?: string;
 }
 
-interface ITunnel extends IDisposable {
+interface Tunnel extends IDisposable {
 	remoteAddress: { port: number, host: string };
-
 	/**
 	 * The complete local address(ex. localhost:1234)
 	 */
 	localAddress: string;
-
 	/**
 	 * Implementers of Tunnel should fire onDidDispose when dispose is called.
 	 */
 	onDidDispose: Event<void>;
 }
 
-interface IShowPortCandidate {
-	(host: string, port: number, detail: string): Promise<boolean>;
+interface ITunnelFactory {
+	(tunnelOptions: TunnelOptions): Thenable<Tunnel> | undefined;
+}
+
+interface IShowCandidate {
+	(host: string, port: number, detail: string): Thenable<boolean>;
 }
 
 interface ICommand {
@@ -130,7 +126,7 @@ interface IWorkbenchConstructionOptions {
 	/**
 	 * Support for filtering candidate ports
 	 */
-	readonly showCandidate?: IShowPortCandidate;
+	readonly showCandidate?: IShowCandidate;
 
 	//#endregion
 
@@ -199,30 +195,14 @@ interface IWorkbenchConstructionOptions {
 	//#endregion
 }
 
-interface IWorkbench {
-	commands: {
-
-		/**
-		 * Allows to execute any command if known with the provided arguments.
-		 *
-		 * @param command Identifier of the command to execute.
-		 * @param rest Parameters passed to the command function.
-		 * @return A promise that resolves to the returned value of the given command.
-		 */
-		executeCommand(command: string, ...args: any[]): Promise<unknown>;
-	}
-}
-
 /**
  * Creates the workbench with the provided options in the provided container.
  *
  * @param domElement the container to create the workbench in
  * @param options for setting up the workbench
- *
- * @returns the workbench API facade.
  */
 let created = false;
-async function create(domElement: HTMLElement, options: IWorkbenchConstructionOptions): Promise<IWorkbench> {
+async function create(domElement: HTMLElement, options: IWorkbenchConstructionOptions): Promise<void> {
 
 	// Assert that the workbench is not created more than once. We currently
 	// do not support this and require a full context switch to clean-up.
@@ -233,7 +213,7 @@ async function create(domElement: HTMLElement, options: IWorkbenchConstructionOp
 	}
 
 	// Startup workbench
-	const workbench = await main(domElement, options);
+	await main(domElement, options);
 
 	// Register commands if any
 	if (Array.isArray(options.commands)) {
@@ -245,8 +225,6 @@ async function create(domElement: HTMLElement, options: IWorkbenchConstructionOp
 			});
 		}
 	}
-
-	return workbench;
 }
 
 export {
@@ -254,7 +232,6 @@ export {
 	// Factory
 	create,
 	IWorkbenchConstructionOptions,
-	IWorkbench,
 
 	// Basic Types
 	URI,
@@ -303,14 +280,6 @@ export {
 
 	// External Uris
 	IExternalUriResolver,
-
-	// Tunnel
-	ITunnelFactory,
-	ITunnel,
-	ITunnelOptions,
-
-	// Ports
-	IShowPortCandidate,
 
 	// Commands
 	ICommand

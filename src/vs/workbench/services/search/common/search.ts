@@ -617,7 +617,9 @@ export class QueryGlobTester {
 	 * Guaranteed async.
 	 */
 	includedInQuery(testPath: string, basename?: string, hasSibling?: (name: string) => boolean | Promise<boolean>): Promise<boolean> {
-		const excludeP = Promise.resolve(this._parsedExcludeExpression(testPath, basename, hasSibling)).then(result => !!result);
+		const excludeP = this._parsedExcludeExpression ?
+			Promise.resolve(this._parsedExcludeExpression(testPath, basename, hasSibling)).then(result => !!result) :
+			Promise.resolve(false);
 
 		return excludeP.then(excluded => {
 			if (excluded) {

@@ -11,11 +11,10 @@ import { IInstantiationService } from 'vs/platform/instantiation/common/instanti
 import { ICellViewModel, CellFindMatch, MarkdownCellLayoutInfo, MarkdownCellLayoutChangeEvent, CellEditState, NotebookLayoutInfo } from 'vs/workbench/contrib/notebook/browser/notebookBrowser';
 import { MarkdownRenderer } from 'vs/workbench/contrib/notebook/browser/view/renderers/mdRenderer';
 import { BaseCellViewModel } from 'vs/workbench/contrib/notebook/browser/viewModel/baseCellViewModel';
-import { CellKind } from 'vs/workbench/contrib/notebook/common/notebookCommon';
+import { CellKind, ICell } from 'vs/workbench/contrib/notebook/common/notebookCommon';
 import { CELL_MARGIN, CELL_RUN_GUTTER, BOTTOM_CELL_TOOLBAR_HEIGHT } from 'vs/workbench/contrib/notebook/browser/constants';
 import { NotebookEventDispatcher } from 'vs/workbench/contrib/notebook/browser/viewModel/eventDispatcher';
 import * as editorCommon from 'vs/editor/common/editorCommon';
-import { NotebookCellTextModel } from 'vs/workbench/contrib/notebook/common/model/notebookCellTextModel';
 
 export class MarkdownCellViewModel extends BaseCellViewModel implements ICellViewModel {
 	cellKind: CellKind.Markdown = CellKind.Markdown;
@@ -44,12 +43,12 @@ export class MarkdownCellViewModel extends BaseCellViewModel implements ICellVie
 	constructor(
 		readonly viewType: string,
 		readonly notebookHandle: number,
-		readonly model: NotebookCellTextModel,
+		readonly cell: ICell,
 		readonly eventDispatcher: NotebookEventDispatcher,
 		initialNotebookLayoutInfo: NotebookLayoutInfo | null,
 		@IInstantiationService private readonly _instaService: IInstantiationService,
 		@ITextModelService private readonly _modelService: ITextModelService) {
-		super(viewType, notebookHandle, model, UUID.generateUuid());
+		super(viewType, notebookHandle, cell, UUID.generateUuid());
 
 		this._layoutInfo = {
 			fontInfo: initialNotebookLayoutInfo?.fontInfo || null,
@@ -104,14 +103,14 @@ export class MarkdownCellViewModel extends BaseCellViewModel implements ICellVie
 	}
 
 	setText(strs: string[]) {
-		this.model.source = strs;
+		this.cell.source = strs;
 		this._html = null;
 	}
 
 	save() {
 		if (this._textModel && !this._textModel.isDisposed() && this.editState === CellEditState.Editing) {
 			let cnt = this._textModel.getLineCount();
-			this.model.source = this._textModel.getLinesContent().map((str, index) => str + (index !== cnt - 1 ? '\n' : ''));
+			this.cell.source = this._textModel.getLinesContent().map((str, index) => str + (index !== cnt - 1 ? '\n' : ''));
 		}
 	}
 
@@ -129,12 +128,12 @@ export class MarkdownCellViewModel extends BaseCellViewModel implements ICellVie
 
 	async resolveTextModel(): Promise<model.ITextModel> {
 		if (!this._textModel) {
-			const ref = await this._modelService.createModelReference(this.model.uri);
+			const ref = await this._modelService.createModelReference(this.cell.uri);
 			this._textModel = ref.object.textEditorModel;
 			this._buffer = this._textModel.getTextBuffer();
 			this._register(ref);
 			this._register(this._textModel.onDidChangeContent(() => {
-				this.model.contentChange();
+				this.cell.contentChange();
 				this._html = null;
 				this._onDidChangeContent.fire();
 			}));

@@ -393,8 +393,7 @@ class MarkdownPreview extends Disposable implements WebviewResourceProvider {
 		// We perviously already resolve absolute paths.
 		// Now make sure we handle relative file paths
 		if (hrefPath[0] !== '/') {
-			// Fix #93691, use this.resource.fsPath instead of this.resource.path
-			hrefPath = path.join(path.dirname(this.resource.fsPath), hrefPath);
+			hrefPath = path.join(path.dirname(this.resource.path), hrefPath);
 		}
 
 		const config = vscode.workspace.getConfiguration('markdown', this.resource);

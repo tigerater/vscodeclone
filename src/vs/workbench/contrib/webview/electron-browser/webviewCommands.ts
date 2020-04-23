@@ -153,7 +153,7 @@ function getActiveElectronBasedWebview(accessor: ServicesAccessor): ElectronWebv
 
 	if (webview instanceof ElectronWebviewBasedWebview) {
 		return webview;
-	} else if ('getInnerWebview' in (webview as WebviewOverlay)) {
+	} else if ((webview as WebviewOverlay).getInnerWebview) {
 		const innerWebview = (webview as WebviewOverlay).getInnerWebview();
 		if (innerWebview instanceof ElectronWebviewBasedWebview) {
 			return innerWebview;

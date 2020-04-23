@@ -40,6 +40,8 @@ import { escapeRegExpCharacters } from 'vs/base/common/strings';
 import { Iterable } from 'vs/base/common/iterator';
 import { Schemas } from 'vs/base/common/network';
 
+const PageSize = 20;
+
 type TreeElement = TimelineItem | LoadMoreCommand;
 
 function isLoadMoreCommand(item: TreeElement | undefined): item is LoadMoreCommand {
@@ -274,11 +276,6 @@ export class TimelinePane extends ViewPane {
 		}
 	}
 
-	get pageSize() {
-		const pageSize = this.configurationService.getValue<number | null | undefined>('timeline.pageSize') ?? Math.max(20, Math.floor((this.tree.renderHeight / 22) - 1));
-		return pageSize;
-	}
-
 	reset() {
 		this.loadTimeline(true);
 	}
@@ -437,7 +434,7 @@ export class TimelinePane extends ViewPane {
 
 	private clear(cancelPending: boolean) {
 		this._visibleItemCount = 0;
-		this._maxItemCount = this.pageSize;
+		this._maxItemCount = PageSize;
 		this.timelinesBySource.clear();
 
 		if (cancelPending) {
@@ -516,13 +513,13 @@ export class TimelinePane extends ViewPane {
 			!reset &&
 			options?.cursor !== undefined &&
 			timeline !== undefined &&
-			(!timeline?.more || timeline.items.length > timeline.lastRenderedIndex + this.pageSize)
+			(!timeline?.more || timeline.items.length > timeline.lastRenderedIndex + PageSize)
 		) {
 			return false;
 		}
 
 		if (options === undefined) {
-			options = { cursor: reset ? undefined : timeline?.cursor, limit: this.pageSize };
+			options = { cursor: reset ? undefined : timeline?.cursor, limit: PageSize };
 		}
 
 		let request = this.pendingRequests.get(source);
@@ -565,7 +562,7 @@ export class TimelinePane extends ViewPane {
 		} else {
 			// Override the limit, to query for any newer items
 			const { newest } = timeline;
-			this.loadTimelineForSource(timeline.source, this.uri!, false, newest !== undefined ? { limit: { timestamp: newest.timestamp, id: newest.id } } : { limit: this.pageSize });
+			this.loadTimelineForSource(timeline.source, this.uri!, false, newest !== undefined ? { limit: { timestamp: newest.timestamp, id: newest.id } } : { limit: PageSize });
 		}
 	}
 
@@ -889,7 +886,7 @@ export class TimelinePane extends ViewPane {
 						return;
 					}
 
-					this._maxItemCount = this._visibleItemCount + this.pageSize;
+					this._maxItemCount = this._visibleItemCount + PageSize;
 					this.loadTimeline(false);
 				}
 			})

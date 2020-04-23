@@ -18,13 +18,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	vscode.authentication.registerAuthenticationProvider({
 		id: 'github',
 		displayName: 'GitHub',
-		supportsMultipleAccounts: false,
 		onDidChangeSessions: onDidChangeSessions.event,
 		getSessions: () => Promise.resolve(loginService.sessions),
-		login: async (scopeList: string[] | undefined) => {
+		login: async (scopeList: string[]) => {
 			try {
-				const loginScopes = scopeList ? scopeList.sort().join(' ') : 'user:email';
-				const session = await loginService.login(loginScopes);
+				const session = await loginService.login(scopeList.join(' '));
 				Logger.info('Login success!');
 				onDidChangeSessions.fire({ added: [session.id], removed: [], changed: [] });
 				return session;

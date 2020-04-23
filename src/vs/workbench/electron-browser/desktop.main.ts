@@ -338,7 +338,7 @@ class DesktopMain extends Disposable {
 }
 
 export function main(configuration: INativeWindowConfiguration): Promise<void> {
-	const workbench = new DesktopMain(configuration);
+	const renderer = new DesktopMain(configuration);
 
-	return workbench.open();
+	return renderer.open();
 }

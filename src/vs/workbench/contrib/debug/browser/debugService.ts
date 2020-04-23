@@ -584,8 +584,7 @@ export class DebugService implements IDebugService {
 
 			const focusedSession = this.viewModel.focusedSession;
 			if (focusedSession && focusedSession.getId() === session.getId()) {
-				const { session } = getStackFrameThreadAndSessionToFocus(this.model, undefined);
-				this.viewModel.setFocus(undefined, undefined, session, false);
+				await this.focusStackFrame(undefined);
 			}
 
 			if (this.model.getSessions().length === 0) {

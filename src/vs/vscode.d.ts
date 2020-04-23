@@ -3158,11 +3158,11 @@ declare module 'vscode' {
 		/**
 		 * The possible token types.
 		 */
-		readonly tokenTypes: string[];
+		public readonly tokenTypes: string[];
 		/**
 		 * The possible token modifiers.
 		 */
-		readonly tokenModifiers: string[];
+		public readonly tokenModifiers: string[];
 
 		constructor(tokenTypes: string[], tokenModifiers?: string[]);
 	}

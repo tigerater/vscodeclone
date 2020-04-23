@@ -34,7 +34,7 @@ export class InsertCellEdit implements IResourceUndoRedoElement {
 			throw new Error('Notebook Delete Cell not implemented for Undo/Redo');
 		}
 
-		this.editingDelegate.deleteCell(this.insertIndex, this.cell.model);
+		this.editingDelegate.deleteCell(this.insertIndex, this.cell.cell);
 	}
 	redo(): void | Promise<void> {
 		if (!this.editingDelegate.insertCell) {
@@ -56,7 +56,7 @@ export class DeleteCellEdit implements IResourceUndoRedoElement {
 		cell: BaseCellViewModel,
 		private editingDelegate: ICellEditingDelegate
 	) {
-		this._rawCell = cell.model;
+		this._rawCell = cell.cell;
 
 		// save inmem text to `ICell`
 		this._rawCell.source = [cell.getText()];

@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { coalesce } from 'vs/base/common/arrays';
-import { Event, Emitter } from 'vs/base/common/event';
 import { Lazy } from 'vs/base/common/lazy';
 import { Disposable } from 'vs/base/common/lifecycle';
 import { basename, extname, isEqual } from 'vs/base/common/resources';
@@ -28,12 +27,12 @@ import { CustomEditorModelManager } from 'vs/workbench/contrib/customEditor/comm
 import { FileEditorInput } from 'vs/workbench/contrib/files/common/editors/fileEditorInput';
 import { IWebviewService, webviewHasOwnEditFunctionsContext } from 'vs/workbench/contrib/webview/browser/webview';
 import { IEditorGroup, IEditorGroupsService } from 'vs/workbench/services/editor/common/editorGroupsService';
-import { IEditorService, IOpenEditorOverride, ICustomEditorViewTypesHandler, ICustomEditorInfo } from 'vs/workbench/services/editor/common/editorService';
+import { IEditorService, IOpenEditorOverride } from 'vs/workbench/services/editor/common/editorService';
 import { ContributedCustomEditors, defaultCustomEditor } from '../common/contributedCustomEditors';
 import { CustomEditorInput } from './customEditorInput';
-import { CustomEditorAssociation, CustomEditorsAssociations, customEditorsAssociationsSettingId } from 'vs/workbench/services/editor/browser/editorAssociationsSetting';
+import { CustomEditorAssociation, CustomEditorAssociationsSettingIntelliSense, CustomEditorsAssociations, customEditorsAssociationsSettingId } from './editorAssociationsSetting';
 
-export class CustomEditorService extends Disposable implements ICustomEditorService, ICustomEditorViewTypesHandler {
+export class CustomEditorService extends Disposable implements ICustomEditorService {
 	_serviceBrand: any;
 
 	private readonly _contributedEditors = this._register(new ContributedCustomEditors());
@@ -43,8 +42,6 @@ export class CustomEditorService extends Disposable implements ICustomEditorServ
 	private readonly _customEditorContextKey: IContextKey<string>;
 	private readonly _focusedCustomEditorIsEditable: IContextKey<boolean>;
 	private readonly _webviewHasOwnEditFunctions: IContextKey<boolean>;
-	private readonly _onDidChangeViewTypes = new Emitter<void>();
-	onDidChangeViewTypes: Event<void> = this._onDidChangeViewTypes.event;
 
 	constructor(
 		@IContextKeyService contextKeyService: IContextKeyService,
@@ -62,10 +59,9 @@ export class CustomEditorService extends Disposable implements ICustomEditorServ
 		this._focusedCustomEditorIsEditable = CONTEXT_FOCUSED_CUSTOM_EDITOR_IS_EDITABLE.bindTo(contextKeyService);
 		this._webviewHasOwnEditFunctions = webviewHasOwnEditFunctionsContext.bindTo(contextKeyService);
 
-		this._register(this.editorService.registerCustomEditorViewTypesHandler('Custom Editor', this));
+		this._register(new CustomEditorAssociationsSettingIntelliSense(this._contributedEditors));
 		this._register(this._contributedEditors.onChange(() => {
 			this.updateContexts();
-			this._onDidChangeViewTypes.fire();
 		}));
 		this._register(this.editorService.onDidActiveEditorChange(() => this.updateContexts()));
 
@@ -76,10 +72,6 @@ export class CustomEditorService extends Disposable implements ICustomEditorServ
 		}));
 
 		this.updateContexts();
-	}
-
-	getViewTypes(): ICustomEditorInfo[] {
-		return [...this._contributedEditors];
 	}
 
 	public get models() { return this._models; }
@@ -416,10 +408,6 @@ export class CustomEditorContribution extends Disposable implements IWorkbenchCo
 		// when the user switches back to it.
 		const existingEditorForResource = group.editors.find(editor => isEqual(resource, editor.resource));
 		if (existingEditorForResource) {
-			if (editor === existingEditorForResource) {
-				return;
-			}
-
 			return {
 				override: this.editorService.openEditor(existingEditorForResource, {
 					...options,
