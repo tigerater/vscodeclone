@@ -20,7 +20,6 @@ import { IKeybindingService } from 'vs/platform/keybinding/common/keybinding';
 import { Emitter } from 'vs/base/common/event';
 import { CompositeDragAndDropObserver, ICompositeDragAndDrop, Before2D } from 'vs/workbench/browser/dnd';
 import { Color } from 'vs/base/common/color';
-import { Codicon } from 'vs/base/common/codicons';
 
 export interface ICompositeActivity {
 	badge: IBadge;
@@ -162,9 +161,11 @@ export class ActivityActionViewItem extends BaseActionViewItem {
 				if (this.activity.iconUrl) {
 					// Apply background color to activity bar item provided with iconUrls
 					this.label.style.backgroundColor = foreground ? foreground.toString() : '';
+					this.label.style.color = '';
 				} else {
 					// Apply foreground color to activity bar items provided with codicons
 					this.label.style.color = foreground ? foreground.toString() : '';
+					this.label.style.backgroundColor = '';
 				}
 
 				const dragColor = colors.activeBackgroundColor || colors.activeForegroundColor;
@@ -322,7 +323,7 @@ export class ActivityActionViewItem extends BaseActionViewItem {
 		this.label.className = 'action-label';
 
 		if (this.activity.cssClass) {
-			dom.addClasses(this.label, this.activity.cssClass);
+			dom.addClass(this.label, this.activity.cssClass);
 		}
 
 		if (this.options.icon && !this.activity.iconUrl) {
@@ -363,7 +364,7 @@ export class CompositeOverflowActivityAction extends ActivityAction {
 		super({
 			id: 'additionalComposites.action',
 			name: nls.localize('additionalViews', "Additional Views"),
-			cssClass: Codicon.more.classNames
+			cssClass: 'codicon-more'
 		});
 	}
 
@@ -691,10 +692,5 @@ export class ToggleCompositePinnedAction extends Action {
 		} else {
 			this.compositeBar.pin(id);
 		}
-	}
-
-	setActivity(activity: IActivity): void {
-		this.activity = activity;
-		this.label = activity.name;
 	}
 }

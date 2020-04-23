@@ -37,17 +37,6 @@ import { AccessibilitySupport } from 'vs/platform/accessibility/common/accessibi
 import { IStorageService, StorageScope } from 'vs/platform/storage/common/storage';
 import { INotificationService } from 'vs/platform/notification/common/notification';
 import { IStorageKeysSyncRegistryService } from 'vs/platform/userDataSync/common/storageKeys';
-import { Codicon, registerIcon } from 'vs/base/common/codicons';
-
-const findSelectionIcon = registerIcon('find-selection', Codicon.selection);
-const findCollapsedIcon = registerIcon('find-collapsed', Codicon.chevronRight);
-const findExpandedIcon = registerIcon('find-expanded', Codicon.chevronDown);
-
-export const findCloseIcon = registerIcon('find-close', Codicon.close);
-export const findReplaceIcon = registerIcon('find-replace', Codicon.replace);
-export const findReplaceAllIcon = registerIcon('find-replace-all', Codicon.replaceAll);
-export const findPreviousMatchIcon = registerIcon('find-previous-match', Codicon.arrowUp);
-export const findNextMatchIcon = registerIcon('find-next-match', Codicon.arrowDown);
 
 export interface IFindController {
 	replace(): void;
@@ -478,6 +467,8 @@ export class FindWidget extends Widget implements IOverlayWidget, IHorizontalSas
 		this._replaceAllBtn.setEnabled(this._isVisible && this._isReplaceVisible && findInputIsNonEmpty);
 
 		dom.toggleClass(this._domNode, 'replaceToggled', this._isReplaceVisible);
+		this._toggleReplaceBtn.toggleClass('codicon-chevron-right', !this._isReplaceVisible);
+		this._toggleReplaceBtn.toggleClass('codicon-chevron-down', this._isReplaceVisible);
 		this._toggleReplaceBtn.setExpanded(this._isReplaceVisible);
 
 		let canReplace = !this._codeEditor.getOption(EditorOption.readOnly);
@@ -999,7 +990,7 @@ export class FindWidget extends Widget implements IOverlayWidget, IHorizontalSas
 		// Previous button
 		this._prevBtn = this._register(new SimpleButton({
 			label: NLS_PREVIOUS_MATCH_BTN_LABEL + this._keybindingLabelFor(FIND_IDS.PreviousMatchFindAction),
-			className: findPreviousMatchIcon.classNames,
+			className: 'codicon codicon-arrow-up',
 			onTrigger: () => {
 				this._codeEditor.getAction(FIND_IDS.PreviousMatchFindAction).run().then(undefined, onUnexpectedError);
 			}
@@ -1008,7 +999,7 @@ export class FindWidget extends Widget implements IOverlayWidget, IHorizontalSas
 		// Next button
 		this._nextBtn = this._register(new SimpleButton({
 			label: NLS_NEXT_MATCH_BTN_LABEL + this._keybindingLabelFor(FIND_IDS.NextMatchFindAction),
-			className: findNextMatchIcon.classNames,
+			className: 'codicon codicon-arrow-down',
 			onTrigger: () => {
 				this._codeEditor.getAction(FIND_IDS.NextMatchFindAction).run().then(undefined, onUnexpectedError);
 			}
@@ -1026,7 +1017,7 @@ export class FindWidget extends Widget implements IOverlayWidget, IHorizontalSas
 
 		// Toggle selection button
 		this._toggleSelectionFind = this._register(new Checkbox({
-			icon: findSelectionIcon,
+			actionClassName: 'codicon codicon-selection',
 			title: NLS_TOGGLE_SELECTION_FIND_TITLE + this._keybindingLabelFor(FIND_IDS.ToggleSearchScopeCommand),
 			isChecked: false
 		}));
@@ -1052,7 +1043,7 @@ export class FindWidget extends Widget implements IOverlayWidget, IHorizontalSas
 		// Close button
 		this._closeBtn = this._register(new SimpleButton({
 			label: NLS_CLOSE_BTN_LABEL + this._keybindingLabelFor(FIND_IDS.CloseFindWidgetCommand),
-			className: findCloseIcon.classNames,
+			className: 'codicon codicon-close',
 			onTrigger: () => {
 				this._state.change({ isRevealed: false, searchScope: null }, false);
 			},
@@ -1115,7 +1106,7 @@ export class FindWidget extends Widget implements IOverlayWidget, IHorizontalSas
 		// Replace one button
 		this._replaceBtn = this._register(new SimpleButton({
 			label: NLS_REPLACE_BTN_LABEL + this._keybindingLabelFor(FIND_IDS.ReplaceOneAction),
-			className: findReplaceIcon.classNames,
+			className: 'codicon codicon-replace',
 			onTrigger: () => {
 				this._controller.replace();
 			},
@@ -1130,7 +1121,7 @@ export class FindWidget extends Widget implements IOverlayWidget, IHorizontalSas
 		// Replace all button
 		this._replaceAllBtn = this._register(new SimpleButton({
 			label: NLS_REPLACE_ALL_BTN_LABEL + this._keybindingLabelFor(FIND_IDS.ReplaceAllAction),
-			className: findReplaceAllIcon.classNames,
+			className: 'codicon codicon-replace-all',
 			onTrigger: () => {
 				this._controller.replaceAll();
 			}
@@ -1160,6 +1151,8 @@ export class FindWidget extends Widget implements IOverlayWidget, IHorizontalSas
 				this._showViewZone();
 			}
 		}));
+		this._toggleReplaceBtn.toggleClass('codicon-chevron-down', this._isReplaceVisible);
+		this._toggleReplaceBtn.toggleClass('codicon-chevron-right', !this._isReplaceVisible);
 		this._toggleReplaceBtn.setExpanded(this._isReplaceVisible);
 
 		// Widget
@@ -1302,13 +1295,10 @@ export class SimpleButton extends Widget {
 
 	public setExpanded(expanded: boolean): void {
 		this._domNode.setAttribute('aria-expanded', String(!!expanded));
-		if (expanded) {
-			dom.removeClasses(this._domNode, findCollapsedIcon.classNames);
-			dom.addClasses(this._domNode, findExpandedIcon.classNames);
-		} else {
-			dom.removeClasses(this._domNode, findExpandedIcon.classNames);
-			dom.addClasses(this._domNode, findCollapsedIcon.classNames);
-		}
+	}
+
+	public toggleClass(className: string, shouldHaveIt: boolean): void {
+		dom.toggleClass(this._domNode, className, shouldHaveIt);
 	}
 }
 

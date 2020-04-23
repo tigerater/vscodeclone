@@ -16,7 +16,6 @@ import { getIconClasses } from 'vs/editor/common/services/getIconClasses';
 import { prepareQuery, scoreItemFuzzy, compareItemsByFuzzyScore, FuzzyScorerCache } from 'vs/base/common/fuzzyScorer';
 import { CancellationToken } from 'vs/base/common/cancellation';
 import { IDisposable } from 'vs/base/common/lifecycle';
-import { Codicon } from 'vs/base/common/codicons';
 
 interface IEditorQuickPickItem extends IQuickPickItemWithResource, IPickerQuickAccessItem {
 	groupId: GroupIdentifier;
@@ -161,7 +160,7 @@ export abstract class BaseEditorQuickAccessProvider extends PickerQuickAccessPro
 				buttons: (() => {
 					return [
 						{
-							iconClass: isDirty ? ('dirty-editor ' + Codicon.closeDirty.classNames) : Codicon.close.classNames,
+							iconClass: isDirty ? 'dirty-editor codicon-circle-filled' : 'codicon-close',
 							tooltip: localize('closeEditor', "Close Editor"),
 							alwaysVisible: isDirty
 						}
