@@ -6,17 +6,9 @@
 import 'vs/css!./media/timelinePane';
 import { localize } from 'vs/nls';
 import * as DOM from 'vs/base/browser/dom';
-import { IAction, ActionRunner } from 'vs/base/common/actions';
 import { CancellationTokenSource } from 'vs/base/common/cancellation';
-import { fromNow } from 'vs/base/common/date';
-import { debounce } from 'vs/base/common/decorators';
-import { Emitter, Event } from 'vs/base/common/event';
 import { FuzzyScore, createMatches } from 'vs/base/common/filters';
-import { Iterable } from 'vs/base/common/iterator';
 import { DisposableStore, IDisposable, Disposable } from 'vs/base/common/lifecycle';
-import { Schemas } from 'vs/base/common/network';
-import { basename } from 'vs/base/common/path';
-import { escapeRegExpCharacters } from 'vs/base/common/strings';
 import { URI } from 'vs/base/common/uri';
 import { IconLabel } from 'vs/base/browser/ui/iconLabel/iconLabel';
 import { IListVirtualDelegate, IIdentityProvider, IKeyboardNavigationLabelProvider } from 'vs/base/browser/ui/list/list';
@@ -34,14 +26,19 @@ import { SideBySideEditor, toResource } from 'vs/workbench/common/editor';
 import { ICommandService, CommandsRegistry } from 'vs/platform/commands/common/commands';
 import { IThemeService, LIGHT, ThemeIcon } from 'vs/platform/theme/common/themeService';
 import { IViewDescriptorService } from 'vs/workbench/common/views';
+import { basename } from 'vs/base/common/path';
 import { IProgressService } from 'vs/platform/progress/common/progress';
+import { debounce } from 'vs/base/common/decorators';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
 import { IActionViewItemProvider, ActionBar, ActionViewItem } from 'vs/base/browser/ui/actionbar/actionbar';
+import { IAction, ActionRunner } from 'vs/base/common/actions';
 import { ContextAwareMenuEntryActionViewItem, createAndFillInContextMenuActions } from 'vs/platform/actions/browser/menuEntryActionViewItem';
 import { MenuItemAction, IMenuService, MenuId, registerAction2, Action2, MenuRegistry } from 'vs/platform/actions/common/actions';
+import { fromNow } from 'vs/base/common/date';
 import { ITelemetryService } from 'vs/platform/telemetry/common/telemetry';
-
-const ItemHeight = 22;
+import { escapeRegExpCharacters } from 'vs/base/common/strings';
+import { Iterable } from 'vs/base/common/iterator';
+import { Schemas } from 'vs/base/common/network';
 
 type TreeElement = TimelineItem | LoadMoreCommand;
 
@@ -272,29 +269,13 @@ export class TimelinePane extends ViewPane {
 		this._followActiveEditor = value;
 		this.followActiveEditorContext.set(value);
 
-		this.titleDescription = this.titleDescription;
-
 		if (value) {
 			this.onActiveEditorChanged();
 		}
 	}
 
-	private _pageOnScroll: boolean | undefined;
-	get pageOnScroll() {
-		if (this._pageOnScroll === undefined) {
-			this._pageOnScroll = this.configurationService.getValue<boolean | null | undefined>('timeline.pageOnScroll') ?? false;
-		}
-
-		return this._pageOnScroll;
-	}
-
 	get pageSize() {
-		let pageSize = this.configurationService.getValue<number | null | undefined>('timeline.pageSize');
-		// eslint-disable-next-line eqeqeq
-		if (pageSize == null) {
-			// If we are paging when scrolling, then add an extra item to the end to make sure the "Load more" item is out of view
-			pageSize = Math.max(20, Math.floor((this.tree.renderHeight / ItemHeight) + (this.pageOnScroll ? 1 : -1)));
-		}
+		const pageSize = this.configurationService.getValue<number | null | undefined>('timeline.pageSize') ?? Math.max(20, Math.floor((this.tree.renderHeight / 22) - 1));
 		return pageSize;
 	}
 
@@ -318,20 +299,18 @@ export class TimelinePane extends ViewPane {
 	}
 
 	private onConfigurationChanged(e: IConfigurationChangeEvent) {
-		if (e.affectsConfiguration('timeline.pageOnScroll')) {
-			this._pageOnScroll = undefined;
+		if (!e.affectsConfiguration('timeline.excludeSources')) {
+			return;
 		}
 
-		if (e.affectsConfiguration('timeline.excludeSources')) {
-			this.excludedSources = new Set(this.configurationService.getValue('timeline.excludeSources'));
+		this.excludedSources = new Set(this.configurationService.getValue('timeline.excludeSources'));
 
-			const missing = this.timelineService.getSources()
-				.filter(({ id }) => !this.excludedSources.has(id) && !this.timelinesBySource.has(id));
-			if (missing.length !== 0) {
-				this.loadTimeline(true, missing.map(({ id }) => id));
-			} else {
-				this.refresh();
-			}
+		const missing = this.timelineService.getSources()
+			.filter(({ id }) => !this.excludedSources.has(id) && !this.timelinesBySource.has(id));
+		if (missing.length !== 0) {
+			this.loadTimeline(true, missing.map(({ id }) => id));
+		} else {
+			this.refresh();
 		}
 	}
 
@@ -411,11 +390,7 @@ export class TimelinePane extends ViewPane {
 
 	set titleDescription(description: string | undefined) {
 		this._titleDescription = description;
-		if (this.followActiveEditor || !description) {
-			this.$titleDescription.textContent = description ?? '';
-		} else {
-			this.$titleDescription.textContent = `${description} (pinned)`;
-		}
+		this.$titleDescription.textContent = description ?? '';
 	}
 
 	private _message: string | undefined;
@@ -865,12 +840,6 @@ export class TimelinePane extends ViewPane {
 		container.appendChild(this.$tree);
 
 		this.treeRenderer = this.instantiationService.createInstance(TimelineTreeRenderer, this.commands);
-		this.treeRenderer.onDidScrollToEnd(item => {
-			if (this.pageOnScroll) {
-				this.loadMore(item);
-			}
-		});
-
 		this.tree = <WorkbenchObjectTree<TreeElement, FuzzyScore>>this.instantiationService.createInstance(WorkbenchObjectTree, 'TimelinePane',
 			this.$tree, new TimelineListVirtualDelegate(), [this.treeRenderer], {
 			identityProvider: new TimelineIdentityProvider(),
@@ -913,24 +882,19 @@ export class TimelinePane extends ViewPane {
 					}
 				}
 				else if (isLoadMoreCommand(item)) {
-					this.loadMore(item);
+					item.loading = true;
+					this.tree.rerender(item);
+
+					if (this.pendingRequests.size !== 0) {
+						return;
+					}
+
+					this._maxItemCount = this._visibleItemCount + this.pageSize;
+					this.loadTimeline(false);
 				}
 			})
 		);
 	}
-
-	private loadMore(item: LoadMoreCommand) {
-		item.loading = true;
-		this.tree.rerender(item);
-
-		if (this.pendingRequests.size !== 0) {
-			return;
-		}
-
-		this._maxItemCount = this._visibleItemCount + this.pageSize;
-		this.loadTimeline(false);
-	}
-
 	ensureValidItems() {
 		// If we don't have any non-excluded timelines, clear the tree and show the loading message
 		if (!this.hasVisibleItems || !this.timelineService.getSources().some(({ id }) => !this.excludedSources.has(id) && this.timelinesBySource.has(id))) {
@@ -1063,7 +1027,7 @@ export class TimelineKeyboardNavigationLabelProvider implements IKeyboardNavigat
 
 export class TimelineListVirtualDelegate implements IListVirtualDelegate<TreeElement> {
 	getHeight(_element: TreeElement): number {
-		return ItemHeight;
+		return 22;
 	}
 
 	getTemplateId(element: TreeElement): string {
@@ -1072,9 +1036,6 @@ export class TimelineListVirtualDelegate implements IListVirtualDelegate<TreeEle
 }
 
 class TimelineTreeRenderer implements ITreeRenderer<TreeElement, FuzzyScore, TimelineElementTemplate> {
-	private readonly _onDidScrollToEnd = new Emitter<LoadMoreCommand>();
-	readonly onDidScrollToEnd: Event<LoadMoreCommand> = this._onDidScrollToEnd.event;
-
 	readonly templateId: string = TimelineElementTemplate.id;
 
 	private actionViewItemProvider: IActionViewItemProvider;
@@ -1133,11 +1094,6 @@ class TimelineTreeRenderer implements ITreeRenderer<TreeElement, FuzzyScore, Tim
 		template.actionBar.context = { uri: this.uri, item: item } as TimelineActionContext;
 		template.actionBar.actionRunner = new TimelineActionRunner();
 		template.actionBar.push(this.commands.getItemActions(item), { icon: true, label: false });
-
-		// If we are rendering the load more item, we've scrolled to the end, so trigger an event
-		if (isLoadMoreCommand(item)) {
-			setTimeout(() => this._onDidScrollToEnd.fire(item), 0);
-		}
 	}
 
 	disposeTemplate(template: TimelineElementTemplate): void {
@@ -1186,8 +1142,8 @@ class TimelinePaneCommands extends Disposable {
 		this._register(MenuRegistry.appendMenuItem(MenuId.TimelineTitle, ({
 			command: {
 				id: 'timeline.toggleFollowActiveEditor',
-				title: { value: localize('timeline.toggleFollowActiveEditorCommand.follow', "Pin the Current Timeline"), original: 'Pin the Current Timeline' },
-				icon: { id: 'codicon/pin' },
+				title: { value: localize('timeline.toggleFollowActiveEditorCommand.follow', "Automatically Follows the Active Editor"), original: 'Automatically Follows the Active Editor' },
+				icon: { id: 'codicon/eye' },
 				category: { value: localize('timeline', "Timeline"), original: 'Timeline' },
 			},
 			group: 'navigation',
@@ -1198,8 +1154,8 @@ class TimelinePaneCommands extends Disposable {
 		this._register(MenuRegistry.appendMenuItem(MenuId.TimelineTitle, ({
 			command: {
 				id: 'timeline.toggleFollowActiveEditor',
-				title: { value: localize('timeline.toggleFollowActiveEditorCommand.unfollow', "Unpin the Current Timeline"), original: 'Unpin the Current Timeline' },
-				icon: { id: 'codicon/pinned' },
+				title: { value: localize('timeline.toggleFollowActiveEditorCommand.unfollow', "Not Following Active Editor"), original: 'Not Following Active Editor' },
+				icon: { id: 'codicon/eye-closed' },
 				category: { value: localize('timeline', "Timeline"), original: 'Timeline' },
 			},
 			group: 'navigation',

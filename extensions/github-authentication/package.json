@@ -18,7 +18,8 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "gulp compile-extension:github-authentication",
-    "watch": "gulp watch-extension:github-authentication"
+    "watch": "gulp watch-extension:github-authentication",
+    "postinstall": "node build/postinstall.js"
   },
   "dependencies": {
     "uuid": "^3.3.3",

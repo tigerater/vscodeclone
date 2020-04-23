@@ -24,7 +24,7 @@ import { IRemoteAgentService } from 'vs/workbench/services/remote/common/remoteA
 import { Disposable } from 'vs/base/common/lifecycle';
 import { withNullAsUndefined } from 'vs/base/common/types';
 import { IEnvironmentVariableService, IMergedEnvironmentVariableCollection } from 'vs/workbench/contrib/terminal/common/environmentVariable';
-import { IPathService } from 'vs/workbench/services/path/common/pathService';
+import { IRemotePathService } from 'vs/workbench/services/path/common/remotePathService';
 
 /** The amount of time to consider terminal errors to be related to the launch */
 const LAUNCHING_DURATION = 500;
@@ -91,7 +91,7 @@ export class TerminalProcessManager extends Disposable implements ITerminalProce
 		@IProductService private readonly _productService: IProductService,
 		@ITerminalInstanceService private readonly _terminalInstanceService: ITerminalInstanceService,
 		@IRemoteAgentService private readonly _remoteAgentService: IRemoteAgentService,
-		@IPathService private readonly _pathService: IPathService,
+		@IRemotePathService private readonly _remotePathService: IRemotePathService,
 		@IEnvironmentVariableService private readonly _environmentVariableService: IEnvironmentVariableService
 	) {
 		super();
@@ -135,12 +135,12 @@ export class TerminalProcessManager extends Disposable implements ITerminalProce
 			const hasRemoteAuthority = !!this.remoteAuthority;
 			let launchRemotely = hasRemoteAuthority || forceExtHostProcess;
 
-			// resolvedUserHome is needed here as remote resolvers can launch local terminals before
+			// userHomeSync is needed here as remote resolvers can launch local terminals before
 			// they're connected to the remote.
-			this.userHome = this._pathService.resolvedUserHome?.fsPath;
+			this.userHome = this._remotePathService.userHomeSync?.fsPath;
 			this.os = platform.OS;
 			if (launchRemotely) {
-				const userHomeUri = await this._pathService.userHome;
+				const userHomeUri = await this._remotePathService.userHome;
 				this.userHome = userHomeUri.path;
 				if (hasRemoteAuthority) {
 					const remoteEnv = await this._remoteAgentService.getEnvironment();

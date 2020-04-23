@@ -1926,12 +1926,22 @@ declare module 'vscode' {
 
 	export interface ExtensionContext {
 		/**
+		 * @deprecated THIS API PROPOSAL WILL BE DROPPED
+		 */
+		asExtensionUri(relativePath: string): Uri;
+
+		/**
 		 * The uri of the directory containing the extension.
 		 */
 		readonly extensionUri: Uri;
 	}
 
 	export interface Extension<T> {
+		/**
+		 * @deprecated THIS API PROPOSAL WILL BE DROPPED
+		 */
+		asExtensionUri(relativePath: string): Uri;
+
 		/**
 		 * The uri of the directory containing the extension.
 		 */
