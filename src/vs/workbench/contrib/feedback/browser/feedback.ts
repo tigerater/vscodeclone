@@ -23,7 +23,6 @@ import { IProductService } from 'vs/platform/product/common/productService';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
 import { StandardKeyboardEvent } from 'vs/base/browser/keyboardEvent';
 import { KeyCode } from 'vs/base/common/keyCodes';
-import { Codicon } from 'vs/base/common/codicons';
 
 export interface IFeedback {
 	feedback: string;
@@ -116,7 +115,7 @@ export class FeedbackDropdown extends Dropdown {
 		dom.append(this.feedbackForm, dom.$('h2.title')).textContent = nls.localize("label.sendASmile", "Tweet us your feedback.");
 
 		// Close Button (top right)
-		const closeBtn = dom.append(this.feedbackForm, dom.$('div.cancel' + Codicon.close.cssSelector));
+		const closeBtn = dom.append(this.feedbackForm, dom.$('div.cancel.codicon.codicon-close'));
 		closeBtn.tabIndex = 0;
 		closeBtn.setAttribute('role', 'button');
 		closeBtn.title = nls.localize('close', "Close");

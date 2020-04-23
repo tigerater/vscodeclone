@@ -22,7 +22,6 @@ import { IConfigurationService } from 'vs/platform/configuration/common/configur
 import { IElectronService } from 'vs/platform/electron/node/electron';
 import { INativeWorkbenchEnvironmentService } from 'vs/workbench/services/environment/electron-browser/environmentService';
 import { IWorkbenchEnvironmentService } from 'vs/workbench/services/environment/common/environmentService';
-import { Codicon } from 'vs/base/common/codicons';
 
 export class CloseCurrentWindowAction extends Action {
 
@@ -156,12 +155,12 @@ export class ReloadWindowWithExtensionsDisabledAction extends Action {
 export abstract class BaseSwitchWindow extends Action {
 
 	private readonly closeWindowAction: IQuickInputButton = {
-		iconClass: Codicon.removeClose.classNames,
+		iconClass: 'codicon-close',
 		tooltip: nls.localize('close', "Close Window")
 	};
 
 	private readonly closeDirtyWindowAction: IQuickInputButton = {
-		iconClass: 'dirty-window ' + Codicon.closeDirty,
+		iconClass: 'dirty-window codicon-circle-filled',
 		tooltip: nls.localize('close', "Close Window"),
 		alwaysVisible: true
 	};

@@ -30,7 +30,6 @@ import { ContextKeyExpr } from 'vs/platform/contextkey/common/contextkey';
 import { inQuickPickContext, getQuickNavigateHandler } from 'vs/workbench/browser/quickaccess';
 import { IHostService } from 'vs/workbench/services/host/browser/host';
 import { ResourceMap } from 'vs/base/common/map';
-import { Codicon } from 'vs/base/common/codicons';
 
 export const inRecentFilesPickerContextKey = 'inRecentFilesPicker';
 
@@ -42,12 +41,12 @@ interface IRecentlyOpenedPick extends IQuickPickItem {
 abstract class BaseOpenRecentAction extends Action {
 
 	private readonly removeFromRecentlyOpened: IQuickInputButton = {
-		iconClass: Codicon.removeClose.classNames,
+		iconClass: 'codicon-close',
 		tooltip: nls.localize('remove', "Remove from Recently Opened")
 	};
 
 	private readonly dirtyRecentlyOpened: IQuickInputButton = {
-		iconClass: 'dirty-workspace ' + Codicon.closeDirty.classNames,
+		iconClass: 'dirty-workspace codicon-circle-filled',
 		tooltip: nls.localize('dirtyRecentlyOpened', "Workspace With Dirty Files"),
 		alwaysVisible: true
 	};

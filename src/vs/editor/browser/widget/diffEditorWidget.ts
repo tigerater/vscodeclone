@@ -48,7 +48,6 @@ import { EditorExtensionsRegistry, IDiffEditorContributionDescription } from 'vs
 import { onUnexpectedError } from 'vs/base/common/errors';
 import { IEditorProgressService, IProgressRunner } from 'vs/platform/progress/common/progress';
 import { ElementSizeObserver } from 'vs/editor/browser/config/elementSizeObserver';
-import { Codicon, registerIcon } from 'vs/base/common/codicons';
 
 interface IEditorDiffDecorations {
 	decorations: IModelDeltaDecoration[];
@@ -157,10 +156,6 @@ class VisualEditorState {
 }
 
 let DIFF_EDITOR_ID = 0;
-
-
-const diffInsertIcon = registerIcon('diff-insert', Codicon.add);
-const diffRemoveIcon = registerIcon('diff-remove', Codicon.remove);
 
 export class DiffEditorWidget extends Disposable implements editorBrowser.IDiffEditor {
 
@@ -1617,7 +1612,7 @@ const DECORATIONS = {
 	}),
 	lineInsertWithSign: ModelDecorationOptions.register({
 		className: 'line-insert',
-		linesDecorationsClassName: 'insert-sign ' + diffInsertIcon.classNames,
+		linesDecorationsClassName: 'insert-sign codicon codicon-add',
 		marginClassName: 'line-insert',
 		isWholeLine: true
 	}),
@@ -1629,7 +1624,7 @@ const DECORATIONS = {
 	}),
 	lineDeleteWithSign: ModelDecorationOptions.register({
 		className: 'line-delete',
-		linesDecorationsClassName: 'delete-sign ' + diffRemoveIcon.classNames,
+		linesDecorationsClassName: 'delete-sign codicon codicon-remove',
 		marginClassName: 'line-delete',
 		isWholeLine: true
 
@@ -2088,7 +2083,7 @@ class InlineViewZonesComputer extends ViewZonesComputer {
 			if (this.renderIndicators) {
 				let index = lineNumber - lineChange.originalStartLineNumber;
 				marginHTML = marginHTML.concat([
-					`<div class="delete-sign ${diffRemoveIcon.classNames}" style="position:absolute;top:${index * lineHeight}px;width:${lineDecorationsWidth}px;height:${lineHeight}px;right:0;"></div>`
+					`<div class="delete-sign codicon codicon-remove" style="position:absolute;top:${index * lineHeight}px;width:${lineDecorationsWidth}px;height:${lineHeight}px;right:0;"></div>`
 				]);
 			}
 		}

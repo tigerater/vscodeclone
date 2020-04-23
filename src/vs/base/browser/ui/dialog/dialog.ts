@@ -6,7 +6,7 @@
 import 'vs/css!./dialog';
 import * as nls from 'vs/nls';
 import { Disposable } from 'vs/base/common/lifecycle';
-import { $, hide, show, EventHelper, clearNode, removeClasses, addClasses, removeNode, isAncestor, addDisposableListener, EventType } from 'vs/base/browser/dom';
+import { $, hide, show, EventHelper, clearNode, removeClasses, addClass, addClasses, removeNode, isAncestor, addDisposableListener, EventType } from 'vs/base/browser/dom';
 import { domEvent } from 'vs/base/browser/event';
 import { StandardKeyboardEvent } from 'vs/base/browser/keyboardEvent';
 import { KeyCode, KeyMod } from 'vs/base/common/keyCodes';
@@ -17,7 +17,6 @@ import { Action } from 'vs/base/common/actions';
 import { mnemonicButtonLabel } from 'vs/base/common/labels';
 import { isMacintosh, isLinux } from 'vs/base/common/platform';
 import { SimpleCheckbox, ISimpleCheckboxStyles } from 'vs/base/browser/ui/checkbox/checkbox';
-import { Codicon, registerIcon } from 'vs/base/common/codicons';
 
 export interface IDialogOptions {
 	cancelId?: number;
@@ -44,11 +43,6 @@ interface ButtonMapEntry {
 	label: string;
 	index: number;
 }
-
-const dialogErrorIcon = registerIcon('dialog-error', Codicon.error);
-const dialogWarningIcon = registerIcon('dialog-warning', Codicon.warning);
-const dialogInfoIcon = registerIcon('dialog-info', Codicon.info);
-const dialogCloseIcon = registerIcon('dialog-close', Codicon.close);
 
 export class Dialog extends Disposable {
 	private element: HTMLElement | undefined;
@@ -208,14 +202,15 @@ export class Dialog extends Disposable {
 				}
 			}));
 
-			removeClasses(this.iconElement, dialogErrorIcon.classNames, dialogWarningIcon.classNames, dialogInfoIcon.classNames);
+			addClass(this.iconElement, 'codicon');
+			removeClasses(this.iconElement, 'codicon-alert', 'codicon-warning', 'codicon-info');
 
 			switch (this.options.type) {
 				case 'error':
-					addClasses(this.iconElement, dialogErrorIcon.classNames);
+					addClass(this.iconElement, 'codicon-error');
 					break;
 				case 'warning':
-					addClasses(this.iconElement, dialogWarningIcon.classNames);
+					addClass(this.iconElement, 'codicon-warning');
 					break;
 				case 'pending':
 					addClasses(this.iconElement, 'codicon-loading', 'codicon-animation-spin');
@@ -224,13 +219,13 @@ export class Dialog extends Disposable {
 				case 'info':
 				case 'question':
 				default:
-					addClasses(this.iconElement, dialogInfoIcon.classNames);
+					addClass(this.iconElement, 'codicon-info');
 					break;
 			}
 
 			const actionBar = new ActionBar(this.toolbarContainer, {});
 
-			const action = new Action('dialog.close', nls.localize('dialogClose', "Close Dialog"), dialogCloseIcon.classNames, true, () => {
+			const action = new Action('dialog.close', nls.localize('dialogClose', "Close Dialog"), 'codicon codicon-close', true, () => {
 				resolve({ button: this.options.cancelId || 0, checkboxChecked: this.checkbox ? this.checkbox.checked : undefined });
 				return Promise.resolve();
 			});
