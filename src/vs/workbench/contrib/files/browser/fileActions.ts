@@ -50,7 +50,7 @@ import { once } from 'vs/base/common/functional';
 import { IEditorOptions } from 'vs/platform/editor/common/editor';
 import { IEditorGroup } from 'vs/workbench/services/editor/common/editorGroupsService';
 import { FileEditorInput } from 'vs/workbench/contrib/files/common/editors/fileEditorInput';
-import { Codicon } from 'vs/base/common/codicons';
+import { CustomEditorsAssociations, customEditorsAssociationsSettingId, CustomEditorAssociation } from 'vs/workbench/services/editor/browser/editorAssociationsSetting';
 
 export const NEW_FILE_COMMAND_ID = 'explorer.newFile';
 export const NEW_FILE_LABEL = nls.localize('newFile', "New File");
@@ -97,7 +97,7 @@ export class NewFileAction extends Action {
 		@ICommandService private commandService: ICommandService
 	) {
 		super('explorer.newFile', NEW_FILE_LABEL);
-		this.class = 'explorer-action ' + Codicon.newFile.classNames;
+		this.class = 'explorer-action codicon-new-file';
 		this._register(explorerService.onDidChangeEditable(e => {
 			const elementIsBeingEdited = explorerService.isEditable(e);
 			this.enabled = !elementIsBeingEdited;
@@ -119,7 +119,7 @@ export class NewFolderAction extends Action {
 		@ICommandService private commandService: ICommandService
 	) {
 		super('explorer.newFolder', NEW_FOLDER_LABEL);
-		this.class = 'explorer-action ' + Codicon.newFolder.classNames;
+		this.class = 'explorer-action codicon-new-folder';
 		this._register(explorerService.onDidChangeEditable(e => {
 			const elementIsBeingEdited = explorerService.isEditable(e);
 			this.enabled = !elementIsBeingEdited;
@@ -531,6 +531,7 @@ export class ReopenResourcesAction extends Action {
 		label: string,
 		@IQuickInputService private readonly quickInputService: IQuickInputService,
 		@IEditorService private readonly editorService: IEditorService,
+		@IConfigurationService private readonly configurationService: IConfigurationService
 	) {
 		super(id, label);
 	}
@@ -553,6 +554,8 @@ export class ReopenResourcesAction extends Action {
 			return;
 		}
 
+		const resourceExt = extname(activeResource.path);
+
 		const overrides = this.editorService.getEditorOverrides(activeInput, options, group);
 		const items: (IQuickPickItem & { handler?: IOpenEditorOverrideHandler })[] = overrides.map((override) => {
 			return {
@@ -560,7 +563,11 @@ export class ReopenResourcesAction extends Action {
 				id: override[1].id,
 				label: override[1].label,
 				description: override[1].active ? 'Currently Active' : undefined,
-				detail: override[1].detail
+				detail: override[1].detail,
+				buttons: resourceExt ? [{
+					iconClass: 'codicon-settings-gear',
+					tooltip: nls.localize('promptOpenWith.setDefaultTooltip', "Set as default editor for '{0}' files", resourceExt)
+				}] : undefined
 			};
 		});
 
@@ -568,12 +575,18 @@ export class ReopenResourcesAction extends Action {
 			return;
 		}
 
-		items.unshift({
-			id: 'default',
-			label: nls.localize('promptOpenWith.defaultEditor.displayName', "Text Editor"),
-			description: activeInput instanceof FileEditorInput ? 'Currently Active' : undefined,
-			detail: builtinProviderDisplayName
-		});
+		if (!items.find(item => item.id === 'default')) {
+			items.unshift({
+				id: 'default',
+				label: nls.localize('promptOpenWith.defaultEditor.displayName', "Text Editor"),
+				description: activeInput instanceof FileEditorInput ? 'Currently Active' : undefined,
+				detail: builtinProviderDisplayName,
+				buttons: resourceExt ? [{
+					iconClass: 'codicon-settings-gear',
+					tooltip: nls.localize('promptOpenWith.setDefaultTooltip', "Set as default editor for '{0}' files", resourceExt)
+				}] : undefined
+			});
+		}
 
 		const picker = this.quickInputService.createQuickPick<(IQuickPickItem & { handler?: IOpenEditorOverrideHandler })>();
 		picker.items = items;
@@ -583,6 +596,33 @@ export class ReopenResourcesAction extends Action {
 			picker.onDidAccept(() => {
 				resolve(picker.selectedItems.length === 1 ? picker.selectedItems[0] : undefined);
 				picker.dispose();
+			});
+
+			picker.onDidTriggerItemButton(e => {
+				const pick = e.item;
+				const id = pick.id;
+				resolve(pick); // open the view
+				picker.dispose();
+
+				// And persist the setting
+				if (pick && id) {
+					const newAssociation: CustomEditorAssociation = { viewType: id, filenamePattern: '*' + resourceExt };
+					const currentAssociations = [...this.configurationService.getValue<CustomEditorsAssociations>(customEditorsAssociationsSettingId)] || [];
+
+					// First try updating existing association
+					for (let i = 0; i < currentAssociations.length; ++i) {
+						const existing = currentAssociations[i];
+						if (existing.filenamePattern === newAssociation.filenamePattern) {
+							currentAssociations.splice(i, 1, newAssociation);
+							this.configurationService.updateValue(customEditorsAssociationsSettingId, currentAssociations);
+							return;
+						}
+					}
+
+					// Otherwise, create a new one
+					currentAssociations.unshift(newAssociation);
+					this.configurationService.updateValue(customEditorsAssociationsSettingId, currentAssociations);
+				}
 			});
 
 			picker.show();
@@ -670,7 +710,7 @@ export class SaveAllAction extends BaseSaveAllAction {
 	static readonly LABEL = SAVE_ALL_LABEL;
 
 	get class(): string {
-		return 'explorer-action ' + Codicon.saveAll.classNames;
+		return 'explorer-action codicon-save-all';
 	}
 
 	protected doRun(): Promise<void> {
@@ -684,7 +724,7 @@ export class SaveAllInGroupAction extends BaseSaveAllAction {
 	static readonly LABEL = nls.localize('saveAllInGroup', "Save All in Group");
 
 	get class(): string {
-		return 'explorer-action ' + Codicon.saveAll.classNames;
+		return 'explorer-action codicon-save-all';
 	}
 
 	protected doRun(context: unknown): Promise<void> {
@@ -698,7 +738,7 @@ export class CloseGroupAction extends Action {
 	static readonly LABEL = nls.localize('closeGroup', "Close Group");
 
 	constructor(id: string, label: string, @ICommandService private readonly commandService: ICommandService) {
-		super(id, label, Codicon.closeAll.classNames);
+		super(id, label, 'codicon-close-all');
 	}
 
 	run(context?: unknown): Promise<void> {
@@ -759,7 +799,7 @@ export class CollapseExplorerView extends Action {
 		@IViewletService private readonly viewletService: IViewletService,
 		@IExplorerService readonly explorerService: IExplorerService
 	) {
-		super(id, label, 'explorer-action ' + Codicon.collapseAll.classNames);
+		super(id, label, 'explorer-action codicon-collapse-all');
 		this._register(explorerService.onDidChangeEditable(e => {
 			const elementIsBeingEdited = explorerService.isEditable(e);
 			this.enabled = !elementIsBeingEdited;
@@ -786,7 +826,7 @@ export class RefreshExplorerView extends Action {
 		@IViewletService private readonly viewletService: IViewletService,
 		@IExplorerService private readonly explorerService: IExplorerService
 	) {
-		super(id, label, 'explorer-action ' + Codicon.refresh);
+		super(id, label, 'explorer-action codicon-refresh');
 		this._register(explorerService.onDidChangeEditable(e => {
 			const elementIsBeingEdited = explorerService.isEditable(e);
 			this.enabled = !elementIsBeingEdited;

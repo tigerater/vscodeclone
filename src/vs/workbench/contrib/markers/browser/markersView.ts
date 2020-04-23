@@ -49,7 +49,6 @@ import { editorLightBulbForeground, editorLightBulbAutoFixForeground } from 'vs/
 import { ViewPane, IViewPaneOptions } from 'vs/workbench/browser/parts/views/viewPaneContainer';
 import { IViewDescriptorService } from 'vs/workbench/common/views';
 import { IOpenerService } from 'vs/platform/opener/common/opener';
-import { Codicon } from 'vs/base/common/codicons';
 
 function createResourceMarkersIterator(resourceMarkers: ResourceMarkers): Iterable<ITreeElement<TreeElement>> {
 	return Iterable.map(resourceMarkers.markers, m => {
@@ -890,7 +889,7 @@ registerThemingParticipant((theme: IColorTheme, collector: ICssStyleCollector) =
 	const editorLightBulbForegroundColor = theme.getColor(editorLightBulbForeground);
 	if (editorLightBulbForegroundColor) {
 		collector.addRule(`
-		.monaco-workbench .markers-panel-container ${Codicon.lightBulb.cssSelector} {
+		.monaco-workbench .markers-panel-container .codicon-lightbulb {
 			color: ${editorLightBulbForegroundColor};
 		}`);
 	}
@@ -899,7 +898,7 @@ registerThemingParticipant((theme: IColorTheme, collector: ICssStyleCollector) =
 	const editorLightBulbAutoFixForegroundColor = theme.getColor(editorLightBulbAutoFixForeground);
 	if (editorLightBulbAutoFixForegroundColor) {
 		collector.addRule(`
-		.monaco-workbench .markers-panel-container ${Codicon.lightbulbAutofix.cssSelector} {
+		.monaco-workbench .markers-panel-container .codicon-lightbulb-autofix {
 			color: ${editorLightBulbAutoFixForegroundColor};
 		}`);
 	}

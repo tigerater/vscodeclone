@@ -25,7 +25,7 @@ import { ActionBar, ActionViewItem } from 'vs/base/browser/ui/actionbar/actionba
 import { IThemeService } from 'vs/platform/theme/common/themeService';
 import { attachBadgeStyler } from 'vs/platform/theme/common/styler';
 import { Command } from 'vs/editor/common/modes';
-import { renderCodicons, Codicon } from 'vs/base/common/codicons';
+import { renderCodicons } from 'vs/base/common/codicons';
 import { escape } from 'vs/base/common/strings';
 import { WorkbenchList } from 'vs/platform/list/browser/listService';
 import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
@@ -334,7 +334,7 @@ export class MainPaneDescriptor implements IViewDescriptor {
 
 	readonly id = MainPane.ID;
 	readonly name = MainPane.TITLE;
-	readonly containerIcon = Codicon.sourceControl.classNames;
+	readonly containerIcon = 'codicon-source-control';
 	readonly ctorDescriptor: SyncDescriptor<MainPane>;
 	readonly canToggleVisibility = true;
 	readonly hideByDefault = false;
