@@ -17,7 +17,6 @@ import { KeyCode } from 'vs/base/common/keyCodes';
 import { Color } from 'vs/base/common/color';
 import { ICheckboxStyles, Checkbox } from 'vs/base/browser/ui/checkbox/checkbox';
 import { IFindInputCheckboxOpts } from 'vs/base/browser/ui/findinput/findInputCheckboxes';
-import { Codicon } from 'vs/base/common/codicons';
 
 export interface IReplaceInputOptions extends IReplaceInputStyles {
 	readonly placeholder?: string;
@@ -43,7 +42,7 @@ export class PreserveCaseCheckbox extends Checkbox {
 	constructor(opts: IFindInputCheckboxOpts) {
 		super({
 			// TODO: does this need its own icon?
-			icon: Codicon.preserveCase,
+			actionClassName: 'codicon-preserve-case',
 			title: NLS_PRESERVE_CASE_LABEL + opts.appendTitle,
 			isChecked: opts.isChecked,
 			inputActiveOptionBorder: opts.inputActiveOptionBorder,

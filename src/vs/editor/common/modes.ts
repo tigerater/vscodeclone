@@ -19,7 +19,6 @@ import { LanguageFeatureRegistry } from 'vs/editor/common/modes/languageFeatureR
 import { TokenizationRegistryImpl } from 'vs/editor/common/modes/tokenizationRegistry';
 import { ExtensionIdentifier } from 'vs/platform/extensions/common/extensions';
 import { IMarkerData } from 'vs/platform/markers/common/markers';
-import { iconRegistry, Codicon } from 'vs/base/common/codicons';
 
 /**
  * Open ended enum at runtime
@@ -360,13 +359,7 @@ export const completionKindToCssClass = (function () {
 	data[CompletionItemKind.Issue] = 'issues';
 
 	return function (kind: CompletionItemKind) {
-		const name = data[kind];
-		let codicon = name && iconRegistry.get(name);
-		if (!codicon) {
-			console.info('No codicon found for CompletionItemKind ' + kind);
-			codicon = Codicon.symbolProperty;
-		}
-		return codicon.classNames;
+		return data[kind] || 'property';
 	};
 })();
 
@@ -1050,13 +1043,7 @@ export namespace SymbolKinds {
 	 * @internal
 	 */
 	export function toCssClassName(kind: SymbolKind, inline?: boolean): string {
-		const symbolName = byKind.get(kind);
-		let codicon = symbolName && iconRegistry.get('symbol-' + symbolName);
-		if (!codicon) {
-			console.info('No codicon found for SymbolKind ' + kind);
-			codicon = Codicon.symbolProperty;
-		}
-		return `${inline ? 'inline' : 'block'} ${codicon.classNames}`;
+		return `codicon ${inline ? 'inline' : 'block'} codicon-symbol-${byKind.get(kind) || 'property'}`;
 	}
 }
 
